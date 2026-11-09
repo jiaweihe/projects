@@ -1,0 +1,408 @@
+{
+  "title": "Jersey City AV Game",
+  "as_of": "2026-11-09",
+  "horizon": "3-year pilot window (2027-2029)",
+  "dims": {
+    "safety": "Expected traffic deaths & injuries (Vision Zero)",
+    "risk": "Backlash risk: chance a serious AV crash forces an MVC halt mid-pilot",
+    "jobs": "Rideshare / delivery driver livelihoods",
+    "budget": "City & state transit budget",
+    "access": "Mobility for transit-poor & late-night riders",
+    "innovation": "Tech investment, NJ competitiveness"
+  },
+  "scale": "Effects are in the points defined under 'units', relative to today, at full driverless operation (scaled by the law's driverless share). Ranges [lo, hi] drive the robustness runs.",
+  "laws": {
+    "stall": {
+      "label": "Stall (no AV law)",
+      "waymo": false,
+      "tesla": false,
+      "driverless_share": 0,
+      "effects": {},
+      "basis": "Status quo: NJ has no driverless framework; S1677 sits in Senate Budget & Appropriations, and its prior version (S4702) died.",
+      "src": [
+        "https://legiscan.com/NJ/bill/S1677/2026"
+      ],
+      "validation": 0
+    },
+    "s1677": {
+      "label": "S1677 as written",
+      "waymo": true,
+      "tesla": false,
+      "driverless_share": [
+        0.25,
+        0.5
+      ],
+      "effects": {},
+      "basis": "3-yr pilot, human-driver phase first, cameras + 2 other sensor types, manual controls. Waymo says it delays launch to about 2028, so only part of the window runs driverless. Tesla is excluded. Safety validation is high: the human-driver phase, the 3-sensor rule, and the MVC Chief Administrator's power to halt an operator immediately.",
+      "src": [
+        "https://pub.njleg.gov/Bills/2026/S2000/1677_I1.HTM",
+        "https://nj1015.com/autonomous-vehicles-waymo-pilot-program/"
+      ],
+      "validation": [
+        0.5,
+        0.7
+      ]
+    },
+    "amended": {
+      "label": "Industry-amended",
+      "waymo": true,
+      "tesla": true,
+      "driverless_share": [
+        0.8,
+        1.0
+      ],
+      "effects": {},
+      "basis": "The changes Waymo, Tesla and Chamber of Progress asked for: no safety-driver phase, a sensor-neutral rule, school-zone limits eased. Safety validation is low: no human-driver phase, and the sensor rule drops to cameras-only.",
+      "src": [
+        "https://progresschamber.org/resources/testimony-to-nj-lawmakers-support-and-amend-establishing-an-autonomous-vehicle-pilot-program-a-3968-s-1677/",
+        "https://www.teslarati.com/tesla-urges-new-jersey-owners-to-oppose-new-bill-block-robotaxi/"
+      ],
+      "validation": [
+        0.1,
+        0.3
+      ]
+    },
+    "moratorium": {
+      "label": "Moratorium",
+      "waymo": false,
+      "tesla": false,
+      "driverless_share": 0,
+      "effects": {
+        "innovation": [
+          -1.0,
+          -0.5
+        ],
+        "jobs": [
+          0.0,
+          0.2
+        ]
+      },
+      "basis": "The anti-AV petition's ask: stop AV testing in NJ to protect driver jobs.",
+      "src": [
+        "https://actionnetwork.org/petitions/stop-waymos-autonomous-vehicles-from-spreading-in-new-jersey/"
+      ],
+      "validation": 0
+    }
+  },
+  "city": {
+    "open": {
+      "label": "Open curb",
+      "effects": {
+        "safety": [
+          -0.3,
+          -0.1
+        ]
+      },
+      "op_revenue": [
+        1.0,
+        1.1
+      ],
+      "basis": "No pick-up/drop-off rules. Bike JC and Safe Streets JC worry about AVs stopping in bike lanes; SF's mayor complained of Waymos blocking lanes.",
+      "src": [
+        "https://www.kron4.com/news/technology-ai/sf-mayor-calls-for-more-regulations-on-waymos-and-other-autonomous-vehicles/"
+      ]
+    },
+    "managed": {
+      "label": "Managed curb",
+      "effects": {
+        "safety": [
+          0.1,
+          0.3
+        ],
+        "budget": [
+          0.1,
+          0.3
+        ]
+      },
+      "op_revenue": [
+        0.85,
+        0.95
+      ],
+      "basis": "DOI under Kaplan sets pick-up/drop-off zones, data sharing and curb fees as part of the Vision Zero quick-build program.",
+      "src": [
+        "https://usa.streetsblog.org/2026/06/12/in-new-jersey-mayors-show-how-quickly-we-can-slow-down-drivers"
+      ]
+    },
+    "restrict": {
+      "label": "Restrict curb",
+      "effects": {
+        "safety": [
+          0.0,
+          0.1
+        ],
+        "access": [
+          -0.3,
+          -0.1
+        ]
+      },
+      "op_revenue": [
+        0.4,
+        0.6
+      ],
+      "basis": "No AV pick-ups on commercial corridors. Cities cannot ban state-licensed vehicles, but can choke curb access.",
+      "src": [
+        "https://pub.njleg.gov/Bills/2026/S2000/1677_I1.HTM"
+      ]
+    }
+  },
+  "operators": {
+    "waymo": {
+      "label": "Waymo",
+      "effects": {
+        "safety": [
+          0.38,
+          0.57
+        ],
+        "jobs": [
+          -0.8,
+          -0.4
+        ],
+        "access": [
+          0.1,
+          0.3
+        ],
+        "innovation": [
+          0.6,
+          1.0
+        ]
+      },
+      "revenue": [
+        1.5,
+        2.5
+      ],
+      "entry_cost": [
+        0.4,
+        0.8
+      ],
+      "basis": "Safety: 95% fewer serious-injury crashes (271M rider-only miles, Waymo June 2026) x an assumed 2-3% share of JC vehicle-miles = 1.9-2.9% fewer crashes, i.e. 0.38-0.57 pt. Jobs: an assumed 4-8% of JC rideshare trips captured.",
+      "src": [
+        "https://waymo.com/safety/impact/",
+        "https://evwire.com/p/waymo-safety-data-fewer-injury-crashes-results"
+      ],
+      "hazard": [
+        0.05,
+        0.15
+      ]
+    },
+    "tesla": {
+      "label": "Tesla",
+      "effects": {
+        "safety": [
+          -0.25,
+          0.45
+        ],
+        "jobs": [
+          -0.8,
+          -0.4
+        ],
+        "access": [
+          0.1,
+          0.3
+        ],
+        "innovation": [
+          0.4,
+          0.8
+        ]
+      },
+      "revenue": [
+        1.2,
+        2.2
+      ],
+      "entry_cost": [
+        0.2,
+        0.5
+      ],
+      "basis": "No verified crash rate: 36 NHTSA incident reports, and crashes during remote-operator takeovers. Efficacy is assumed to range from -50% to +90% x a 2.5% share of vehicle-miles, i.e. -0.25 to +0.45 pt. That wide band feeds the risk dimension. Lower entry cost because the fleet is consumer cars.",
+      "src": [
+        "https://teslant.com/en/news/tesla-robotaxi-remote-operator-crashes-five-for-five-36-nhtsa-reports-2026-10",
+        "https://www.statesman.com/business/article/robotaxi-crashes-june-2026-safety-data-22346776.php"
+      ],
+      "hazard": [
+        0.3,
+        0.6
+      ]
+    },
+    "both_jobs_offset": [
+      0.2,
+      0.4
+    ],
+    "hazard_basis": "Assumed. Waymo is low: 271M rider-only miles and about 95% fewer serious-injury crashes. Tesla is high: 36 NHTSA incident reports, every remote-operator takeover ended in a collision, and no verified crash rate."
+  },
+  "via": {
+    "label": "Via + Waymo integration",
+    "effects": {
+      "budget": [
+        0.5,
+        1.5
+      ],
+      "access": [
+        0.5,
+        1.0
+      ]
+    },
+    "revenue": [
+      0.8,
+      1.2
+    ],
+    "failed_cost": [
+      0.2,
+      0.4
+    ],
+    "basis": "JC paid ~$7.7M/yr; the city puts 2025 cost at $15.80/trip and cut service on July 1, 2026 to close a ~$90M gap. Chandler, AZ fills peak trips with Waymo at a $2 fare. Assumed saving $1-3M/yr (0.5-1.5 pt), and most of the cut hours restored. Needs Waymo in the city and a curb that is not restricted.",
+    "src": [
+      "https://gothamist.com/news/jersey-city-weighs-cutting-via-microtransit-service-amid-budget-crisis",
+      "https://www.jerseycitynj.gov/viachanges",
+      "https://www.chandleraz.gov/news-center/city-chandler-partners-waymo-and-bring-avs-chandler-flex"
+    ]
+  },
+  "players": {
+    "waymo": {
+      "name": "Waymo",
+      "power": 4,
+      "w": {
+        "revenue": 0.75,
+        "safety": 0.15,
+        "innovation": 0.1
+      }
+    },
+    "tesla": {
+      "name": "Tesla",
+      "power": 2,
+      "w": {
+        "revenue": 0.85,
+        "innovation": 0.15
+      }
+    },
+    "via": {
+      "name": "Via",
+      "power": 3,
+      "w": {
+        "revenue": 0.7,
+        "access": 0.2,
+        "budget": 0.1
+      }
+    },
+    "jc_doi": {
+      "name": "JC Infrastructure",
+      "power": 3,
+      "w": {
+        "safety": 0.35,
+        "risk": 0.15,
+        "access": 0.2,
+        "budget": 0.3
+      }
+    },
+    "bike_jc": {
+      "name": "Bike JC",
+      "power": 2,
+      "w": {
+        "safety": 0.5,
+        "risk": 0.2,
+        "access": 0.3
+      }
+    },
+    "safe_streets_jc": {
+      "name": "Safe Streets JC",
+      "power": 2,
+      "w": {
+        "safety": 0.6,
+        "risk": 0.2,
+        "access": 0.2
+      }
+    },
+    "nj_transit": {
+      "name": "NJ Transit",
+      "power": 4,
+      "w": {
+        "access": 0.5,
+        "budget": 0.5
+      }
+    },
+    "nj_mvc": {
+      "name": "NJ MVC",
+      "power": 5,
+      "w": {
+        "safety": 0.6,
+        "risk": 0.25,
+        "innovation": 0.15
+      }
+    },
+    "njdot": {
+      "name": "NJDOT",
+      "power": 3,
+      "w": {
+        "safety": 0.4,
+        "risk": 0.15,
+        "access": 0.25,
+        "innovation": 0.2
+      }
+    },
+    "panynj": {
+      "name": "Port Authority",
+      "power": 3,
+      "w": {
+        "innovation": 0.5,
+        "access": 0.5
+      }
+    },
+    "av_opposition": {
+      "name": "Gig drivers",
+      "power": 1,
+      "w": {
+        "jobs": 1.0
+      }
+    },
+    "mayor_solomon": {
+      "name": "Mayor Solomon",
+      "power": 3,
+      "w": {
+        "safety": 0.3,
+        "risk": 0.1,
+        "budget": 0.3,
+        "access": 0.2,
+        "jobs": 0.1
+      },
+      "mover": "city"
+    },
+    "zwicker": {
+      "name": "Legislature (Zwicker)",
+      "power": 4,
+      "w": {
+        "safety": 0.3,
+        "risk": 0.2,
+        "innovation": 0.25,
+        "jobs": 0.25
+      },
+      "mover": "law",
+      "coalition": 0.5
+    },
+    "gov_sherrill": {
+      "name": "Gov. Sherrill",
+      "power": 5,
+      "w": {
+        "budget": 0.25,
+        "jobs": 0.25,
+        "safety": 0.2,
+        "risk": 0.1,
+        "innovation": 0.2
+      },
+      "mover": "sign",
+      "coalition": 0.5
+    }
+  },
+  "weights_basis": "Weights are assumptions inferred from each actor's stated priorities (sources in ../stakeholders.json): Vision Zero for DOI, Bike JC and Safe Streets JC; the $90M deficit for the Mayor; the safety-framed bill and Zwicker's 'pro New Jersey safety'; Sherrill's NJ Transit budget and jobs priorities. Power scores come from the power map. Movers weigh their own priorities and a power-weighted coalition of everyone else equally (coalition = 0.5).",
+  "risk_basis": "P(halt) = sum over entering operators of hazard x driverless share x (1 - law validation), capped at 0.9. A halt mid-window wipes out about half the expected AV benefits and revenue. Precedent: California DMV suspended Cruise's driverless permits on Oct 24, 2023, three weeks after one pedestrian-dragging crash. S1677 gives MVC's Chief Administrator the same immediate-halt power.",
+  "units": {
+    "safety": "1 pt = 5% fewer serious-injury crashes in JC",
+    "risk": "1 pt = 50% chance of a forced halt",
+    "jobs": "1 pt = 10% of JC rideshare trips kept by human drivers",
+    "budget": "1 pt = $2M/yr (JC paid ~$7.7M/yr for Via)",
+    "access": "1 pt = restoring the Via evening + Saturday service cut on July 1, 2026",
+    "innovation": "1 pt = a full commercial robotaxi launch in the NJ market"
+  },
+  "normalization": "Each actor's utility is divided by its largest absolute value over all reachable outcomes. Influence in the coalition term then comes from power-map scores, not from whose units are bigger.",
+  "risk_src": [
+    "https://www.axios.com/2023/10/24/cruise-permit-suspended-driverless-cars",
+    "https://pub.njleg.gov/Bills/2026/S2000/1677_I1.HTM"
+  ]
+}

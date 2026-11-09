@@ -1,0 +1,467 @@
+<title>Jersey City AV Game</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the game tree is the spine. The equilibrium path runs across the top; controls sit beside four readouts (payoffs, dimensions, robustness, assumptions). */
+:root {
+  --bg: #f4f6f8; --surface: #ffffff; --ink: #141920; --ink-2: #485260; --muted: #737d8b; --line: #dde2e8;
+  --accent: #1f5fa8; --accent-soft: #e3edf9;
+  --pos: #2a78d6; --neg: #e34948; --mid: #f0efec; --s1: #2a78d6; --s2: #eb6834;
+  --display: "Public Sans", "Helvetica Neue", Arial, sans-serif;
+  --body: "Public Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1216; --surface: #171b20; --ink: #eef1f4; --ink-2: #b7bfca; --muted: #8b94a1; --line: #29303a;
+  --accent: #74abee; --accent-soft: #1b2a3d;
+  --pos: #3987e5; --neg: #e66767; --mid: #383835; --s1: #3987e5; --s2: #d95926; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f1216; --surface: #171b20; --ink: #eef1f4; --ink-2: #b7bfca; --muted: #8b94a1; --line: #29303a;
+  --accent: #74abee; --accent-soft: #1b2a3d;
+  --pos: #3987e5; --neg: #e66767; --mid: #383835; --s1: #3987e5; --s2: #d95926; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 28px }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0 }
+h1 { font-size: clamp(1.6rem, 3.2vw, 2.25rem); font-weight: 700; letter-spacing: -0.01em }
+h2 { font-size: 1.05rem; font-weight: 650 }
+.lede { color: var(--ink-2); max-width: 68ch; margin: 6px 0 0 }
+.eyebrow { font: 500 0.72rem/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted) }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums }
+a { color: var(--accent) }
+
+/* equilibrium path */
+.path { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden }
+.move { padding: 14px 16px; display: grid; gap: 4px; position: relative; min-width: 0 }
+.move + .move { border-left: 1px solid var(--line) }
+.move + .move::before { content: ""; position: absolute; left: -7px; top: 50%; width: 12px; height: 12px; background: var(--surface);
+  border-top: 1px solid var(--line); border-right: 1px solid var(--line); transform: translateY(-50%) rotate(45deg) }
+.move b { font: 650 1.05rem/1.25 var(--display) }
+.move small { color: var(--ink-2) }
+.verdict { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: baseline }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); font: 500 0.8rem/1.4 var(--mono) }
+
+.grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 24px; align-items: start }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 14px; min-width: 0 }
+.controls { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px) }
+#ctls { display: grid; gap: 16px }
+.ctl { display: grid; gap: 4px }
+.ctl label { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; font-size: 0.88rem }
+.ctl p { margin: 0; color: var(--muted); font-size: 0.78rem; line-height: 1.4 }
+input[type=range] { width: 100%; accent-color: var(--accent) }
+input[type=range]:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+button { font: 600 0.85rem var(--body); color: var(--accent); background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer }
+button:hover { background: var(--accent-soft) }
+.results { display: grid; gap: 24px; min-width: 0 }
+.note { color: var(--ink-2); font-size: 0.86rem; margin: 0; max-width: 72ch }
+
+/* heatmap */
+.scroll { overflow-x: auto }
+table.heat { border-collapse: separate; border-spacing: 2px; width: 100%; min-width: 560px; font-size: 0.86rem }
+.heat th { font-weight: 600; text-align: left; padding: 6px 8px; vertical-align: bottom }
+.heat thead th { font-size: 0.8rem }
+.heat thead th span { display: block; font: 400 0.72rem/1.3 var(--mono); color: var(--muted) }
+.heat thead th.eq { box-shadow: inset 0 -3px 0 var(--accent) }
+.heat td { text-align: center; padding: 7px 4px; border-radius: 4px; font-family: var(--mono); font-variant-numeric: tabular-nums; position: relative }
+.heat td.best::after { content: ""; position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: currentColor }
+.heat tbody th { font-weight: 500; white-space: nowrap }
+.heat tbody th small { color: var(--muted); font-family: var(--mono); margin-left: 4px }
+.heat tr.mover th { font-weight: 700 }
+.scalebar { display: flex; align-items: center; gap: 8px; font: 0.75rem var(--mono); color: var(--muted) }
+.scalebar i { flex: 0 0 140px; height: 8px; border-radius: 4px }
+
+/* diverging bars */
+.dims { display: grid; gap: 10px }
+.dim { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 10px; align-items: center }
+.dim > span { font-size: 0.85rem; font-weight: 500 }
+.dim > span small { display: block; color: var(--muted); font-weight: 400; font-size: 0.72rem; line-height: 1.3 }
+.track { position: relative; height: 34px; border-left: 1px dashed transparent }
+.track::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; border-left: 1px solid var(--line) }
+.bar { position: absolute; height: 13px; border-radius: 4px }
+.bar.a { top: 2px; background: var(--s1) } .bar.b { top: 18px; background: var(--s2) }
+.bar em { position: absolute; top: -1px; font: 0.7rem/15px var(--mono); font-style: normal; color: var(--ink-2); white-space: nowrap }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.8rem; color: var(--ink-2) }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px }
+.axis { display: grid; grid-template-columns: 150px minmax(0,1fr); gap: 10px; font: 0.7rem var(--mono); color: var(--muted) }
+.axis div { display: flex; justify-content: space-between }
+
+/* robustness */
+.rob { display: grid; gap: 8px }
+.robrow { display: grid; grid-template-columns: minmax(0, 1fr) 56px; gap: 10px; align-items: center }
+.robrow .lab { font-size: 0.82rem; display: grid; gap: 3px; min-width: 0 }
+.robrow .lab code { font: 0.75rem var(--mono); color: var(--ink-2); overflow-wrap: anywhere }
+.robrow .fill { height: 10px; border-radius: 0 4px 4px 0; background: var(--s1) }
+.robrow .pct { text-align: right }
+.flips { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px }
+.flip { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 4px }
+.flip b { font: 600 1.35rem var(--mono) }
+.flip span { font-size: 0.82rem; color: var(--ink-2) }
+
+details { border-top: 1px solid var(--line); padding-top: 10px }
+summary { cursor: pointer; font-weight: 600 }
+.src { display: grid; gap: 12px; margin-top: 12px }
+.src div { display: grid; gap: 2px; font-size: 0.84rem }
+.src div p { margin: 0; color: var(--ink-2) }
+.src div a { font: 0.74rem var(--mono); overflow-wrap: anywhere }
+
+#tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 0.78rem; padding: 6px 9px; border-radius: 6px; max-width: 280px; z-index: 20; line-height: 1.4 }
+
+@media (max-width: 860px) {
+  .grid { grid-template-columns: minmax(0, 1fr) }
+  .controls { position: static }
+  .path { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .move:nth-child(3) { border-left: 0 }
+  .move:nth-child(n+3) { border-top: 1px solid var(--line) }
+  .move::before { display: none }
+  .dim, .axis { grid-template-columns: 110px minmax(0, 1fr) }
+}
+@media (prefers-reduced-motion: no-preference) { .bar, .fill { transition: left .25s, width .25s } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Jersey City · autonomous mobility · as of <span id="asof"></span></div>
+    <h1>Who gets driverless cars onto Jersey City streets, and on whose terms?</h1>
+    <p class="lede">A four-move game solved by backward induction. The Legislature picks a bill, the Governor signs or vetoes it, the City sets curb rules, and then Waymo, Tesla and Via decide at the same time whether to enter. Each of 14 actors scores outcomes on six dimensions. Move the sliders to change their priorities and watch the equilibrium shift.</p>
+  </header>
+
+  <section aria-label="Equilibrium path">
+    <div class="path" id="path"></div>
+  </section>
+
+  <div class="grid">
+    <aside class="panel controls" aria-label="Assumptions">
+      <div class="eyebrow">Priorities &amp; unknowns</div>
+      <div id="ctls"></div>
+      <button id="reset" type="button">Reset to sourced defaults</button>
+    </aside>
+
+    <div class="results">
+      <section class="panel">
+        <h2>Payoffs by bill</h2>
+        <p class="note">Each cell shows how well an actor fares if that bill is proposed and the rest of the game plays out (−1 is their worst reachable outcome, +1 their best). The dot marks each actor's favorite. The underlined column is the one the Legislature picks.</p>
+        <div class="scroll"><table class="heat" id="heat"></table></div>
+        <div class="scalebar"><span>−1 worse</span><i id="ramp"></i><span>+1 better</span></div>
+      </section>
+
+      <section class="panel">
+        <h2>What each live option does to Jersey City</h2>
+        <div class="legend"><span><i style="background:var(--s1)"></i>S1677 as written</span><span><i style="background:var(--s2)"></i>Industry-amended</span><span>Change from today, at each bill's equilibrium</span></div>
+        <div class="dims" id="dims"></div>
+        <div class="axis"><span></span><div><span>−2</span><span>0</span><span>+2</span></div></div>
+      </section>
+
+      <section class="panel">
+        <h2>How robust is it?</h2>
+        <p class="note">Results of <span class="num" id="nruns"></span> runs with every effect redrawn within its sourced range and every actor's weights scaled by ±50%. Uses your slider settings.</p>
+        <div class="rob" id="rob"></div>
+        <h2 style="margin-top:6px">Tipping points</h2>
+        <div class="flips" id="flips"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Assumptions &amp; sources</h2>
+        <p class="note" id="scale"></p>
+        <details><summary>Model inputs and why</summary><div class="src" id="src"></div></details>
+      </section>
+    </div>
+  </div>
+</div>
+<div id="tip" hidden></div>
+
+<script>// Sequential AV game for Jersey City, solved by backward induction.
+// Legislature picks a bill -> Governor signs/vetoes -> City sets curb policy ->
+// Waymo, Tesla, Via move simultaneously (pure-strategy Nash equilibrium).
+// Works in Node (module.exports) and the browser (window.AVGame).
+(function (root) {
+  const DIMS = ["safety", "risk", "jobs", "budget", "access", "innovation"];
+  const OPS = ["waymo", "tesla", "via"];
+
+  function rngFrom(seed) { // mulberry32: deterministic for tests
+    let a = seed >>> 0;
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  const pick = (v, rng) => Array.isArray(v) ? (rng ? v[0] + (v[1] - v[0]) * rng() : (v[0] + v[1]) / 2) : v;
+  const fx = (eff, rng) => Object.fromEntries(Object.entries(eff || {}).map(([k, v]) => [k, pick(v, rng)]));
+
+  // Collapse every [lo, hi] range to a number: midpoint, or a random draw when rng is given.
+  // jitter > 0 also scales each player weight by U(1-jitter, 1+jitter) and renormalises.
+  function resolve(m, rng = null, jitter = 0) {
+    const r = { laws: {}, city: {}, players: {} };
+    for (const [k, l] of Object.entries(m.laws)) r.laws[k] = { ...l, share: pick(l.driverless_share, rng), valid: pick(l.validation, rng), fx: fx(l.effects, rng) };
+    for (const [k, c] of Object.entries(m.city)) r.city[k] = { ...c, fx: fx(c.effects, rng), mult: pick(c.op_revenue, rng) };
+    r.ops = {};
+    for (const k of ["waymo", "tesla"]) { const o = m.operators[k];
+      r.ops[k] = { fx: fx(o.effects, rng), hazard: pick(o.hazard, rng),
+        revenue: pick(o.revenue, rng), cost: pick(o.entry_cost, rng) }; }
+    r.bothOffset = pick(m.operators.both_jobs_offset, rng);
+    r.via = { fx: fx(m.via.effects, rng), revenue: pick(m.via.revenue, rng), failed: pick(m.via.failed_cost, rng) };
+    for (const [k, p] of Object.entries(m.players)) {
+      let w = { ...p.w };
+      if (rng && jitter) { for (const d in w) w[d] *= 1 - jitter + 2 * jitter * rng();
+        const s = Object.values(w).reduce((a, b) => a + b, 0); for (const d in w) w[d] /= s; }
+      r.players[k] = { ...p, w };
+    }
+    return r;
+  }
+
+  function feasible(r, law, a) {
+    return (!a.waymo || r.laws[law].waymo) && (!a.tesla || r.laws[law].tesla);
+  }
+
+  function outcome(r, law, city, a) {
+    const v = Object.fromEntries(DIMS.map(d => [d, 0]));
+    const add = (eff, k = 1) => { for (const d in eff) v[d] += eff[d] * k; };
+    const L = r.laws[law], C = r.city[city], share = L.share;
+    // Chance a serious crash forces an MVC halt (Cruise 2023 precedent); a halt costs ~half the window.
+    const pHalt = Math.min(0.9, ["waymo", "tesla"].reduce((s, k) => s + (a[k] ? r.ops[k].hazard * share * (1 - L.valid) : 0), 0));
+    const keep = share * (1 - pHalt / 2);
+    add(L.fx);
+    v.risk = pHalt ? -2 * pHalt : 0;
+    if (a.waymo || a.tesla) add(C.fx, keep); // curb policy only matters once AVs are on the street
+    const rev = { waymo: 0, tesla: 0, via: 0 };
+    for (const k of ["waymo", "tesla"]) if (a[k]) {
+      add(r.ops[k].fx, keep);
+      rev[k] = r.ops[k].revenue * keep * C.mult - r.ops[k].cost;
+    }
+    if (a.waymo && a.tesla) v.jobs += r.bothOffset * keep; // displacement is not fully additive
+    const integrated = a.via && a.waymo && city !== "restrict";
+    if (a.via) {
+      if (integrated) { add(r.via.fx, keep); rev.via = r.via.revenue * keep; rev.waymo += 0.2 * keep; }
+      else rev.via = -r.via.failed;
+    }
+    for (const d of DIMS) v[d] = Math.max(-2, Math.min(2, v[d]));
+    return { v, rev, integrated, pHalt };
+  }
+
+  const own = (p, id, o) => Object.entries(p.w).reduce((s, [d, w]) => s + w * (d === "revenue" ? (o.rev[id] || 0) : o.v[d]), 0);
+
+  // Largest |raw utility| per actor over every reachable outcome, so utilities are comparable.
+  function scales(r) {
+    if (r._scale) return r._scale;
+    const s = Object.fromEntries(Object.keys(r.players).map(k => [k, 1e-9]));
+    for (const law of Object.keys(r.laws)) for (const city of Object.keys(r.city)) for (let i = 0; i < 8; i++) {
+      const a = { waymo: !!(i & 1), tesla: !!(i & 2), via: !!(i & 4) };
+      if (!feasible(r, law, a)) continue;
+      const o = outcome(r, law, city, a);
+      for (const [id, p] of Object.entries(r.players)) s[id] = Math.max(s[id], Math.abs(own(p, id, o)));
+    }
+    return (r._scale = s);
+  }
+
+  function utilities(r, o) {
+    const u = {}, s = scales(r);
+    for (const [id, p] of Object.entries(r.players)) u[id] = own(p, id, o) / s[id];
+    for (const [id, p] of Object.entries(r.players)) if (p.coalition != null) {
+      let num = 0, den = 0;
+      for (const [j, q] of Object.entries(r.players)) if (j !== id) { num += q.power * u[j]; den += q.power; }
+      u[id] = (1 - p.coalition) * u[id] + p.coalition * (num / den);
+    }
+    return u;
+  }
+
+  // Operators' simultaneous move: enumerate the 8 profiles, keep pure Nash equilibria,
+  // select the one with the highest joint operator payoff (payoff-dominance).
+  function operatorsNE(r, law, city) {
+    const profiles = [];
+    for (let i = 0; i < 8; i++) {
+      const a = { waymo: !!(i & 1), tesla: !!(i & 2), via: !!(i & 4) };
+      if (feasible(r, law, a)) profiles.push(a);
+    }
+    const val = a => utilities(r, outcome(r, law, city, a));
+    const eq = profiles.filter(a => { const u = val(a);
+      return OPS.every(k => { const b = { ...a, [k]: !a[k] };
+        return !feasible(r, law, b) || val(b)[k] <= u[k] + 1e-9; }); });
+    const pool = eq.length ? eq : profiles;
+    const score = a => { const u = val(a); return OPS.reduce((s, k) => s + u[k], 0); };
+    const best = pool.reduce((x, y) => (score(y) > score(x) + 1e-9 ? y : x));
+    return { a: best, isNash: eq.length > 0, nEq: eq.length };
+  }
+
+  function cityStage(r, law) {
+    let best = null;
+    for (const city of Object.keys(r.city)) {
+      const ne = operatorsNE(r, law, city), o = outcome(r, law, city, ne.a), u = utilities(r, o);
+      if (!best || u.mayor_solomon > best.u.mayor_solomon + 1e-9) best = { law, city, ...ne, o, u };
+    }
+    return best;
+  }
+
+  function solve(m, opts = {}) {
+    const r = opts.resolved || resolve(m, opts.rng || null, opts.jitter || 0);
+    const branches = {};
+    for (const law of Object.keys(r.laws)) {
+      const signed = cityStage(r, law);
+      const vetoed = cityStage(r, "stall");
+      const sign = law === "stall" || signed.u.gov_sherrill >= vetoed.u.gov_sherrill - 1e-9;
+      branches[law] = { proposed: law, sign, ...(sign ? signed : vetoed) };
+    }
+    const lawChoice = Object.keys(branches).reduce((x, y) =>
+      branches[y].u.zwicker > branches[x].u.zwicker + 1e-9 ? y : x);
+    return { eq: branches[lawChoice], branches, resolved: r };
+  }
+
+  const pathKey = e => `${e.proposed}|${e.sign ? "signed" : "vetoed"}|${e.city}|` +
+    (OPS.filter(k => e.a[k]).join("+") || "no entry");
+
+  function robustness(m, n = 1000, seed = 7, jitter = 0.5) {
+    const rng = rngFrom(seed), counts = {};
+    for (let i = 0; i < n; i++) { const k = pathKey(solve(m, { rng, jitter }).eq); counts[k] = (counts[k] || 0) + 1; }
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, c]) => ({ path: k, share: c / n }));
+  }
+
+  // Re-weight one actor so `dim` gets weight x and the others keep their relative shares.
+  function setWeight(m, id, dim, x) {
+    const c = JSON.parse(JSON.stringify(m)), w = c.players[id].w, rest = 1 - (w[dim] || 0);
+    for (const d in w) if (d !== dim) w[d] = rest > 0 ? w[d] * (1 - x) / rest : (1 - x) / (Object.keys(w).length - 1);
+    w[dim] = x;
+    return c;
+  }
+
+  // Smallest x in [lo, hi] at which `test(solve(make(x)).eq)` becomes true (bisection; assumes one flip).
+  function threshold(make, test, lo = 0, hi = 1, steps = 30) {
+    const at = x => test(solve(make(x)).eq);
+    if (at(lo)) return lo;
+    if (!at(hi)) return null;
+    for (let i = 0; i < steps; i++) { const mid = (lo + hi) / 2; if (at(mid)) hi = mid; else lo = mid; }
+    return hi;
+  }
+
+  const api = { setWeight, threshold, cityStage, DIMS, OPS, resolve, outcome, utilities, operatorsNE, solve, robustness, pathKey, rngFrom, feasible };
+  if (typeof module !== "undefined" && module.exports) module.exports = api; else root.AVGame = api;
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+<script>
+const MODEL = {"title":"Jersey City AV Game","as_of":"2026-11-09","horizon":"3-year pilot window (2027-2029)","dims":{"safety":"Expected traffic deaths & injuries (Vision Zero)","risk":"Backlash risk: chance a serious AV crash forces an MVC halt mid-pilot","jobs":"Rideshare / delivery driver livelihoods","budget":"City & state transit budget","access":"Mobility for transit-poor & late-night riders","innovation":"Tech investment, NJ competitiveness"},"scale":"Effects are in the points defined under 'units', relative to today, at full driverless operation (scaled by the law's driverless share). Ranges [lo, hi] drive the robustness runs.","laws":{"stall":{"label":"Stall (no AV law)","waymo":false,"tesla":false,"driverless_share":0,"effects":{},"basis":"Status quo: NJ has no driverless framework; S1677 sits in Senate Budget & Appropriations, and its prior version (S4702) died.","src":["https://legiscan.com/NJ/bill/S1677/2026"],"validation":0},"s1677":{"label":"S1677 as written","waymo":true,"tesla":false,"driverless_share":[0.25,0.5],"effects":{},"basis":"3-yr pilot, human-driver phase first, cameras + 2 other sensor types, manual controls. Waymo says it delays launch to about 2028, so only part of the window runs driverless. Tesla is excluded. Safety validation is high: the human-driver phase, the 3-sensor rule, and the MVC Chief Administrator's power to halt an operator immediately.","src":["https://pub.njleg.gov/Bills/2026/S2000/1677_I1.HTM","https://nj1015.com/autonomous-vehicles-waymo-pilot-program/"],"validation":[0.5,0.7]},"amended":{"label":"Industry-amended","waymo":true,"tesla":true,"driverless_share":[0.8,1],"effects":{},"basis":"The changes Waymo, Tesla and Chamber of Progress asked for: no safety-driver phase, a sensor-neutral rule, school-zone limits eased. Safety validation is low: no human-driver phase, and the sensor rule drops to cameras-only.","src":["https://progresschamber.org/resources/testimony-to-nj-lawmakers-support-and-amend-establishing-an-autonomous-vehicle-pilot-program-a-3968-s-1677/","https://www.teslarati.com/tesla-urges-new-jersey-owners-to-oppose-new-bill-block-robotaxi/"],"validation":[0.1,0.3]},"moratorium":{"label":"Moratorium","waymo":false,"tesla":false,"driverless_share":0,"effects":{"innovation":[-1,-0.5],"jobs":[0,0.2]},"basis":"The anti-AV petition's ask: stop AV testing in NJ to protect driver jobs.","src":["https://actionnetwork.org/petitions/stop-waymos-autonomous-vehicles-from-spreading-in-new-jersey/"],"validation":0}},"city":{"open":{"label":"Open curb","effects":{"safety":[-0.3,-0.1]},"op_revenue":[1,1.1],"basis":"No pick-up/drop-off rules. Bike JC and Safe Streets JC worry about AVs stopping in bike lanes; SF's mayor complained of Waymos blocking lanes.","src":["https://www.kron4.com/news/technology-ai/sf-mayor-calls-for-more-regulations-on-waymos-and-other-autonomous-vehicles/"]},"managed":{"label":"Managed curb","effects":{"safety":[0.1,0.3],"budget":[0.1,0.3]},"op_revenue":[0.85,0.95],"basis":"DOI under Kaplan sets pick-up/drop-off zones, data sharing and curb fees as part of the Vision Zero quick-build program.","src":["https://usa.streetsblog.org/2026/06/12/in-new-jersey-mayors-show-how-quickly-we-can-slow-down-drivers"]},"restrict":{"label":"Restrict curb","effects":{"safety":[0,0.1],"access":[-0.3,-0.1]},"op_revenue":[0.4,0.6],"basis":"No AV pick-ups on commercial corridors. Cities cannot ban state-licensed vehicles, but can choke curb access.","src":["https://pub.njleg.gov/Bills/2026/S2000/1677_I1.HTM"]}},"operators":{"waymo":{"label":"Waymo","effects":{"safety":[0.38,0.57],"jobs":[-0.8,-0.4],"access":[0.1,0.3],"innovation":[0.6,1]},"revenue":[1.5,2.5],"entry_cost":[0.4,0.8],"basis":"Safety: 95% fewer serious-injury crashes (271M rider-only miles, Waymo June 2026) x an assumed 2-3% share of JC vehicle-miles = 1.9-2.9% fewer crashes, i.e. 0.38-0.57 pt. Jobs: an assumed 4-8% of JC rideshare trips captured.","src":["https://waymo.com/safety/impact/","https://evwire.com/p/waymo-safety-data-fewer-injury-crashes-results"],"hazard":[0.05,0.15]},"tesla":{"label":"Tesla","effects":{"safety":[-0.25,0.45],"jobs":[-0.8,-0.4],"access":[0.1,0.3],"innovation":[0.4,0.8]},"revenue":[1.2,2.2],"entry_cost":[0.2,0.5],"basis":"No verified crash rate: 36 NHTSA incident reports, and crashes during remote-operator takeovers. Efficacy is assumed to range from -50% to +90% x a 2.5% share of vehicle-miles, i.e. -0.25 to +0.45 pt. That wide band feeds the risk dimension. Lower entry cost because the fleet is consumer cars.","src":["https://teslant.com/en/news/tesla-robotaxi-remote-operator-crashes-five-for-five-36-nhtsa-reports-2026-10","https://www.statesman.com/business/article/robotaxi-crashes-june-2026-safety-data-22346776.php"],"hazard":[0.3,0.6]},"both_jobs_offset":[0.2,0.4],"hazard_basis":"Assumed. Waymo is low: 271M rider-only miles and about 95% fewer serious-injury crashes. Tesla is high: 36 NHTSA incident reports, every remote-operator takeover ended in a collision, and no verified crash rate."},"via":{"label":"Via + Waymo integration","effects":{"budget":[0.5,1.5],"access":[0.5,1]},"revenue":[0.8,1.2],"failed_cost":[0.2,0.4],"basis":"JC paid ~$7.7M/yr; the city puts 2025 cost at $15.80/trip and cut service on July 1, 2026 to close a ~$90M gap. Chandler, AZ fills peak trips with Waymo at a $2 fare. Assumed saving $1-3M/yr (0.5-1.5 pt), and most of the cut hours restored. Needs Waymo in the city and a curb that is not restricted.","src":["https://gothamist.com/news/jersey-city-weighs-cutting-via-microtransit-service-amid-budget-crisis","https://www.jerseycitynj.gov/viachanges","https://www.chandleraz.gov/news-center/city-chandler-partners-waymo-and-bring-avs-chandler-flex"]},"players":{"waymo":{"name":"Waymo","power":4,"w":{"revenue":0.75,"safety":0.15,"innovation":0.1}},"tesla":{"name":"Tesla","power":2,"w":{"revenue":0.85,"innovation":0.15}},"via":{"name":"Via","power":3,"w":{"revenue":0.7,"access":0.2,"budget":0.1}},"jc_doi":{"name":"JC Infrastructure","power":3,"w":{"safety":0.35,"risk":0.15,"access":0.2,"budget":0.3}},"bike_jc":{"name":"Bike JC","power":2,"w":{"safety":0.5,"risk":0.2,"access":0.3}},"safe_streets_jc":{"name":"Safe Streets JC","power":2,"w":{"safety":0.6,"risk":0.2,"access":0.2}},"nj_transit":{"name":"NJ Transit","power":4,"w":{"access":0.5,"budget":0.5}},"nj_mvc":{"name":"NJ MVC","power":5,"w":{"safety":0.6,"risk":0.25,"innovation":0.15}},"njdot":{"name":"NJDOT","power":3,"w":{"safety":0.4,"risk":0.15,"access":0.25,"innovation":0.2}},"panynj":{"name":"Port Authority","power":3,"w":{"innovation":0.5,"access":0.5}},"av_opposition":{"name":"Gig drivers","power":1,"w":{"jobs":1}},"mayor_solomon":{"name":"Mayor Solomon","power":3,"w":{"safety":0.3,"risk":0.1,"budget":0.3,"access":0.2,"jobs":0.1},"mover":"city"},"zwicker":{"name":"Legislature (Zwicker)","power":4,"w":{"safety":0.3,"risk":0.2,"innovation":0.25,"jobs":0.25},"mover":"law","coalition":0.5},"gov_sherrill":{"name":"Gov. Sherrill","power":5,"w":{"budget":0.25,"jobs":0.25,"safety":0.2,"risk":0.1,"innovation":0.2},"mover":"sign","coalition":0.5}},"weights_basis":"Weights are assumptions inferred from each actor's stated priorities (sources in ../stakeholders.json): Vision Zero for DOI, Bike JC and Safe Streets JC; the $90M deficit for the Mayor; the safety-framed bill and Zwicker's 'pro New Jersey safety'; Sherrill's NJ Transit budget and jobs priorities. Power scores come from the power map. Movers weigh their own priorities and a power-weighted coalition of everyone else equally (coalition = 0.5).","risk_basis":"P(halt) = sum over entering operators of hazard x driverless share x (1 - law validation), capped at 0.9. A halt mid-window wipes out about half the expected AV benefits and revenue. Precedent: California DMV suspended Cruise's driverless permits on Oct 24, 2023, three weeks after one pedestrian-dragging crash. S1677 gives MVC's Chief Administrator the same immediate-halt power.","units":{"safety":"1 pt = 5% fewer serious-injury crashes in JC","risk":"1 pt = 50% chance of a forced halt","jobs":"1 pt = 10% of JC rideshare trips kept by human drivers","budget":"1 pt = $2M/yr (JC paid ~$7.7M/yr for Via)","access":"1 pt = restoring the Via evening + Saturday service cut on July 1, 2026","innovation":"1 pt = a full commercial robotaxi launch in the NJ market"},"normalization":"Each actor's utility is divided by its largest absolute value over all reachable outcomes. Influence in the coalition term then comes from power-map scores, not from whose units are bigger.","risk_src":["https://www.axios.com/2023/10/24/cruise-permit-suspended-driverless-cars","https://pub.njleg.gov/Bills/2026/S2000/1677_I1.HTM"]};
+const G = window.AVGame;
+const LAWS = Object.keys(MODEL.laws), CITY = MODEL.city;
+const fmt = (x, d = 2) => { const s = Math.abs(x).toFixed(d); return (+s === 0 ? "" : x > 0 ? "+" : "−") + s; };
+const $ = id => document.getElementById(id);
+
+const W0 = JSON.parse(JSON.stringify(MODEL));
+const CTL = [
+  { id: "leg_risk", label: "Legislature: weight on backlash risk", min: 0, max: 0.6, step: 0.01,
+    get: m => m.players.zwicker.w.risk, set: (m, x) => G.setWeight(m, "zwicker", "risk", x),
+    note: "How much Zwicker's side fears a Cruise-style halt." },
+  { id: "leg_coal", label: "Legislature: listens to coalition", min: 0, max: 1, step: 0.05,
+    get: m => m.players.zwicker.coalition, set: (m, x) => (m.players.zwicker.coalition = x, m),
+    note: "0 = own priorities only. 1 = power-weighted wishes of all other actors." },
+  { id: "gov_jobs", label: "Governor: weight on driver jobs", min: 0, max: 0.9, step: 0.01,
+    get: m => m.players.gov_sherrill.w.jobs, set: (m, x) => G.setWeight(m, "gov_sherrill", "jobs", x),
+    note: "Gig-driver displacement against the budget and safety gains." },
+  { id: "mayor_budget", label: "Mayor: weight on city budget", min: 0, max: 0.8, step: 0.01,
+    get: m => m.players.mayor_solomon.w.budget, set: (m, x) => G.setWeight(m, "mayor_solomon", "budget", x),
+    note: "JC's structural gap is ~$90M; Via costs ~$7.7M/yr." },
+  { id: "tesla_hz", label: "Tesla: chance a crash forces a halt", min: 0, max: 0.8, step: 0.01,
+    get: m => (m.operators.tesla.hazard[0] + m.operators.tesla.hazard[1]) / 2,
+    set: (m, x) => { const w = (m.operators.tesla.hazard[1] - m.operators.tesla.hazard[0]) / 2;
+      m.operators.tesla.hazard = [Math.max(0, x - w), Math.min(1, x + w)]; return m; },
+    note: "Per fully driverless window. Waymo's is 0.05–0.15. Tesla has no verified crash rate." },
+  { id: "s1677_share", label: "S1677: share of window run driverless", min: 0.1, max: 0.9, step: 0.01,
+    get: m => (m.laws.s1677.driverless_share[0] + m.laws.s1677.driverless_share[1]) / 2,
+    set: (m, x) => (m.laws.s1677.driverless_share = [Math.max(0, x - 0.125), Math.min(1, x + 0.125)], m),
+    note: "Shrinks as the human-driver phase gets longer. Waymo says S1677 means 2028." },
+];
+let state = Object.fromEntries(CTL.map(c => [c.id, +c.get(W0).toFixed(3)]));
+
+function model() { let m = JSON.parse(JSON.stringify(W0)); for (const c of CTL) m = c.set(m, state[c.id]) || m; return m; }
+
+function buildControls() {
+  $("ctls").innerHTML = CTL.map(c => `<div class="ctl"><label for="${c.id}"><span>${c.label}</span><span class="num" id="${c.id}_v"></span></label>
+    <input type="range" id="${c.id}" min="${c.min}" max="${c.max}" step="${c.step}" value="${state[c.id]}"><p>${c.note}</p></div>`).join("");
+  for (const c of CTL) $(c.id).addEventListener("input", e => { state[c.id] = +e.target.value; render(); });
+  $("reset").onclick = () => { state = Object.fromEntries(CTL.map(c => [c.id, +c.get(W0).toFixed(3)]));
+    for (const c of CTL) $(c.id).value = state[c.id]; render(); };
+}
+
+function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function hex(h) { h = h.replace("#", ""); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); }
+function mix(a, b, t) { return a.map((x, i) => Math.round(x + (b[i] - x) * t)); }
+function heatColor(v) { const mid = hex(css("--mid")), end = hex(css(v >= 0 ? "--pos" : "--neg"));
+  const c = mix(mid, end, Math.min(1, Math.abs(v))); return { bg: `rgb(${c})`, light: (0.299*c[0] + 0.587*c[1] + 0.114*c[2]) < 140 }; }
+
+const opsLabel = a => ["waymo", "tesla", "via"].filter(k => a[k]).map(k => ({ waymo: "Waymo", tesla: "Tesla", via: "Via" })[k]).join(" + ") || "nobody enters";
+
+let robTimer;
+function render() {
+  for (const c of CTL) $(c.id + "_v").textContent = state[c.id].toFixed(2);
+  const m = model(), sol = G.solve(m), eq = sol.eq, B = sol.branches;
+
+  const lawL = MODEL.laws[eq.proposed].label, first = s => s.split(". ")[0].replace(/\.$/, "") + ".";
+  $("path").innerHTML = [
+    ["1 · Legislature proposes", lawL, first(MODEL.laws[eq.proposed].basis)],
+    ["2 · Governor", eq.sign ? "Signs" : "Vetoes", eq.sign ? "Signing beats the status quo for her." : "Vetoing keeps the status quo."],
+    ["3 · City curb policy", CITY[eq.city].label, first(CITY[eq.city].basis)],
+    ["4 · Operators enter", opsLabel(eq.a), `Chance of forced halt: ${(eq.o.pHalt * 100).toFixed(0)}%` + (eq.o.integrated ? " · Via runs Waymo in its service" : "")],
+  ].map(([k, b, s]) => `<div class="move"><span class="eyebrow">${k}</span><b>${b}</b><small>${s}</small></div>`).join("");
+
+  // heatmap
+  const P = MODEL.players, ids = Object.keys(P);
+  let h = `<thead><tr><th>Actor <span>power</span></th>` + LAWS.map(l => { const b = B[l];
+    return `<th class="${l === eq.proposed ? "eq" : ""}">${MODEL.laws[l].label}<span>${l === "stall" ? "" : b.sign ? "signed · " : "vetoed · "}${CITY[b.city].label.toLowerCase()} · ${opsLabel(b.a)}</span></th>`; }).join("") + `</tr></thead><tbody>`;
+  for (const id of ids) {
+    const vals = LAWS.map(l => B[l].u[id]), best = Math.max(...vals);
+    h += `<tr class="${P[id].mover ? "mover" : ""}"><th>${P[id].name}<small>${P[id].power}</small></th>` + vals.map((v, i) => {
+      const c = heatColor(v), tip = `${P[id].name} under ${MODEL.laws[LAWS[i]].label}: ${fmt(v)}${v === best ? " (favorite)" : ""}`;
+      return `<td class="${Math.abs(v - best) < 1e-9 ? "best" : ""}" style="background:${c.bg};color:${c.light ? "#fff" : css("--ink")}" data-tip="${tip}">${fmt(v)}</td>`; }).join("") + `</tr>`;
+  }
+  $("heat").innerHTML = h + "</tbody>";
+  $("ramp").style.background = `linear-gradient(90deg, ${css("--neg")}, ${css("--mid")}, ${css("--pos")})`;
+
+  // dimensions
+  const pos = x => 50 + (x / 2) * 50;
+  $("dims").innerHTML = G.DIMS.map(d => { const a = B.s1677.o.v[d], b = B.amended.o.v[d];
+    const bar = (x, cls, name) => { const l = Math.min(pos(0), pos(x)), w = Math.abs(pos(x) - pos(0));
+      const lab = x >= 0 ? `left:calc(100% + 4px)` : `right:calc(100% + 4px)`;
+      return `<div class="bar ${cls}" style="left:${l}%;width:max(${w}%,2px)" data-tip="${name}: ${MODEL.dims[d]} ${fmt(x)} pt (${MODEL.units[d]})"><em style="${lab}">${fmt(x, 1)}</em></div>`; };
+    return `<div class="dim"><span>${d[0].toUpperCase() + d.slice(1)}<small>${MODEL.units[d]}</small></span><div class="track">${bar(a, "a", "S1677")}${bar(b, "b", "Amended")}</div></div>`; }).join("");
+
+  // tipping points (with current slider settings)
+  const base = model();
+  const t1 = G.threshold(x => G.setWeight(base, "zwicker", "risk", x), e => e.law === "s1677", 0, 0.95);
+  const t2 = G.threshold(x => G.setWeight(base, "gov_sherrill", "jobs", x), e => !(e.proposed === "amended" && e.sign), 0, 0.95);
+  const t3 = G.threshold(x => { const c = JSON.parse(JSON.stringify(base)); c.operators.tesla.hazard = [1 - x, 1 - x]; return c; }, e => e.law === "amended", 0, 1);
+  const flip = (v, text, f) => `<div class="flip"><b>${v == null ? "never" : f(v)}</b><span>${text}</span></div>`;
+  $("flips").innerHTML =
+    flip(t1, "Legislature weight on backlash risk at which S1677 beats the amended bill", v => "≥ " + v.toFixed(2)) +
+    flip(t2, "Governor weight on driver jobs at which the amended bill stops being the outcome", v => "≥ " + v.toFixed(2)) +
+    flip(t3 == null ? null : 1 - t3, "Tesla halt chance below which the Legislature prefers letting Tesla in", v => "≤ " + v.toFixed(2));
+
+  clearTimeout(robTimer);
+  robTimer = setTimeout(() => {
+    const n = 600, rows = G.robustness(m, n, 7, 0.5).slice(0, 5);
+    $("nruns").textContent = n.toLocaleString();
+    $("rob").innerHTML = rows.map(r => { const [law, sign, city, ops] = r.path.split("|");
+      const txt = `${MODEL.laws[law].label}, ${sign}, ${CITY[city].label.toLowerCase()}, ${ops.replace(/\+/g, " + ")}`;
+      return `<div class="robrow"><div class="lab"><code>${txt}</code><div class="fill" style="width:${(r.share * 100).toFixed(1)}%" data-tip="${txt}: ${(r.share * 100).toFixed(1)}% of runs"></div></div><span class="pct num">${(r.share * 100).toFixed(0)}%</span></div>`; }).join("");
+  }, 200);
+}
+
+function sources() {
+  $("asof").textContent = MODEL.as_of;
+  $("scale").textContent = MODEL.scale + " " + MODEL.normalization;
+  const blocks = [
+    ...LAWS.map(k => [MODEL.laws[k].label, MODEL.laws[k].basis, MODEL.laws[k].src]),
+    ...Object.values(CITY).map(c => [c.label, c.basis, c.src]),
+    ["Waymo", MODEL.operators.waymo.basis, MODEL.operators.waymo.src],
+    ["Tesla", MODEL.operators.tesla.basis, MODEL.operators.tesla.src],
+    ["Halt hazard", MODEL.operators.hazard_basis + " " + MODEL.risk_basis, MODEL.risk_src],
+    [MODEL.via.label, MODEL.via.basis, MODEL.via.src],
+    ["Actor weights", MODEL.weights_basis, []],
+  ];
+  $("src").innerHTML = blocks.map(([t, b, s]) => `<div><b>${t}</b><p>${b}</p>${s.map(u => `<a href="${u}" target="_blank" rel="noopener">${u.replace(/^https:\/\/(www\.)?/, "")}</a>`).join("")}</div>`).join("");
+}
+
+const tip = $("tip");
+document.addEventListener("mouseover", e => { const t = e.target.closest("[data-tip]"); if (!t) { tip.hidden = true; return; } tip.textContent = t.dataset.tip; tip.hidden = false; });
+document.addEventListener("mousemove", e => { if (tip.hidden) return; const x = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8); tip.style.left = x + "px"; tip.style.top = (e.clientY + 16) + "px"; });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+sources(); buildControls(); render();
+</script>
