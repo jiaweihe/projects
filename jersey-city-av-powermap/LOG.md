@@ -44,3 +44,13 @@ Metric: weight-recovery MAE from simulated answers, prior only vs after 10 and 3
 **Review fixes:** (1) `simulate` over-sampled the last dimension, fixed with uniform sampling and a test; (2) self-comparisons are dropped and invalid `win` values throw; (3) α=0 is guarded against NaN; (4) a tsc type error was fixed with a JSDoc annotation.
 **Metrics:** tests 27→37, all passing · branch coverage 93.26→**93.61%** · lint 0 · tsc 0 · **Beli comparisons supported: 0 → yes**. **Weight-recovery MAE** (mean of 50 simulated respondents, 3 dimensions, prior off by 0.2): prior only 0.200 → **0.102 after 10 answers**, 0.072 after 30. Fit is unchanged at 6/8, because no answers have been applied yet.
 **Next:** feed sourced evidence in as Boolean comparisons for the actors whose behavior the model misses (Legislature, Hochul), and check the fit.
+
+## Iteration 3: sourced evidence as Boolean answers → calibrated weights
+**Audit, top 3:** (1) the model misses 2 of 8 observed facts (committee vote, Hochul); (2) GAME.md and the page show uncalibrated weights; (3) movers' choices are argmax only.
+**Plan:** add `game/evidence.json` with 5 revealed-preference answers, each with a source and a reason, plus `prefs.withEvidence(model)`.
+Test-first: every answer is sourced and valid, and the calibrated fit beats the baseline.
+Make GAME.md report the calibrated model alongside the raw one.
+**Built:** `evidence.json` holds 5 sourced revealed-preference answers (Zwicker ×2, Solomon, Hochul, Mamdani). `prefs.withEvidence()` applies them. GAME.md gains a calibration section: raw vs calibrated, an α sweep, and a leave-one-out table. Test-first: the calibration test failed until `withEvidence` existed.
+**Review fixes:** (1) Overfitting risk: leave-one-out shows each fixed fact depends on one targeted answer. This is now stated plainly in GAME.md as fitting the record, not predicting it. (2) α=4 was arbitrary: the sweep shows 8/8 for α≤4, 7/8 at 8, 6/8 at 16, and a test now guards fit ≥7 for α≤8.
+**Metrics:** **fit 6/8 → 8/8** · S1677 robustness share 29% → 63% · tests 37→40, all passing · branch coverage 93.61→93.80% · lint 0 · tsc 0.
+**Next:** make the mechanism probabilistic (logit quantal response), so the model gives choice probabilities and can be scored by log-likelihood, not just pass/fail.

@@ -73,3 +73,28 @@ test("simulate samples every pair evenly (no last-dimension bias)", () => {
   for (const c of comps) { assert.notEqual(c.a, c.b); seen[c.a]++; seen[c.b]++; }
   for (const k in seen) assert.ok(Math.abs(seen[k] / 3000 - 1) < 0.08, `${k}: ${seen[k]}`);
 });
+
+const ev = require("./evidence.json");
+const cal = require("./calibrate.js");
+
+test("evidence answers are sourced, explained and name real dimensions", () => {
+  const dims = new Set([...g.DIMS, "revenue"]);
+  for (const [id, comps] of Object.entries(ev.comparisons)) {
+    assert.ok(m.players[id], id);
+    for (const c of comps) {
+      assert.ok(dims.has(c.a) && dims.has(c.b) && c.a !== c.b, `${id}: ${c.a}/${c.b}`);
+      assert.ok(["a", "b", "tie"].includes(c.win));
+      assert.ok(c.src.startsWith("https://") && c.why.length > 20, id);
+    }
+  }
+});
+
+test("calibrating with evidence improves the observed-behavior fit", () => {
+  const raw = cal.fit(m).passed, tuned = cal.fit(p.withEvidence(m, ev)).passed;
+  assert.ok(tuned > raw, `${raw} -> ${tuned}`);
+  assert.equal(tuned, cal.FACTS.length);
+});
+
+test("calibration holds for prior strengths up to alpha = 8 (sensitivity guard)", () => {
+  for (const a of [1, 2, 4, 8]) assert.ok(cal.fit(p.applyComparisons(m, ev.comparisons, a)).passed >= 7, `alpha ${a}`);
+});

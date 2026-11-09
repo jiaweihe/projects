@@ -85,6 +85,30 @@ The same game run with and without the 10 NY-region and advocacy actors in the c
 
 NY labor (IDG, ATU), NYC's worker-first DOT, and congestion-focused advocates (Open Plans, AAA) pull the Legislature toward S1677. The tech industry and blind/disability advocates pull the other way, toward more driverless miles. On balance New York makes S1677 easier to justify: less of a risk premium is needed to pick it.
 
+## Calibration with Beli-style answers
+
+Weights are tuned with Boolean answers ("for this actor, does A matter more than B?"), fitted with Bradley–Terry. The original weights count as a prior worth α=4 answers. The 5 answers in `evidence.json` are revealed preferences with sources.
+
+| | Raw weights | Calibrated |
+|---|:-:|:-:|
+| Observed facts reproduced | 6/8 | 8/8 |
+| Equilibrium | amended → signed → managed → waymo+tesla+via | s1677 → signed → managed → waymo+via |
+| Robustness runs won by S1677 | 29% | 63% |
+
+Facts: ✓ NJ Senate committee advanced S1677 (5-0), not the industry-amended bill; ✓ Waymo is preparing to operate under S1677-style rules (mapping JC, Newark tests); ✓ Waymo wants the safety-driver phase removed (prefers amended); ✓ Gig-driver petitioners want AVs stopped in NJ; ✓ Chamber of Progress supports S1677 only with loosening amendments; ✓ Blind/disability advocates and SAVE-US testified for S1677; ✓ NY Gov. Hochul withdrew her robotaxi-service plan (prefers stall to a loose law); ✓ NYC driver unions fought robotaxis and claimed victory when the plan died.
+
+**How fragile is it?** The prior-strength sweep gives α=1: 8/8 · α=2: 8/8 · α=4: 8/8 · α=8: 7/8 · α=16: 6/8. Dropping one answer at a time:
+
+| Answer dropped | Fit |
+|---|:-:|
+| Legislature (Zwicker): risk > innovation | 7/8 (misses committee_s1677) |
+| Legislature (Zwicker): safety > innovation | 8/8  |
+| Mayor Solomon: budget > access | 8/8  |
+| NY State (Hochul): jobs > innovation | 7/8 (misses hochul_withdrew) |
+| NYC (Mamdani/DOT): jobs > safety | 8/8  |
+
+Each missed fact is fixed by one targeted answer, so the calibration fits the record rather than predicting it. Treat it as a consistency check. New, out-of-sample observations (an S1677 floor vote, Gov. Sherrill's signature) would be the real test.
+
 ## What the model says
 
 1. **The committee's choice reveals a risk premium.** Every actor except gig drivers scores the amended bill higher, because the benefits scale with how long cars run driverless. Yet the Senate committee advanced S1677 with a 5-0 vote. The model reproduces that only if the Legislature puts at least **0.26** weight on backlash risk, the chance a serious crash forces a Cruise-style halt. That is the real price of the human-driver phase.

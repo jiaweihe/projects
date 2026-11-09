@@ -79,6 +79,9 @@
     return out;
   }
 
-  const api = { fitWeights, simulate, nextPair, insertRank, applyComparisons };
+  // Calibrate a model with the sourced revealed-preference answers in evidence.json.
+  const withEvidence = (model, evidence) => applyComparisons(model, evidence.comparisons, evidence.alpha);
+
+  const api = { withEvidence, fitWeights, simulate, nextPair, insertRank, applyComparisons };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.AVPrefs = api;
 })(typeof window !== "undefined" ? window : globalThis);

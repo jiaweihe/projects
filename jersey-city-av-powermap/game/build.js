@@ -1,6 +1,7 @@
 // node build.js  -> index.html (interactive page) + GAME.md (static summary)
 const fs = require("fs"), path = require("path");
 const g = require("./solver.js"), m = require("./model.json");
+const prefs = require("./prefs.js"), cal = require("./calibrate.js"), ev = require("./evidence.json");
 const here = f => path.join(__dirname, f);
 
 const page = fs.readFileSync(here("page.template.html"), "utf8")
@@ -57,6 +58,25 @@ const md = [
 `| Robustness runs won by amended | ${(share(njOnly.rob, "amended") * 100).toFixed(0)}% | ${(share(rob, "amended") * 100).toFixed(0)}% |`,
 `| Backlash-risk weight at which S1677 wins | ${njOnly.tRisk.toFixed(2)} | ${tRisk.toFixed(2)} |`, "",
 "NY labor (IDG, ATU), NYC's worker-first DOT, and congestion-focused advocates (Open Plans, AAA) pull the Legislature toward S1677. The tech industry and blind/disability advocates pull the other way, toward more driverless miles. On balance New York makes S1677 easier to justify: less of a risk premium is needed to pick it.", "",
+...(() => {
+  const tuned = prefs.withEvidence(m, ev), fr = cal.fit(m), ft = cal.fit(tuned), st = g.solve(tuned);
+  const amShare = rows => (share(rows, "s1677") * 100).toFixed(0) + "%";
+  const alphas = [1, 2, 4, 8, 16].map(a => `α=${a}: ${cal.fit(prefs.applyComparisons(m, ev.comparisons, a)).passed}/8`).join(" · ");
+  const loo = Object.entries(ev.comparisons).flatMap(([id, cs]) => cs.map((x, i) => {
+    const E = JSON.parse(JSON.stringify(ev)); E.comparisons[id].splice(i, 1);
+    const r = cal.fit(prefs.withEvidence(m, E));
+    return `| ${m.players[id].name}: ${x.a} > ${x.b} | ${r.passed}/8 ${r.results.filter(z => !z.pass).map(z => "(misses " + z.id + ")").join(" ")} |`; }));
+  return ["## Calibration with Beli-style answers", "",
+    "Weights are tuned with Boolean answers (\"for this actor, does A matter more than B?\"), fitted with Bradley–Terry. The original weights count as a prior worth α=4 answers. The 5 answers in `evidence.json` are revealed preferences with sources.", "",
+    "| | Raw weights | Calibrated |", "|---|:-:|:-:|",
+    `| Observed facts reproduced | ${fr.passed}/8 | ${ft.passed}/8 |`,
+    `| Equilibrium | ${g.pathKey(s.eq).replace(/\|/g, " → ")} | ${g.pathKey(st.eq).replace(/\|/g, " → ")} |`,
+    `| Robustness runs won by S1677 | ${amShare(rob)} | ${amShare(g.robustness(tuned, 2000, 7, 0.5))} |`, "",
+    "Facts: " + ft.results.map(r => (r.pass ? "✓ " : "✗ ") + r.claim).join("; ") + ".", "",
+    "**How fragile is it?** The prior-strength sweep gives " + alphas + ". Dropping one answer at a time:", "",
+    "| Answer dropped | Fit |", "|---|:-:|", ...loo, "",
+    "Each missed fact is fixed by one targeted answer, so the calibration fits the record rather than predicting it. Treat it as a consistency check. New, out-of-sample observations (an S1677 floor vote, Gov. Sherrill's signature) would be the real test.", ""];
+})(),
 "## What the model says", "",
 `1. **The committee's choice reveals a risk premium.** Every actor except gig drivers scores the amended bill higher, because the benefits scale with how long cars run driverless. Yet the Senate committee advanced S1677 with a 5-0 vote. The model reproduces that only if the Legislature puts at least **${tRisk.toFixed(2)}** weight on backlash risk, the chance a serious crash forces a Cruise-style halt. That is the real price of the human-driver phase.`,
 `2. **Tesla's swing variable is evidence, not lobbying.** Take the Legislature's revealed risk weight of 0.30. Once Tesla's halt chance drops below **${(1 - tTes).toFixed(2)}** per driverless window, the Legislature itself prefers letting Tesla in, because then the amended bill wins. Owner lobbying moves nothing in this model. Verified crash data published through NHTSA would.`,
