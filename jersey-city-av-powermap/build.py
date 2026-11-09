@@ -17,10 +17,10 @@ def render(data):
            "Scores: " + " · ".join(f"**{k}** {v}" for k, v in data["scales"].items()), "",
            "## So what", "", *[f"{i+1}. {t}" for i, t in enumerate(data["takeaways"])], "",
            "## Power map", "",
-           "| Stakeholder | Power | Interest | Stance | Quadrant | Lever |",
-           "|---|:-:|:-:|---|---|---|"]
+           "| Stakeholder | Region | Power | Interest | Stance | Quadrant | Lever |",
+           "|---|---|:-:|:-:|---|---|---|"]
     for s in ss:
-        out.append(f"| {'★ ' if s['required'] else ''}{s['name']} | {s['power']} | {s['interest']} | "
+        out.append(f"| {'★ ' if s['required'] else ''}{s['name']} | {s.get('region', 'NJ/JC')} | {s['power']} | {s['interest']} | "
                    f"{STANCE[s['stance']]} ({s['stance']:+d})".replace("(+0)", "(0)") + f" | {quadrant(s)} | {s['lever']} |")
     out += ["", "★ = required stakeholder from the brief", "", "## Influence graph", "", "```mermaid", "graph LR"]
     names = {s["id"]: s["name"].split(" (")[0] for s in ss}

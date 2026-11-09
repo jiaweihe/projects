@@ -239,6 +239,172 @@
         "https://actionnetwork.org/petitions/stop-waymos-autonomous-vehicles-from-spreading-in-new-jersey/",
         "https://newjersey.news12.com/2026/01/21/rideshare-drivers-raise-concerns-over-robo-taxi-proposal/1rs6YhzUe3vCWPUSCIoY6A"
       ]
+    },
+    {
+      "id": "nyc_mamdani",
+      "name": "NYC Mayor Mamdani + NYC DOT (Comm. Mike Flynn)",
+      "type": "NY city government",
+      "region": "NY",
+      "required": false,
+      "power": 2,
+      "interest": 3,
+      "stance": -1,
+      "role": "Next-door precedent. Let Waymo's NYC test permits lapse on March 31, 2026, and Vision Zero Reimagined calls for local oversight of any AV rollout. Commercial rides would also need TLC licenses.",
+      "evidence": "NYC DOT: 'any AV policy decisions will center workers and their well-being.' The Sept 2026 Vision Zero plan seeks local oversight of AV deployment.",
+      "lever": "Cross-Hudson trips can't run driverless at the NYC end; it sets the regional norm Jersey City is compared with.",
+      "sources": [
+        "https://www.thecityreporter.nyc/2026/04/06/waymo-driverless-cars-testing-roads-autonomous-vehicle/",
+        "https://www.nyc.gov/mayors-office/news/2026/09/mayor-mamdani-unveilsvision-zero-reimagined-to-make-streets-safe"
+      ]
+    },
+    {
+      "id": "ny_hochul",
+      "name": "NY State (Gov. Kathy Hochul)",
+      "type": "NY state government",
+      "region": "NY",
+      "required": false,
+      "power": 1,
+      "interest": 3,
+      "stance": -1,
+      "role": "Proposed robotaxi service in NY cities under 1M people, then pulled it from the budget on Feb 19, 2026: 'the support was not there.' Testing-only pilot remains.",
+      "evidence": "Withdrew after opposition from the drivers' guild and the transit union (ATU). Shows that labor can kill an AV expansion in the region.",
+      "lever": "Regional precedent read in Trenton. NY DMV permits are needed for any NYC leg.",
+      "sources": [
+        "https://www.cnbc.com/2026/02/19/new-york-driverless-rideshare-nyc-waymo.html",
+        "https://techcrunch.com/2026/02/19/new-york-hits-the-brakes-on-robotaxi-expansion-plan/"
+      ]
+    },
+    {
+      "id": "mta",
+      "name": "MTA (Chair & CEO Janno Lieber)",
+      "type": "NY transit agency",
+      "region": "NY",
+      "required": false,
+      "power": 1,
+      "interest": 1,
+      "stance": 0,
+      "role": "Runs the subway, buses and the CBD congestion toll ($15 for passenger cars entering Manhattan below 60th St). Robotaxi trips from Jersey City to Manhattan would pay it.",
+      "evidence": "No public AV position found. Congestion pricing is pitched as cutting gridlock for buses and paratransit.",
+      "lever": "Toll policy for AV trips into Manhattan; competing for the same riders as PATH and ferries.",
+      "sources": [
+        "https://abc7ny.com/post/congestion-pricing-nyc-taxi-drivers-mta/13238745/"
+      ]
+    },
+    {
+      "id": "idg",
+      "name": "NYC driver unions (Independent Drivers Guild, NY Taxi Workers Alliance)",
+      "type": "Labor (NY region)",
+      "region": "NY",
+      "required": false,
+      "power": 2,
+      "interest": 5,
+      "stance": -2,
+      "role": "IDG represents 80,000+ NYC for-hire drivers, many of whom live in Hudson County. Its 20,000+ signature petition helped kill Hochul's plan. NYTWA calls for an AV moratorium.",
+      "evidence": "IDG called it a victory when Hochul pulled the proposal. NYTWA's Bhairavi Desai said Waymo is trying to 'divide and conquer our driver-led movement'.",
+      "lever": "Proven ability to kill AV bills; a template for NJ gig-driver organizing.",
+      "sources": [
+        "https://driversguild.org/idg-victory-in-ny-governor-pulls-robotaxi-proposal-from-budgetidg-warns-hochul-robotaxi-proposal-will-kill-jobs/",
+        "https://www.cnbc.com/2026/02/19/new-york-driverless-rideshare-nyc-waymo.html"
+      ]
+    },
+    {
+      "id": "atu",
+      "name": "Amalgamated Transit Union (ATU)",
+      "type": "Transit labor",
+      "region": "NY/NJ",
+      "required": false,
+      "power": 3,
+      "interest": 3,
+      "stance": -1,
+      "role": "Transit operators' union that joined IDG against Hochul's robotaxi plan. Its locals represent NJ bus operators, a constituency Gov. Sherrill and NJ Transit cannot ignore.",
+      "evidence": "Pushed back on Hochul's plan on safety and job-loss grounds (Feb 2026). No NJ-specific statement on S1677 found.",
+      "lever": "Labor support in Trenton; operators of the buses AV microtransit would compete with.",
+      "sources": [
+        "https://www.cnbc.com/2026/02/19/new-york-driverless-rideshare-nyc-waymo.html"
+      ]
+    },
+    {
+      "id": "open_plans",
+      "name": "Open Plans + Hunter College (Sam Schwartz program)",
+      "type": "Transportation advocacy (NYC)",
+      "region": "NY",
+      "required": false,
+      "power": 1,
+      "interest": 4,
+      "stance": -1,
+      "role": "July 2026 study: Waymo drives 1.71 total miles per passenger mile against 1.49 for NYC's ride-hail fleet, so robotaxis add traffic. The safety section was later pulled over data discrepancies.",
+      "evidence": "Says robotaxis 'could spike congestion' with 'limited safety benefits'. Waymo disputes the full-fleet-turnover premise.",
+      "lever": "Evidence base for skeptics on both sides of the Hudson; source of the congestion dimension.",
+      "sources": [
+        "https://www.openplans.org/press-releases/new-study-robotaxis-in-new-york-city-could-spike-congestion-and-have-limited-safety-benefits",
+        "https://www.amny.com/news/robotaxis-nyc-study-street-safety-report/"
+      ]
+    },
+    {
+      "id": "rpa",
+      "name": "Regional Plan Association (RPA)",
+      "type": "Regional planning advocacy",
+      "region": "NY/NJ/CT",
+      "required": false,
+      "power": 2,
+      "interest": 2,
+      "stance": 0,
+      "role": "Tri-state planning group. Its New Mobility report urges cities to get a say in AV deployment, plus equity measures and labor-transition planning.",
+      "evidence": "Conditional position: 'AVs are coming, start preparing now.' The report is older (about 2020); no 2026 statement on S1677 found.",
+      "lever": "Shapes regional plans and the framing used by NJ and NY agencies.",
+      "sources": [
+        "https://rpa.org/work/reports/new-mobility",
+        "https://rpa.org/news/news/rpa-to-cities-autonomous-vehicles-are-coming-start-preparing-now"
+      ]
+    },
+    {
+      "id": "aaa",
+      "name": "AAA clubs (Mid-Atlantic / Northeast)",
+      "type": "Motorist advocacy",
+      "region": "NY/NJ",
+      "required": false,
+      "power": 2,
+      "interest": 2,
+      "stance": -1,
+      "role": "Biggest motorist voice in Trenton and Albany. AAA polling shows deep public distrust of self-driving cars.",
+      "evidence": "2025 AAA survey: only 13% of US drivers trust riding in self-driving cars, and 53% wouldn't ride a robotaxi. AAA Mid-Atlantic, quoted in NJ: 71% are afraid. Reads as public skepticism, not formal opposition.",
+      "lever": "Shapes public opinion and how legislators frame AV votes.",
+      "sources": [
+        "https://www.motor.com/2025/02/aaa-fear-in-self-driving-vehicles-persists/",
+        "https://nj1015.com/most-americans-not-on-board-with-self-driving-vehicles/"
+      ]
+    },
+    {
+      "id": "chamber_progress",
+      "name": "Chamber of Progress (tech/AV industry)",
+      "type": "Industry advocacy",
+      "region": "US",
+      "required": false,
+      "power": 2,
+      "interest": 4,
+      "stance": 2,
+      "role": "Tech trade group. Filed testimony on May 11 and June 1, 2026 supporting S1677/A3968 with amendments.",
+      "evidence": "Asks for easing of the school-zone limits and definitions for undefined terms ('major incident', 'not at fault'), the same direction as the industry-amended bill.",
+      "lever": "Bill-text amendments, plus coalition cover for Waymo and Tesla.",
+      "sources": [
+        "https://progresschamber.org/resources/testimony-to-nj-lawmakers-support-and-amend-establishing-an-autonomous-vehicle-pilot-program-a-3968-s-1677/"
+      ]
+    },
+    {
+      "id": "disability_safety",
+      "name": "Blind & disability advocates, SAVE-US",
+      "type": "Access & safety advocacy",
+      "region": "NJ",
+      "required": false,
+      "power": 2,
+      "interest": 4,
+      "stance": 1,
+      "role": "Among the nine witnesses, all supporting S1677, at the May 11, 2026 Senate hearing. Blind residents want independent mobility.",
+      "evidence": "SAVE-US praised the bill's requirement for public reporting of driverless crashes in NJ. Their support is tied to safety transparency.",
+      "lever": "A sympathetic coalition that keeps the bill moving and keeps the crash-reporting rule in.",
+      "sources": [
+        "https://newjerseymonitor.com/2026/05/13/driverless-cars-nj-senate/"
+      ]
     }
   ],
   "edges": [
@@ -331,12 +497,73 @@
       "panynj",
       "waymo",
       "airport testing partner"
+    ],
+    [
+      "nyc_mamdani",
+      "mayor_solomon",
+      "sets regional precedent"
+    ],
+    [
+      "ny_hochul",
+      "gov_sherrill",
+      "regional precedent"
+    ],
+    [
+      "mta",
+      "waymo",
+      "tolls trips into Manhattan"
+    ],
+    [
+      "idg",
+      "ny_hochul",
+      "killed robotaxi plan"
+    ],
+    [
+      "idg",
+      "av_opposition",
+      "organizing template"
+    ],
+    [
+      "atu",
+      "nj_transit",
+      "represents operators"
+    ],
+    [
+      "atu",
+      "gov_sherrill",
+      "labor pressure"
+    ],
+    [
+      "open_plans",
+      "nyc_mamdani",
+      "evidence for skeptics"
+    ],
+    [
+      "rpa",
+      "jc_doi",
+      "planning guidance"
+    ],
+    [
+      "aaa",
+      "zwicker",
+      "motorist opinion"
+    ],
+    [
+      "chamber_progress",
+      "zwicker",
+      "testifies: amend"
+    ],
+    [
+      "disability_safety",
+      "zwicker",
+      "testifies: support"
     ]
   ],
   "takeaways": [
     "The decision sits with the state, not the city. Nothing driverless runs in JC until S1677/A3968 clears Senate Budget & Appropriations and both floors, and Gov. Sherrill signs it. After that, MVC holds a halt power over every operator.",
     "The bill picks winners. Waymo's sensor stack complies (after a human-driver phase). Tesla's camera-only Robotaxi and pedal-less Cybercab do not.",
     "The city's levers are the curb and Via. JC's deficit of about $90M already cut Via's hours. The Waymo-Via Chandler model is the cheapest local entry point, and the Mayor, Kaplan and the Council control it.",
-    "The biggest gap: the City, Bike JC and Safe Streets JC have no public AV position. The reinstated Vision Zero Task Force is where that position will form."
+    "The biggest gap: the City, Bike JC and Safe Streets JC have no public AV position. The reinstated Vision Zero Task Force is where that position will form.",
+    "Across the Hudson, the regional wind blows against AVs. NYC let Waymo's permits lapse; Hochul pulled her robotaxi plan after the drivers' guild and the transit union fought it. NJ's own coalition (disability advocates, the tech industry) supports S1677, but NY labor is the template for opposition."
   ]
 }

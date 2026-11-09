@@ -20,3 +20,15 @@ Each iteration made one change and was checked by `python -m pytest -q` before m
 - No organized NJ labor (Teamsters or a drivers' guild) position was found. Only a public petition, plus the drivers' guild that opposed New York's proposal.
 - S1677/A3968 status is current through the latest coverage found (pending in Senate Budget & Appropriations). Confirm on njleg.state.nj.us.
 - Sources were verified by search cross-check, not by direct fetch. Run `LIVE=1 python -m pytest` on an open network to check every link.
+
+## Round 2: NY region + advocacy (brief: "include transit, transportation and car advocacy in the New York region")
+
+| # | Change | Test result / finding |
+|---|---|---|
+| 11 | Researched NY-region actors: NYC (Mamdani + DOT), NY State (Hochul), MTA, IDG/NYTWA, ATU, Open Plans, RPA, Tri-State, AAA, the auto and AV industry, and the S1677 witnesses. | NYC let Waymo's permits lapse on 3/31/26. Hochul pulled her robotaxi plan on 2/19/26 under labor pressure. |
+| 12 | Added 10 stakeholders, each with a `region` field, plus 12 influence edges. Tri-State and the Alliance for Automotive Innovation were dropped: no AV position was found for either. | 13 tests pass. Bloat cap raised to 25 with the reason noted. |
+| 13 | Allowed stance 0 to mean "conditional" as well as "no public position" (RPA). | Test updated |
+| 14 | Game: added the NY actors as coalition-only players, and a 7th dimension, **congestion**, from the Open Plans/Hunter VMT data (1.71 vs 1.49). | 11 solver tests pass |
+| 15 | Measured the New York effect with and without the NY actors. | The amended bill's share of robustness runs drops from 78% to 71%; the S1677 risk threshold drops from 0.30 to 0.26. |
+
+Gaps: no AV statement found from Tri-State Transportation Campaign, Transportation Alternatives, Riders Alliance, the Alliance for Automotive Innovation or the MTA. Open Plans' safety section was retracted, so only its congestion figure is used.

@@ -79,3 +79,18 @@ test("regression: baseline result and revealed-preference threshold", () => {
   const t = g.threshold(x => g.setWeight(m, "zwicker", "risk", x), eq => eq.law === "s1677", 0, 0.8);
   assert.ok(t > 0.2 && t < 0.35, `threshold ${t}`);
 });
+
+test("NY-region actors make S1677 easier to justify (lower risk premium)", () => {
+  const nj = JSON.parse(JSON.stringify(m));
+  for (const k of Object.keys(nj.players)) if (nj.players[k].region) delete nj.players[k];
+  assert.equal(Object.keys(nj.players).length, 14);
+  const thr = mm => g.threshold(x => g.setWeight(mm, "zwicker", "risk", x), e => e.law === "s1677", 0, 0.95);
+  assert.ok(thr(m) < thr(nj), `${thr(m)} !< ${thr(nj)}`);
+});
+
+test("congestion is a cost of robotaxi miles, partly offset by pooled Via trips", () => {
+  const o = g.outcome(R, "amended", "open", { waymo: true, tesla: false, via: false });
+  assert.ok(o.v.congestion < 0);
+  const p = g.outcome(R, "amended", "open", { waymo: true, tesla: false, via: true });
+  assert.ok(p.v.congestion > o.v.congestion);
+});

@@ -19,6 +19,12 @@ const tTes = g.threshold(x => { const c = JSON.parse(JSON.stringify(m30)); c.ope
 const rob = g.robustness(m, 2000, 7, 0.5);
 const r3 = g.robustness(g.setWeight(m, "zwicker", "risk", 0.3), 2000, 7, 0.5);
 const R = s.resolved;
+// New York effect: same game with the NY-region / advocacy actors removed from the coalition.
+const mNJ = JSON.parse(JSON.stringify(m));
+for (const k of Object.keys(mNJ.players)) if (mNJ.players[k].region) delete mNJ.players[k];
+const njOnly = { rob: g.robustness(mNJ, 2000, 7, 0.5), tRisk: g.threshold(x => g.setWeight(mNJ, "zwicker", "risk", x), e => e.law === "s1677", 0, 0.95),
+  gap: (z => z.amended.u.zwicker - z.s1677.u.zwicker)(g.solve(mNJ).branches) };
+const share = (rows, law) => rows.filter(r => r.path.startsWith(law + "|")).reduce((a, r) => a + r.share, 0);
 const restrict = g.operatorsNE(R, "s1677", "restrict").a;
 
 const md = [
@@ -44,6 +50,13 @@ const md = [
 "## Robustness (2,000 runs: effects redrawn within their ranges, weights scaled ±50%)", "",
 "| Path | Default weights | Legislature risk weight 0.30 |", "|---|:-:|:-:|",
 ...[...new Set([...rob, ...r3].map(r => r.path))].map(p => `| ${p.replace(/\|/g, " → ")} | ${((rob.find(r => r.path === p) || { share: 0 }).share * 100).toFixed(1)}% | ${((r3.find(r => r.path === p) || { share: 0 }).share * 100).toFixed(1)}% |`), "",
+"## The New York effect", "",
+"The same game run with and without the 10 NY-region and advocacy actors in the coalition:", "",
+"| | NJ actors only | + NY region & advocacy |", "|---|:-:|:-:|",
+`| Legislature's margin for amended over S1677 | ${f(njOnly.gap)} | ${f(B.amended.u.zwicker - B.s1677.u.zwicker)} |`,
+`| Robustness runs won by amended | ${(share(njOnly.rob, "amended") * 100).toFixed(0)}% | ${(share(rob, "amended") * 100).toFixed(0)}% |`,
+`| Backlash-risk weight at which S1677 wins | ${njOnly.tRisk.toFixed(2)} | ${tRisk.toFixed(2)} |`, "",
+"NY labor (IDG, ATU), NYC's worker-first DOT, and congestion-focused advocates (Open Plans, AAA) pull the Legislature toward S1677. The tech industry and blind/disability advocates pull the other way, toward more driverless miles. On balance New York makes S1677 easier to justify: less of a risk premium is needed to pick it.", "",
 "## What the model says", "",
 `1. **The committee's choice reveals a risk premium.** Every actor except gig drivers scores the amended bill higher, because the benefits scale with how long cars run driverless. Yet the Senate committee advanced S1677 with a 5-0 vote. The model reproduces that only if the Legislature puts at least **${tRisk.toFixed(2)}** weight on backlash risk, the chance a serious crash forces a Cruise-style halt. That is the real price of the human-driver phase.`,
 `2. **Tesla's swing variable is evidence, not lobbying.** Take the Legislature's revealed risk weight of 0.30. Once Tesla's halt chance drops below **${(1 - tTes).toFixed(2)}** per driverless window, the Legislature itself prefers letting Tesla in, because then the amended bill wins. Owner lobbying moves nothing in this model. Verified crash data published through NHTSA would.`,

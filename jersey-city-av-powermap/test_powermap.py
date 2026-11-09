@@ -36,7 +36,8 @@ def test_neutral_stance_is_explicit_about_missing_evidence():
     # A 0 must mean "we looked and found no position", never a silent guess.
     for s in S:
         if s["stance"] == 0:
-            assert "no public" in s["evidence"].lower(), s["id"]
+            ev = s["evidence"].lower()
+            assert "no public" in ev or "conditional" in ev, s["id"]
 
 
 def test_edges_reference_known_stakeholders():
@@ -50,7 +51,7 @@ def test_every_stakeholder_is_connected():
 
 
 def test_not_bloated():
-    assert len(S) <= 15
+    assert len(S) <= 25  # 14 NJ/JC + 10 NY-region & advocacy (round 2)
     for s in S:
         assert len(s["role"]) <= 300 and len(s["evidence"]) <= 300, s["id"]
 
@@ -85,5 +86,13 @@ def test_fact_check_regressions():
 
 
 def test_takeaways_are_short():
-    assert 1 <= len(DATA["takeaways"]) <= 5
+    assert 1 <= len(DATA["takeaways"]) <= 6
     assert all(len(t) <= 300 for t in DATA["takeaways"])
+
+
+def test_ny_region_and_advocacy_coverage():
+    # Round 2 brief: NY-region transit, transportation advocacy and car/motorist advocacy.
+    assert {"mta", "nyc_mamdani", "ny_hochul"} <= IDS          # transit / transportation government
+    assert {"open_plans", "rpa"} <= IDS                          # transportation advocacy
+    assert {"aaa", "chamber_progress"} <= IDS                    # motorist + industry advocacy
+    assert {"idg", "atu"} <= IDS                                 # regional labor

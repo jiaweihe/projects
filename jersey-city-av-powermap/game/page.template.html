@@ -125,7 +125,7 @@ summary { cursor: pointer; font-weight: 600 }
   <header>
     <div class="eyebrow">Jersey City · autonomous mobility · as of <span id="asof"></span></div>
     <h1>Who gets driverless cars onto Jersey City streets, and on whose terms?</h1>
-    <p class="lede">A four-move game solved by backward induction. The Legislature picks a bill, the Governor signs or vetoes it, the City sets curb rules, and then Waymo, Tesla and Via decide at the same time whether to enter. Each of 14 actors scores outcomes on six dimensions. Move the sliders to change their priorities and watch the equilibrium shift.</p>
+    <p class="lede">A four-move game solved by backward induction. The Legislature picks a bill, the Governor signs or vetoes it, the City sets curb rules, and then Waymo, Tesla and Via decide at the same time whether to enter. Each of 24 actors, from Jersey City, Trenton and across the Hudson, scores outcomes on seven dimensions. Move the sliders to change their priorities and watch the equilibrium shift.</p>
   </header>
 
   <section aria-label="Equilibrium path">
@@ -239,11 +239,11 @@ function render() {
 
   // heatmap
   const P = MODEL.players, ids = Object.keys(P);
-  let h = `<thead><tr><th>Actor <span>power</span></th>` + LAWS.map(l => { const b = B[l];
+  let h = `<thead><tr><th>Actor <span>power · region</span></th>` + LAWS.map(l => { const b = B[l];
     return `<th class="${l === eq.proposed ? "eq" : ""}">${MODEL.laws[l].label}<span>${l === "stall" ? "" : b.sign ? "signed · " : "vetoed · "}${CITY[b.city].label.toLowerCase()} · ${opsLabel(b.a)}</span></th>`; }).join("") + `</tr></thead><tbody>`;
   for (const id of ids) {
     const vals = LAWS.map(l => B[l].u[id]), best = Math.max(...vals);
-    h += `<tr class="${P[id].mover ? "mover" : ""}"><th>${P[id].name}<small>${P[id].power}</small></th>` + vals.map((v, i) => {
+    h += `<tr class="${P[id].mover ? "mover" : ""}"><th>${P[id].name}<small>${P[id].power}${P[id].region ? " · " + P[id].region : ""}</small></th>` + vals.map((v, i) => {
       const c = heatColor(v), tip = `${P[id].name} under ${MODEL.laws[LAWS[i]].label}: ${fmt(v)}${v === best ? " (favorite)" : ""}`;
       return `<td class="${Math.abs(v - best) < 1e-9 ? "best" : ""}" style="background:${c.bg};color:${c.light ? "#fff" : css("--ink")}" data-tip="${tip}">${fmt(v)}</td>`; }).join("") + `</tr>`;
   }

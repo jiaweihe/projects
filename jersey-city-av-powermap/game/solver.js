@@ -3,7 +3,7 @@
 // Waymo, Tesla, Via move simultaneously (pure-strategy Nash equilibrium).
 // Works in Node (module.exports) and the browser (window.AVGame).
 (function (root) {
-  const DIMS = ["safety", "risk", "jobs", "budget", "access", "innovation"];
+  const DIMS = ["safety", "risk", "congestion", "jobs", "budget", "access", "innovation"];
   const OPS = ["waymo", "tesla", "via"];
 
   function rngFrom(seed) { // mulberry32: deterministic for tests
