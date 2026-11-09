@@ -7,7 +7,6 @@ const map = require("../stakeholders.json");
 
 const base = g.solve(m);
 const R = base.resolved;
-const PROFILES = [...Array(8)].map((_, i) => ({ waymo: !!(i & 1), tesla: !!(i & 2), via: !!(i & 4) }));
 
 test("weights sum to 1 and power matches the power map", () => {
   const power = Object.fromEntries(map.stakeholders.map(s => [s.id, s.power]));
