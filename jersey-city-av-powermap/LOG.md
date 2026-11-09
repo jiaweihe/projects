@@ -34,3 +34,13 @@ Fix the eslint unused-variable error.
 **Review fixes:** (1) `tsc` now also checks calibrate.js; (2) the "Waymo enters under S1677" fact now reads the signed-S1677 subgame, so a veto on the path can't hide it.
 **Metrics:** tests 23→27, all passing · eslint 1→**0** · tsc 0→0 · fit 6/8, now graded by code instead of an ad-hoc script · branch coverage 93.75→93.26%. The small drop comes from the browser-only export path; it is still uncovered.
 **Next:** a Beli pairwise engine to learn weights from A-vs-B answers.
+
+## Iteration 2: Beli pairwise engine (Boolean A-vs-B → weights)
+**Audit, top 3:** (1) no way to tune weights by comparison, which is the core of the GOAL; (2) mover decisions are argmax only; (3) weights are not tied to evidence.
+**Plan:** add `game/prefs.js`. It fits weights with Bradley–Terry MAP, treating the current weights as a prior worth α pseudo-comparisons.
+Beli-style tools: `nextPair()` asks about the most uncertain, least-asked pair; `insertRank()` places an item with binary insertion in O(log n) questions.
+Metric: weight-recovery MAE from simulated answers, prior only vs after 10 and 30 answers.
+**Built:** `game/prefs.js`. `fitWeights` does Bradley–Terry MAP via MM, with the prior worth α=4 answers. Also `nextPair` (Beli: the most uncertain, least-asked pair), `insertRank` (binary insertion, ≤ ⌈log₂(n+1)⌉ questions), `applyComparisons` and `simulate`. Test-first: 7 tests failed, then passed.
+**Review fixes:** (1) `simulate` over-sampled the last dimension, fixed with uniform sampling and a test; (2) self-comparisons are dropped and invalid `win` values throw; (3) α=0 is guarded against NaN; (4) a tsc type error was fixed with a JSDoc annotation.
+**Metrics:** tests 27→37, all passing · branch coverage 93.26→**93.61%** · lint 0 · tsc 0 · **Beli comparisons supported: 0 → yes**. **Weight-recovery MAE** (mean of 50 simulated respondents, 3 dimensions, prior off by 0.2): prior only 0.200 → **0.102 after 10 answers**, 0.072 after 30. Fit is unchanged at 6/8, because no answers have been applied yet.
+**Next:** feed sourced evidence in as Boolean comparisons for the actors whose behavior the model misses (Legislature, Hochul), and check the fit.
