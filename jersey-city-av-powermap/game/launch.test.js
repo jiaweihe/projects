@@ -80,3 +80,9 @@ test("the permission-first cost only applies without a statute", () => {
   const gap0 = L.terminal(L.resolveLaunch(r2, null, 0, "2027"), "gap", ops, "managed", "tolerate").rev.waymo;
   assert.ok(gap < gap0);
 });
+
+test("observed: the State tolerates autonomous operation in JC's legal gap (delivery robots since 2025, even after an injury)", () => {
+  assert.ok(m.launch.basis.includes("delivery robots"));
+  const h = L.outlook(m, 300, 5, 0.5, "2027");
+  assert.ok(h.halted < 0.05, `deliberate halt ${h.halted}`);
+});

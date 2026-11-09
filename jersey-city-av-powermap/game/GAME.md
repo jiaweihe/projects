@@ -6,7 +6,7 @@ _As of 2026-11-09. Horizon: 3-year pilot window (2027-2029). Open `index.html` f
 
 _Will autonomous vehicles operate on Jersey City streets in 2027, whatever happens to S1677?_
 
-NJ has no AV statute, so nothing authorizes or bans driverless operation. S1677/A3968 sits in Senate Budget & Appropriations, and its 2024-25 version (S4702) died. Operators can choose to launch; the State can respond after the fact.
+NJ has no AV statute, so nothing authorizes or bans driverless operation. S1677/A3968 sits in Senate Budget & Appropriations, and its 2024-25 version (S4702) died. Operators can choose to launch; the State can respond after the fact. Precedent: autonomous delivery robots (Avride since Feb 2025, Coco) already operate in JC under city pilots with no state law, and the State did not step in even after a robot injured a cyclist.
 
 **The game:** Waymo and Tesla each choose to wait, test with safety drivers, or launch driverless (simultaneous logit equilibrium; no pure equilibrium exists in the legal gap). Then the City sets curb policy, then the State (Gov. + MVC) tolerates, adds conditions, or halts. It is played under two legal regimes, today's gap and S1677 enacted, blended by P(S1677 law before 2027) = 10-30%.
 
@@ -29,7 +29,7 @@ Most likely 2027 paths: gap → driverless → driverless → managed → tolera
 3. **The State's tool is conditions, not a ban.** Within sourced ranges the State never prefers a deliberate halt: the MVC's safety weight values Waymo's crash record, so it adds conditions instead. The real halt risk is a crash forcing one (the Cruise 2023 pattern).
 4. **Curb management is the City's lever** either way: managed curb in most paths. Waymo-Via integration only happens if Waymo launches and the curb isn't restricted.
 
-Sources: <https://newjerseymonitor.com/2026/05/13/driverless-cars-nj-senate/> · <https://legiscan.com/NJ/bill/S1677/2026> · <https://law.justia.com/codes/new-jersey/title-39/section-39-5h-2/> · <https://njballot.com/post/nj-robotaxi-bill-s1677> · <https://www.thecityreporter.nyc/2026/04/06/waymo-driverless-cars-testing-roads-autonomous-vehicle/> · <https://www.engadget.com/2016/12/22/uber-self-driving-tests-california-to-arizona/> · <https://www.axios.com/2023/10/24/cruise-permit-suspended-driverless-cars> · <https://nj1015.com/autonomous-vehicles-waymo-pilot-program/> · <https://www.robotaxiatlas.com/operators/waymo/>
+Sources: <https://newjerseymonitor.com/2026/05/13/driverless-cars-nj-senate/> · <https://legiscan.com/NJ/bill/S1677/2026> · <https://techcrunch.com/2025/02/13/avride-launches-sidewalk-delivery-bots-on-uber-eats-in-jersey-city> · <https://njbikeped.org/autonomous-delivery-robots-in-jersey-city/> · <https://law.justia.com/codes/new-jersey/title-39/section-39-5h-2/> · <https://njballot.com/post/nj-robotaxi-bill-s1677> · <https://www.thecityreporter.nyc/2026/04/06/waymo-driverless-cars-testing-roads-autonomous-vehicle/> · <https://www.engadget.com/2016/12/22/uber-self-driving-tests-california-to-arizona/> · <https://www.axios.com/2023/10/24/cruise-permit-suspended-driverless-cars> · <https://nj1015.com/autonomous-vehicles-waymo-pilot-program/> · <https://www.robotaxiatlas.com/operators/waymo/>
 
 ---
 

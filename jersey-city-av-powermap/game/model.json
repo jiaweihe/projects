@@ -551,10 +551,12 @@
   ],
   "launch": {
     "question": "Will autonomous vehicles operate on Jersey City streets in 2027, whatever happens to S1677?",
-    "basis": "NJ has no AV statute, so nothing authorizes or bans driverless operation. S1677/A3968 sits in Senate Budget & Appropriations, and its 2024-25 version (S4702) died. Operators can choose to launch; the State can respond after the fact.",
+    "basis": "NJ has no AV statute, so nothing authorizes or bans driverless operation. S1677/A3968 sits in Senate Budget & Appropriations, and its 2024-25 version (S4702) died. Operators can choose to launch; the State can respond after the fact. Precedent: autonomous delivery robots (Avride since Feb 2025, Coco) already operate in JC under city pilots with no state law, and the State did not step in even after a robot injured a cyclist.",
     "src": [
       "https://newjerseymonitor.com/2026/05/13/driverless-cars-nj-senate/",
-      "https://legiscan.com/NJ/bill/S1677/2026"
+      "https://legiscan.com/NJ/bill/S1677/2026",
+      "https://techcrunch.com/2025/02/13/avride-launches-sidewalk-delivery-bots-on-uber-eats-in-jersey-city",
+      "https://njbikeped.org/autonomous-delivery-robots-in-jersey-city/"
     ],
     "modes": {
       "wait": "No JC operations",

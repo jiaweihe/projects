@@ -6,7 +6,7 @@ Scores: **power** 1-5: ability to enable/block AV ops in JC (5 = can legally all
 
 ## So what
 
-1. No law blocks 2027. NJ has no AV statute (nothing authorizes or bans driverless service), and S1677 is stalled. So the 2027 gate is the operators' own choice (Waymo is permission-first; Tesla moves faster) and the State's response after launch, where MVC's registration powers are untested for AVs.
+1. No law blocks 2027, and autonomy already runs here: delivery robots have served JC since Feb 2025 under city pilots, with no state law, and weren't halted after a cyclist was injured. The 2027 gate is the operators' choice plus the State's after-the-fact response.
 2. S1677 is a scenario, not the gate. If it passed it would bar Tesla's camera-only fleet and slow Waymo (a safety-driver phase, 50,000 NJ miles). Without it, Tesla is the likelier first mover.
 3. The city's levers are the curb and Via. JC's deficit of about $90M already cut Via's hours. The Waymo-Via Chandler model is the cheapest local entry point, and the Mayor, Kaplan and the Council control it.
 4. The biggest gap: the City, Bike JC and Safe Streets JC have no public AV position. The reinstated Vision Zero Task Force is where that position will form.
@@ -33,6 +33,7 @@ Scores: **power** 1-5: ability to enable/block AV ops in JC (5 = can legally all
 | ★ Tesla (Robotaxi / Cybercab) | NJ/JC | 2 | 4 | Champion (+2) | Keep informed | Owner grassroots lobbying; federal preemption arguments. |
 | Chamber of Progress (tech/AV industry) | US | 2 | 4 | Champion (+2) | Keep informed | Bill-text amendments, plus coalition cover for Waymo and Tesla. |
 | Blind & disability advocates, SAVE-US | NJ | 2 | 4 | Supportive (+1) | Keep informed | A sympathetic coalition that keeps the bill moving and keeps the crash-reporting rule in. |
+| Sidewalk delivery robots (Avride, Coco; via Uber Eats, Grubhub, Wonder) | NJ/JC | 2 | 4 | Champion (+2) | Keep informed | Precedent for permissionless-then-regulated operation; Avride is a possible JC robotaxi entrant with an existing Uber relationship. |
 | NYC Mayor Mamdani + NYC DOT (Comm. Mike Flynn) | NY | 2 | 3 | Skeptical (-1) | Keep informed | Cross-Hudson trips can't run driverless at the NYC end; it sets the regional norm Jersey City is compared with. |
 | ★ Bike JC (+ Citi Bike JC / Lyft) | NJ/JC | 2 | 2 | Neutral/unknown (0) | Monitor | Vision Zero Task Force seat; council testimony. |
 | ★ Safe Streets JC (pedestrians) | NJ/JC | 2 | 2 | Neutral/unknown (0) | Monitor | Vision Zero Task Force seat; public pressure on the Mayor and Council. |
@@ -67,6 +68,7 @@ graph LR
   tesla["Tesla"]
   chamber_progress["Chamber of Progress"]
   disability_safety["Blind & disability advocates, SAVE-US"]
+  delivery_robots["Sidewalk delivery robots"]
   nyc_mamdani["NYC Mayor Mamdani + NYC DOT"]
   bike_jc["Bike JC"]
   safe_streets_jc["Safe Streets JC"]
@@ -113,10 +115,13 @@ graph LR
   teamsters -->|"labor coalition"| av_opposition
   aai -->|"federal preemption cover"| tesla
   atu -->|"opposed Trenton AV project"| njdot
+  jc_doi -->|"permits city pilots"| delivery_robots
+  delivery_robots -->|"bike-lane crash, cyclist injured"| bike_jc
+  uber -->|"Uber Eats partner"| delivery_robots
   classDef pro fill:#d6f5d6,stroke:#2e7d32
   classDef neu fill:#eeeeee,stroke:#757575
   classDef con fill:#fbd5d5,stroke:#c62828
-  class waymo,zwicker,uber,via,panynj,tesla,chamber_progress,disability_safety,aai pro
+  class waymo,zwicker,uber,via,panynj,tesla,chamber_progress,disability_safety,delivery_robots,aai pro
   class nj_mvc,gov_sherrill,nj_transit,jc_doi,njdot,mayor_solomon,bike_jc,safe_streets_jc,rpa,mta neu
   class atu,teamsters,idg,nyc_mamdani,aaa,open_plans,av_opposition,ny_hochul con
 ```
@@ -209,6 +214,11 @@ Green = pro-AV · grey = neutral/no position · red = opposed
 - **Role:** Among the nine witnesses, all supporting S1677, at the May 11, 2026 Senate hearing. Blind residents want independent mobility.
 - **Evidence:** SAVE-US praised the bill's requirement for public reporting of driverless crashes in NJ. Their support is tied to safety transparency.
 - **Sources:** [1](https://newjerseymonitor.com/2026/05/13/driverless-cars-nj-senate/)
+
+### Sidewalk delivery robots (Avride, Coco; via Uber Eats, Grubhub, Wonder)
+- **Role:** Autonomous robots already serve JC with no state law: Avride since Feb 2025 (Uber Eats, then Grubhub/Wonder, about 20% of Wonder JC deliveries) and Coco's city-backed 20-robot Heights pilot. Avride also runs robotaxis with Uber in Dallas.
+- **Evidence:** Proof that autonomous operation proceeds in the legal gap under city-level rules. Hoboken passed its own ordinance. A robot hit a cyclist in a JC bike lane (concussion, broken clavicle), and the State did not halt them.
+- **Sources:** [1](https://techcrunch.com/2025/02/13/avride-launches-sidewalk-delivery-bots-on-uber-eats-in-jersey-city) [2](https://www.restaurantdive.com/news/grubhub-avride-wonder-jersey-city-delivery-robot-pilot/803597/) [3](https://njbikeped.org/autonomous-delivery-robots-in-jersey-city/) [4](https://www.yahoo.com/news/articles/burrito-might-arrive-wheels-now-191123535.html) [5](https://www.roi-nj.com/2026/10/22/industry/retail/wonder-expands-avride-robot-delivery-to-hoboken-and-more-jersey-city-merchants/)
 
 ### NYC Mayor Mamdani + NYC DOT (Comm. Mike Flynn)
 - **Role:** Next-door precedent. Let Waymo's NYC test permits lapse on March 31, 2026, and Vision Zero Reimagined calls for local oversight of any AV rollout. Commercial rides would also need TLC licenses.
