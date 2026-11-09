@@ -6,7 +6,10 @@ const here = f => path.join(__dirname, f);
 
 const page = fs.readFileSync(here("page.template.html"), "utf8")
   .replace("/*SOLVER*/", () => fs.readFileSync(here("solver.js"), "utf8"))
-  .replace("/*MODEL*/", () => JSON.stringify(m));
+  .replace("/*PREFS*/", () => fs.readFileSync(here("prefs.js"), "utf8"))
+  .replace("/*CALIBRATE*/", () => fs.readFileSync(here("calibrate.js"), "utf8"))
+  .replace("/*MODEL*/", () => JSON.stringify(m))
+  .replace("/*EVIDENCE*/", () => JSON.stringify(ev));
 fs.writeFileSync(here("index.html"), page);
 
 const s = g.solve(m), B = s.branches, laws = Object.keys(B), ids = Object.keys(m.players);

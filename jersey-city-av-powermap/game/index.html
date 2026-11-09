@@ -100,6 +100,18 @@ table.heat { border-collapse: separate; border-spacing: 2px; width: 100%; min-wi
 .flip b { font: 600 1.35rem var(--mono) }
 .flip span { font-size: 0.82rem; color: var(--ink-2) }
 
+.tune { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px }
+.tune select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink) }
+.tune .q { margin: 0; font-weight: 600 }
+.ab { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.ab button { color: var(--ink); padding: 12px 8px; font-size: 0.95rem }
+.tune-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+.wbars { display: grid; gap: 4px }
+.wbar { display: grid; grid-template-columns: 82px minmax(0, 1fr) 38px; gap: 6px; align-items: center; font-size: 0.75rem }
+.wbar i { display: block; height: 8px; border-radius: 0 4px 4px 0; background: var(--s1) }
+.check { display: flex; gap: 8px; align-items: flex-start; font-size: 0.8rem; color: var(--ink-2) }
+.readout { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 10px 0 0; font-size: 0.86rem; color: var(--ink-2) }
+.readout b { color: var(--ink); font-family: var(--mono) }
 details { border-top: 1px solid var(--line); padding-top: 10px }
 summary { cursor: pointer; font-weight: 600 }
 .src { display: grid; gap: 12px; margin-top: 12px }
@@ -125,18 +137,29 @@ summary { cursor: pointer; font-weight: 600 }
   <header>
     <div class="eyebrow">Jersey City · autonomous mobility · as of <span id="asof"></span></div>
     <h1>Who gets driverless cars onto Jersey City streets, and on whose terms?</h1>
-    <p class="lede">A four-move game solved by backward induction. The Legislature picks a bill, the Governor signs or vetoes it, the City sets curb rules, and then Waymo, Tesla and Via decide at the same time whether to enter. Each of 24 actors, from Jersey City, Trenton and across the Hudson, scores outcomes on seven dimensions. Move the sliders to change their priorities and watch the equilibrium shift.</p>
+    <p class="lede">A four-move game solved by backward induction. The Legislature picks a bill, the Governor signs or vetoes it, the City sets curb rules, and then Waymo, Tesla and Via decide at the same time whether to enter. Each of 24 actors, from Jersey City, Trenton and across the Hudson, scores outcomes on seven dimensions. Answer quick this-or-that questions, or move the sliders, to tune their priorities and watch the equilibrium shift.</p>
   </header>
 
   <section aria-label="Equilibrium path">
     <div class="path" id="path"></div>
+    <p class="readout"><span>Fit to the record: <b id="fit"></b></span><span>P(committee picks S1677), λ=8: <b id="pqr"></b></span><span id="fit-miss"></span></p>
   </section>
 
   <div class="grid">
     <aside class="panel controls" aria-label="Assumptions">
       <div class="eyebrow">Priorities &amp; unknowns</div>
       <div id="ctls"></div>
-      <button id="reset" type="button">Reset to sourced defaults</button>
+      <button id="reset" type="button">Reset sliders and answers</button>
+      <div class="tune" aria-label="Quick tune">
+        <div class="eyebrow">Quick tune · this or that</div>
+        <label for="tune-actor" class="q">Whose priorities?</label>
+        <select id="tune-actor"></select>
+        <p class="q" id="tune-q"></p>
+        <div class="ab"><button type="button" id="tune-a" aria-describedby="tune-q"></button><button type="button" id="tune-b" aria-describedby="tune-q"></button></div>
+        <div class="tune-row"><button type="button" id="tune-tie">About equal</button><button type="button" id="tune-undo">Undo</button><small class="num" id="tune-count"></small></div>
+        <div class="wbars" id="tune-weights"></div>
+        <label class="check"><input type="checkbox" id="use-ev" checked><span id="ev-label">Start from the sourced answers</span></label>
+      </div>
     </aside>
 
     <div class="results">
@@ -373,14 +396,160 @@ summary { cursor: pointer; font-weight: 600 }
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.AVGame = api;
 })(typeof window !== "undefined" ? window : globalThis);
 </script>
+<script>// Beli-style preference learning. People answer quick Boolean questions ("for the Mayor, does
+// safety matter more than budget?"), and weights are fitted with a Bradley–Terry model:
+//   P(a beats b) = w_a / (w_a + w_b)
+// The current weights act as a Gamma prior worth `alpha` pseudo-comparisons, so a few answers
+// nudge the weights and many answers dominate. Fitting uses Hunter's (2004) MM algorithm for the MAP estimate.
+(function (root) {
+  const NEW_DIM_PRIOR = 0.02; // prior mass for a dimension the actor did not weight before
+
+  const winsOf = (c, d) => (c.win === "tie" ? 0.5 : (c.win === "a" ? c.a : c.b) === d ? 1 : 0);
+
+  /** @param {Record<string, number>} prior @param {{a:string,b:string,win:"a"|"b"|"tie"}[]} comps @param {number} alpha */
+  function fitWeights(prior, comps, alpha = 4) {
+    alpha = Math.max(alpha, 1e-6); // a prior of zero would leave unasked dimensions undefined
+    comps = comps.filter(c => c.a !== c.b);
+    for (const c of comps) if (!["a", "b", "tie"].includes(c.win)) throw new Error(`win must be a, b or tie (got ${c.win})`);
+    const p = { ...prior };
+    for (const c of comps) for (const d of [c.a, c.b]) if (!(d in p)) p[d] = NEW_DIM_PRIOR;
+    const z = Object.values(p).reduce((a, b) => a + b, 0);
+    for (const d in p) p[d] /= z;
+    let s = { ...p };
+    for (let it = 0; it < 500; it++) {
+      /** @type {Record<string, number>} */
+      const next = {};
+      let delta = 0;
+      for (const d in p) {
+        let wins = 0, denom = 0;
+        for (const c of comps) if (c.a === d || c.b === d) {
+          wins += winsOf(c, d);
+          denom += 1 / (s[c.a] + s[c.b]);
+        }
+        next[d] = (alpha * p[d] + wins) / (alpha + denom);
+        delta = Math.max(delta, Math.abs(next[d] - s[d]));
+      }
+      s = next;
+      if (delta < 1e-12) break;
+    }
+    const t = Object.values(s).reduce((a, b) => a + b, 0);
+    return Object.fromEntries(Object.entries(s).map(([d, v]) => [d, v / t]));
+  }
+
+  // Simulated respondent who answers according to Bradley–Terry with the given true weights.
+  function simulate(truth, n, rng) {
+    const dims = Object.keys(truth), out = [];
+    for (let i = 0; i < n; i++) {
+      const i = Math.floor(rng() * dims.length);
+      let j = Math.floor(rng() * (dims.length - 1));
+      if (j >= i) j++; // uniform over the other dimensions
+      const a = dims[i], b = dims[j];
+      out.push({ a, b, win: rng() < truth[a] / (truth[a] + truth[b]) ? "a" : "b" });
+    }
+    return out;
+  }
+
+  // Ask the pair the model is least sure about, discounted by how often it was asked already.
+  function nextPair(w, comps) {
+    const dims = Object.keys(w);
+    let best = null;
+    for (let i = 0; i < dims.length; i++) for (let j = i + 1; j < dims.length; j++) {
+      const a = dims[i], b = dims[j], pa = w[a] / (w[a] + w[b]);
+      const n = comps.filter(c => (c.a === a && c.b === b) || (c.a === b && c.b === a)).length;
+      const score = (pa * (1 - pa)) / (1 + n);
+      if (!best || score > best.score + 1e-12) best = { a, b, score };
+    }
+    return best;
+  }
+
+  // Beli's ranking move: binary-insert `item` into a best-first `order` using a Boolean `better(x, y)`.
+  function insertRank(order, item, better) {
+    let lo = 0, hi = order.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (better(item, order[mid])) hi = mid; else lo = mid + 1; }
+    return [...order.slice(0, lo), item, ...order.slice(lo)];
+  }
+
+  // Apply answers per actor ({ actorId: comps[] }) to a copy of the model.
+  function applyComparisons(model, byActor, alpha = 4) {
+    const out = JSON.parse(JSON.stringify(model));
+    for (const [id, comps] of Object.entries(byActor)) if (out.players[id] && comps.length)
+      out.players[id].w = fitWeights(out.players[id].w, comps, alpha);
+    return out;
+  }
+
+  // Calibrate a model with the sourced revealed-preference answers in evidence.json.
+  const withEvidence = (model, evidence) => applyComparisons(model, evidence.comparisons, evidence.alpha);
+
+  const api = { withEvidence, fitWeights, simulate, nextPair, insertRank, applyComparisons };
+  if (typeof module !== "undefined" && module.exports) module.exports = api; else root.AVPrefs = api;
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+<script>// Grading: how well does the model reproduce what real actors actually did?
+// Each fact is a sourced observation plus a check against the solved game.
+(function (root) {
+  const g = typeof require === "function" ? require("./solver.js") : root.AVGame;
+
+  const u = (B, id, law) => B[law].u[id];
+  const FACTS = [
+    { id: "committee_s1677", claim: "NJ Senate committee advanced S1677 (5-0), not the industry-amended bill",
+      check: s => s.eq.law === "s1677",
+      src: ["https://newjerseymonitor.com/2026/05/13/driverless-cars-nj-senate/"] },
+    { id: "waymo_enters_s1677", claim: "Waymo is preparing to operate under S1677-style rules (mapping JC, Newark tests)",
+      check: s => g.cityStage(s.resolved, "s1677").a.waymo === true, // the signed-S1677 subgame, even if vetoed on path
+      src: ["https://nj1015.com/autonomous-vehicles-waymo-pilot-program/"] },
+    { id: "waymo_wants_amend", claim: "Waymo wants the safety-driver phase removed (prefers amended)",
+      check: s => u(s.branches, "waymo", "amended") > u(s.branches, "waymo", "s1677"),
+      src: ["https://www.govtech.com/transportation/new-jersey-bill-could-put-the-brakes-on-autonomous-cabs"] },
+    { id: "gig_prefers_stall", claim: "Gig-driver petitioners want AVs stopped in NJ",
+      check: s => u(s.branches, "av_opposition", "stall") > Math.max(u(s.branches, "av_opposition", "s1677"), u(s.branches, "av_opposition", "amended")),
+      src: ["https://actionnetwork.org/petitions/stop-waymos-autonomous-vehicles-from-spreading-in-new-jersey/"] },
+    { id: "chamber_amend", claim: "Chamber of Progress supports S1677 only with loosening amendments",
+      check: s => u(s.branches, "chamber_progress", "amended") > u(s.branches, "chamber_progress", "s1677"),
+      src: ["https://progresschamber.org/resources/testimony-to-nj-lawmakers-support-and-amend-establishing-an-autonomous-vehicle-pilot-program-a-3968-s-1677/"] },
+    { id: "disability_s1677", claim: "Blind/disability advocates and SAVE-US testified for S1677",
+      check: s => u(s.branches, "disability_safety", "s1677") > u(s.branches, "disability_safety", "stall"),
+      src: ["https://newjerseymonitor.com/2026/05/13/driverless-cars-nj-senate/"] },
+    { id: "hochul_withdrew", claim: "NY Gov. Hochul withdrew her robotaxi-service plan (prefers stall to a loose law)",
+      check: s => u(s.branches, "ny_hochul", "stall") > u(s.branches, "ny_hochul", "amended"),
+      src: ["https://www.cnbc.com/2026/02/19/new-york-driverless-rideshare-nyc-waymo.html"] },
+    { id: "idg_stall", claim: "NYC driver unions fought robotaxis and claimed victory when the plan died",
+      check: s => u(s.branches, "idg", "stall") > u(s.branches, "idg", "amended"),
+      src: ["https://driversguild.org/idg-victory-in-ny-governor-pulls-robotaxi-proposal-from-budgetidg-warns-hochul-robotaxi-proposal-will-kill-jobs/"] },
+  ];
+
+  function fit(m, opts = {}) {
+    const s = g.solve(m, opts);
+    const results = FACTS.map(f => ({ id: f.id, claim: f.claim, pass: !!f.check(s) }));
+    const passed = results.filter(r => r.pass).length;
+    return { passed, total: FACTS.length, results };
+  }
+
+  // Letter grade for a normalized utility in [-1, 1].
+  const letter = x => (x >= 0.6 ? "A" : x >= 0.2 ? "B" : x > -0.2 ? "C" : x > -0.6 ? "D" : "F");
+
+  const api = { FACTS, fit, letter };
+  if (typeof module !== "undefined" && module.exports) module.exports = api; else root.AVCalibrate = api;
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
 <script>
 const MODEL = {"title":"Jersey City AV Game","as_of":"2026-11-09","horizon":"3-year pilot window (2027-2029)","dims":{"safety":"Expected traffic deaths & injuries (Vision Zero)","risk":"Backlash risk: chance a serious AV crash forces an MVC halt mid-pilot","jobs":"Rideshare / delivery driver livelihoods","budget":"City & state transit budget","access":"Mobility for transit-poor & late-night riders","innovation":"Tech investment, NJ competitiveness","congestion":"Traffic: added vehicle-miles from empty robotaxi trips (deadheading)"},"scale":"Effects are in the points defined under 'units', relative to today, at full driverless operation (scaled by the law's driverless share). Ranges [lo, hi] drive the robustness runs.","laws":{"stall":{"label":"Stall (no AV law)","waymo":false,"tesla":false,"driverless_share":0,"effects":{},"basis":"Status quo: NJ has no driverless framework; S1677 sits in Senate Budget & Appropriations, and its prior version (S4702) died.","src":["https://legiscan.com/NJ/bill/S1677/2026"],"validation":0},"s1677":{"label":"S1677 as written","waymo":true,"tesla":false,"driverless_share":[0.25,0.5],"effects":{},"basis":"3-yr pilot, human-driver phase first, cameras + 2 other sensor types, manual controls. Waymo says it delays launch to about 2028, so only part of the window runs driverless. Tesla is excluded. Safety validation is high: the human-driver phase, the 3-sensor rule, and the MVC Chief Administrator's power to halt an operator immediately.","src":["https://pub.njleg.gov/Bills/2026/S2000/1677_I1.HTM","https://nj1015.com/autonomous-vehicles-waymo-pilot-program/"],"validation":[0.5,0.7]},"amended":{"label":"Industry-amended","waymo":true,"tesla":true,"driverless_share":[0.8,1],"effects":{},"basis":"The changes Waymo, Tesla and Chamber of Progress asked for: no safety-driver phase, a sensor-neutral rule, school-zone limits eased. Safety validation is low: no human-driver phase, and the sensor rule drops to cameras-only.","src":["https://progresschamber.org/resources/testimony-to-nj-lawmakers-support-and-amend-establishing-an-autonomous-vehicle-pilot-program-a-3968-s-1677/","https://www.teslarati.com/tesla-urges-new-jersey-owners-to-oppose-new-bill-block-robotaxi/"],"validation":[0.1,0.3]},"moratorium":{"label":"Moratorium","waymo":false,"tesla":false,"driverless_share":0,"effects":{"innovation":[-1,-0.5],"jobs":[0,0.2]},"basis":"The anti-AV petition's ask: stop AV testing in NJ to protect driver jobs.","src":["https://actionnetwork.org/petitions/stop-waymos-autonomous-vehicles-from-spreading-in-new-jersey/"],"validation":0}},"city":{"open":{"label":"Open curb","effects":{"safety":[-0.3,-0.1]},"op_revenue":[1,1.1],"basis":"No pick-up/drop-off rules. Bike JC and Safe Streets JC worry about AVs stopping in bike lanes; SF's mayor complained of Waymos blocking lanes.","src":["https://www.kron4.com/news/technology-ai/sf-mayor-calls-for-more-regulations-on-waymos-and-other-autonomous-vehicles/"]},"managed":{"label":"Managed curb","effects":{"safety":[0.1,0.3],"budget":[0.1,0.3]},"op_revenue":[0.85,0.95],"basis":"DOI under Kaplan sets pick-up/drop-off zones, data sharing and curb fees as part of the Vision Zero quick-build program.","src":["https://usa.streetsblog.org/2026/06/12/in-new-jersey-mayors-show-how-quickly-we-can-slow-down-drivers"]},"restrict":{"label":"Restrict curb","effects":{"safety":[0,0.1],"access":[-0.3,-0.1]},"op_revenue":[0.4,0.6],"basis":"No AV pick-ups on commercial corridors. Cities cannot ban state-licensed vehicles, but can choke curb access.","src":["https://pub.njleg.gov/Bills/2026/S2000/1677_I1.HTM"]}},"operators":{"waymo":{"label":"Waymo","effects":{"safety":[0.38,0.57],"jobs":[-0.8,-0.4],"access":[0.1,0.3],"innovation":[0.6,1],"congestion":[-0.22,-0.15]},"revenue":[1.5,2.5],"entry_cost":[0.4,0.8],"basis":"Safety: 95% fewer serious-injury crashes (271M rider-only miles, Waymo June 2026) x an assumed 2-3% share of JC vehicle-miles = 1.9-2.9% fewer crashes, i.e. 0.38-0.57 pt. Jobs: an assumed 4-8% of JC rideshare trips captured.","src":["https://waymo.com/safety/impact/","https://evwire.com/p/waymo-safety-data-fewer-injury-crashes-results"],"hazard":[0.05,0.15]},"tesla":{"label":"Tesla","effects":{"safety":[-0.25,0.45],"jobs":[-0.8,-0.4],"access":[0.1,0.3],"innovation":[0.4,0.8],"congestion":[-0.22,-0.15]},"revenue":[1.2,2.2],"entry_cost":[0.2,0.5],"basis":"No verified crash rate: 36 NHTSA incident reports, and crashes during remote-operator takeovers. Efficacy is assumed to range from -50% to +90% x a 2.5% share of vehicle-miles, i.e. -0.25 to +0.45 pt. That wide band feeds the risk dimension. Lower entry cost because the fleet is consumer cars.","src":["https://teslant.com/en/news/tesla-robotaxi-remote-operator-crashes-five-for-five-36-nhtsa-reports-2026-10","https://www.statesman.com/business/article/robotaxi-crashes-june-2026-safety-data-22346776.php"],"hazard":[0.3,0.6]},"both_jobs_offset":[0.2,0.4],"hazard_basis":"Assumed. Waymo is low: 271M rider-only miles and about 95% fewer serious-injury crashes. Tesla is high: 36 NHTSA incident reports, every remote-operator takeover ended in a collision, and no verified crash rate."},"via":{"label":"Via + Waymo integration","effects":{"budget":[0.5,1.5],"access":[0.5,1],"congestion":[0,0.1]},"revenue":[0.8,1.2],"failed_cost":[0.2,0.4],"basis":"JC paid ~$7.7M/yr; the city puts 2025 cost at $15.80/trip and cut service on July 1, 2026 to close a ~$90M gap. Chandler, AZ fills peak trips with Waymo at a $2 fare. Assumed saving $1-3M/yr (0.5-1.5 pt), and most of the cut hours restored. Needs Waymo in the city and a curb that is not restricted.","src":["https://gothamist.com/news/jersey-city-weighs-cutting-via-microtransit-service-amid-budget-crisis","https://www.jerseycitynj.gov/viachanges","https://www.chandleraz.gov/news-center/city-chandler-partners-waymo-and-bring-avs-chandler-flex"]},"players":{"waymo":{"name":"Waymo","power":4,"w":{"revenue":0.75,"safety":0.15,"innovation":0.1}},"tesla":{"name":"Tesla","power":2,"w":{"revenue":0.85,"innovation":0.15}},"via":{"name":"Via","power":3,"w":{"revenue":0.7,"access":0.2,"budget":0.1}},"jc_doi":{"name":"JC Infrastructure","power":3,"w":{"safety":0.35,"risk":0.15,"access":0.2,"budget":0.3}},"bike_jc":{"name":"Bike JC","power":2,"w":{"safety":0.5,"risk":0.2,"access":0.3}},"safe_streets_jc":{"name":"Safe Streets JC","power":2,"w":{"safety":0.6,"risk":0.2,"access":0.2}},"nj_transit":{"name":"NJ Transit","power":4,"w":{"access":0.5,"budget":0.5}},"nj_mvc":{"name":"NJ MVC","power":5,"w":{"safety":0.6,"risk":0.25,"innovation":0.15}},"njdot":{"name":"NJDOT","power":3,"w":{"safety":0.4,"risk":0.15,"access":0.25,"innovation":0.2}},"panynj":{"name":"Port Authority","power":3,"w":{"innovation":0.5,"access":0.5}},"av_opposition":{"name":"Gig drivers","power":1,"w":{"jobs":1}},"mayor_solomon":{"name":"Mayor Solomon","power":3,"w":{"safety":0.3,"risk":0.1,"budget":0.3,"access":0.2,"jobs":0.1},"mover":"city"},"zwicker":{"name":"Legislature (Zwicker)","power":4,"w":{"safety":0.3,"risk":0.2,"innovation":0.25,"jobs":0.25},"mover":"law","coalition":0.5},"gov_sherrill":{"name":"Gov. Sherrill","power":5,"w":{"budget":0.25,"jobs":0.25,"safety":0.2,"risk":0.1,"innovation":0.2},"mover":"sign","coalition":0.5},"nyc_mamdani":{"name":"NYC (Mamdani/DOT)","power":2,"w":{"jobs":0.4,"safety":0.3,"congestion":0.3},"region":"NY"},"ny_hochul":{"name":"NY State (Hochul)","power":1,"w":{"jobs":0.5,"innovation":0.3,"safety":0.2},"region":"NY"},"mta":{"name":"MTA","power":1,"w":{"budget":0.5,"congestion":0.5},"region":"NY"},"idg":{"name":"NYC driver unions","power":2,"w":{"jobs":1},"region":"NY"},"atu":{"name":"ATU (transit labor)","power":3,"w":{"jobs":0.7,"budget":0.3},"region":"NY/NJ"},"open_plans":{"name":"Open Plans","power":1,"w":{"congestion":0.5,"safety":0.25,"access":0.25},"region":"NY"},"rpa":{"name":"RPA","power":2,"w":{"access":0.3,"congestion":0.2,"jobs":0.2,"safety":0.2,"innovation":0.1},"region":"NY/NJ"},"aaa":{"name":"AAA clubs","power":2,"w":{"safety":0.4,"risk":0.3,"congestion":0.3},"region":"NY/NJ"},"chamber_progress":{"name":"Chamber of Progress","power":2,"w":{"innovation":0.8,"access":0.2},"region":"NY/NJ"},"disability_safety":{"name":"Blind & disability advocates","power":2,"w":{"access":0.6,"safety":0.25,"risk":0.15},"region":"NY/NJ"}},"weights_basis":"Weights are assumptions inferred from each actor's stated priorities (sources in ../stakeholders.json): Vision Zero for DOI, Bike JC and Safe Streets JC; the $90M deficit for the Mayor; the safety-framed bill and Zwicker's 'pro New Jersey safety'; Sherrill's NJ Transit budget and jobs priorities. Power scores come from the power map. Movers weigh their own priorities and a power-weighted coalition of everyone else equally (coalition = 0.5). NY-region actors (round 2) enter as coalition members only. They have no vote in Trenton, so their influence runs through their power-map score: NYC DOT 'centers workers'; IDG and ATU killed Hochul's plan over jobs; Open Plans focuses on congestion; AAA polling shows safety fears; Chamber of Progress pushes innovation; blind advocates want access.","risk_basis":"P(halt) = sum over entering operators of hazard x driverless share x (1 - law validation), capped at 0.9. A halt mid-window wipes out about half the expected AV benefits and revenue. Precedent: California DMV suspended Cruise's driverless permits on Oct 24, 2023, three weeks after one pedestrian-dragging crash. S1677 gives MVC's Chief Administrator the same immediate-halt power.","units":{"safety":"1 pt = 5% fewer serious-injury crashes in JC","risk":"1 pt = 50% chance of a forced halt","jobs":"1 pt = 10% of JC rideshare trips kept by human drivers","budget":"1 pt = $2M/yr (JC paid ~$7.7M/yr for Via)","access":"1 pt = restoring the Via evening + Saturday service cut on July 1, 2026","innovation":"1 pt = a full commercial robotaxi launch in the NJ market","congestion":"1 pt = 2% of JC vehicle-miles (negative = more traffic)"},"normalization":"Each actor's utility is divided by its largest absolute value over all reachable outcomes. Influence in the coalition term then comes from power-map scores, not from whose units are bigger.","risk_src":["https://www.axios.com/2023/10/24/cruise-permit-suspended-driverless-cars","https://pub.njleg.gov/Bills/2026/S2000/1677_I1.HTM"],"congestion_basis":"Open Plans/Hunter (July 2026): Waymo drives 1.71 miles per passenger mile vs 1.49 for NYC ride-hail, about 15% more per trip. At an assumed 2-3% share of JC vehicle-miles that is +0.3-0.45% VMT, i.e. -0.15 to -0.22 pt. Pooled Via trips offset some of it.","congestion_src":["https://www.openplans.org/press-releases/new-study-robotaxis-in-new-york-city-could-spike-congestion-and-have-limited-safety-benefits"]};
+const EVIDENCE = {"about":"Revealed preferences as Beli-style Boolean answers. Each entry is one answer worth 1 comparison against a prior of alpha=4. Only actions with a public record are used.","alpha":4,"comparisons":{"zwicker":[{"a":"risk","b":"innovation","win":"a","why":"S1677 keeps a 3-sensor mandate and a human-driver phase even though it shuts out Tesla and delays Waymo.","src":"https://electrek.co/2026/07/09/new-jersey-bill-tesla-camera-robotaxi/"},{"a":"safety","b":"innovation","win":"a","why":"Zwicker: the bill is 'pro New Jersey safety', not anti-Tesla.","src":"https://www.govtech.com/transportation/new-jersey-bill-could-put-the-brakes-on-autonomous-cabs"}],"mayor_solomon":[{"a":"budget","b":"access","win":"a","why":"Cut Via evenings and Saturdays and raised the fare to $2.55 to close a ~$90M gap.","src":"https://www.jerseycitynj.gov/viachanges"}],"ny_hochul":[{"a":"jobs","b":"innovation","win":"a","why":"Pulled her own robotaxi plan after driver and transit unions opposed it on job grounds.","src":"https://www.cnbc.com/2026/02/19/new-york-driverless-rideshare-nyc-waymo.html"}],"nyc_mamdani":[{"a":"jobs","b":"safety","win":"a","why":"Let Waymo's permits lapse; DOT: AV decisions 'will center workers and their well-being'.","src":"https://www.thecityreporter.nyc/2026/04/06/waymo-driverless-cars-testing-roads-autonomous-vehicle/"}]}};
+const PR = window.AVPrefs, CAL = window.AVCalibrate;
 const G = window.AVGame;
 const LAWS = Object.keys(MODEL.laws), CITY = MODEL.city;
 const fmt = (x, d = 2) => { const s = Math.abs(x).toFixed(d); return (+s === 0 ? "" : x > 0 ? "+" : "−") + s; };
 const $ = id => document.getElementById(id);
 
-const W0 = JSON.parse(JSON.stringify(MODEL));
+const RAW = JSON.parse(JSON.stringify(MODEL));
+const answers = {};      // actor id -> Beli answers [{a, b, win}]
+const touched = {};      // sliders the user has moved; untouched sliders don't override tuned weights
+let useEvidence = true;
+function baseModel() {
+  let m = useEvidence ? PR.withEvidence(RAW, EVIDENCE) : JSON.parse(JSON.stringify(RAW));
+  for (const [id, cs] of Object.entries(answers)) if (cs.length) m.players[id].w = PR.fitWeights(m.players[id].w, cs, 4);
+  return m;
+}
+const W0 = RAW;
 const CTL = [
   { id: "leg_risk", label: "Legislature: weight on backlash risk", min: 0, max: 0.6, step: 0.01,
     get: m => m.players.zwicker.w.risk, set: (m, x) => G.setWeight(m, "zwicker", "risk", x),
@@ -404,16 +573,15 @@ const CTL = [
     set: (m, x) => (m.laws.s1677.driverless_share = [Math.max(0, x - 0.125), Math.min(1, x + 0.125)], m),
     note: "Shrinks as the human-driver phase gets longer. Waymo says S1677 means 2028." },
 ];
-let state = Object.fromEntries(CTL.map(c => [c.id, +c.get(W0).toFixed(3)]));
+let state = Object.fromEntries(CTL.map(c => [c.id, +c.get(baseModel()).toFixed(3)]));
 
-function model() { let m = JSON.parse(JSON.stringify(W0)); for (const c of CTL) m = c.set(m, state[c.id]) || m; return m; }
+function model() { let m = baseModel(); for (const c of CTL) if (touched[c.id]) m = c.set(m, state[c.id]) || m; return m; }
 
 function buildControls() {
   $("ctls").innerHTML = CTL.map(c => `<div class="ctl"><label for="${c.id}"><span>${c.label}</span><span class="num" id="${c.id}_v"></span></label>
     <input type="range" id="${c.id}" min="${c.min}" max="${c.max}" step="${c.step}" value="${state[c.id]}"><p>${c.note}</p></div>`).join("");
-  for (const c of CTL) $(c.id).addEventListener("input", e => { state[c.id] = +e.target.value; render(); });
-  $("reset").onclick = () => { state = Object.fromEntries(CTL.map(c => [c.id, +c.get(W0).toFixed(3)]));
-    for (const c of CTL) $(c.id).value = state[c.id]; render(); };
+  for (const c of CTL) $(c.id).addEventListener("input", e => { state[c.id] = +e.target.value; touched[c.id] = true; render(); });
+  $("reset").onclick = () => { for (const k in touched) delete touched[k]; for (const k in answers) delete answers[k]; render(); };
 }
 
 function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
@@ -426,8 +594,14 @@ const opsLabel = a => ["waymo", "tesla", "via"].filter(k => a[k]).map(k => ({ wa
 
 let robTimer;
 function render() {
-  for (const c of CTL) $(c.id + "_v").textContent = state[c.id].toFixed(2);
+  const base = baseModel();
+  for (const c of CTL) { if (!touched[c.id]) { state[c.id] = +c.get(base).toFixed(3); $(c.id).value = state[c.id]; } $(c.id + "_v").textContent = state[c.id].toFixed(2); }
   const m = model(), sol = G.solve(m), eq = sol.eq, B = sol.branches;
+  const fr = CAL.fit(m), pq = G.solveQR(m, { lambda: 8 }).law.s1677;
+  $("fit").textContent = `${fr.passed}/${fr.total} facts`;
+  $("pqr").textContent = `${(pq * 100).toFixed(0)}%`;
+  $("fit-miss").textContent = fr.passed < fr.total ? "Misses: " + fr.results.filter(r => !r.pass).map(r => r.claim).join("; ") : "";
+  renderTune(m);
 
   const lawL = MODEL.laws[eq.proposed].label, first = s => s.split(". ")[0].replace(/\.$/, "") + ".";
   $("path").innerHTML = [
@@ -444,7 +618,7 @@ function render() {
   for (const id of ids) {
     const vals = LAWS.map(l => B[l].u[id]), best = Math.max(...vals);
     h += `<tr class="${P[id].mover ? "mover" : ""}"><th>${P[id].name}<small>${P[id].power}${P[id].region ? " · " + P[id].region : ""}</small></th>` + vals.map((v, i) => {
-      const c = heatColor(v), tip = `${P[id].name} under ${MODEL.laws[LAWS[i]].label}: ${fmt(v)}${v === best ? " (favorite)" : ""}`;
+      const c = heatColor(v), tip = `${P[id].name} under ${MODEL.laws[LAWS[i]].label}: ${fmt(v)}, grade ${CAL.letter(v)}${v === best ? " (favorite)" : ""}`;
       return `<td class="${Math.abs(v - best) < 1e-9 ? "best" : ""}" style="background:${c.bg};color:${c.light ? "#fff" : css("--ink")}" data-tip="${tip}">${fmt(v)}</td>`; }).join("") + `</tr>`;
   }
   $("heat").innerHTML = h + "</tbody>";
@@ -459,14 +633,16 @@ function render() {
     return `<div class="dim"><span>${d[0].toUpperCase() + d.slice(1)}<small>${MODEL.units[d]}</small></span><div class="track">${bar(a, "a", "S1677")}${bar(b, "b", "Amended")}</div></div>`; }).join("");
 
   // tipping points (with current slider settings)
-  const base = model();
-  const t1 = G.threshold(x => G.setWeight(base, "zwicker", "risk", x), e => e.law === "s1677", 0, 0.95);
-  const t2 = G.threshold(x => G.setWeight(base, "gov_sherrill", "jobs", x), e => !(e.proposed === "amended" && e.sign), 0, 0.95);
-  const t3 = G.threshold(x => { const c = JSON.parse(JSON.stringify(base)); c.operators.tesla.hazard = [1 - x, 1 - x]; return c; }, e => e.law === "amended", 0, 1);
+  const tipBase = model();
+  const t1 = G.threshold(x => G.setWeight(tipBase, "zwicker", "risk", x), e => e.law === "s1677", 0, 0.95);
+  const t2 = G.threshold(x => G.setWeight(tipBase, "gov_sherrill", "jobs", x), e => !(e.proposed === "amended" && e.sign), 0, 0.95);
+  const t3 = G.threshold(x => { const c = JSON.parse(JSON.stringify(tipBase)); c.operators.tesla.hazard = [1 - x, 1 - x]; return c; }, e => e.law === "amended", 0, 1);
   const flip = (v, text, f) => `<div class="flip"><b>${v == null ? "never" : f(v)}</b><span>${text}</span></div>`;
   $("flips").innerHTML =
     flip(t1, "Legislature weight on backlash risk at which S1677 beats the amended bill", v => "≥ " + v.toFixed(2)) +
-    flip(t2, "Governor weight on driver jobs at which the amended bill stops being the outcome", v => "≥ " + v.toFixed(2)) +
+    (eq.proposed === "amended" && eq.sign
+      ? flip(t2, "Governor weight on driver jobs at which the amended bill stops being the outcome", v => "≥ " + v.toFixed(2))
+      : `<div class="flip"><b>n/a</b><span>The amended bill isn't the outcome right now, so the Governor's jobs weight has nothing to flip</span></div>`) +
     flip(t3 == null ? null : 1 - t3, "Tesla halt chance below which the Legislature prefers letting Tesla in", v => "≤ " + v.toFixed(2));
 
   clearTimeout(robTimer);
@@ -477,6 +653,34 @@ function render() {
       const txt = `${MODEL.laws[law].label}, ${sign}, ${CITY[city].label.toLowerCase()}, ${ops.replace(/\+/g, " + ")}`;
       return `<div class="robrow"><div class="lab"><code>${txt}</code><div class="fill" style="width:${(r.share * 100).toFixed(1)}%" data-tip="${txt}: ${(r.share * 100).toFixed(1)}% of runs"></div></div><span class="pct num">${(r.share * 100).toFixed(0)}%</span></div>`; }).join("");
   }, 200);
+}
+
+const DIMNAME = d => d === "revenue" ? "own revenue" : d === "risk" ? "backlash risk" : d;
+function renderTune(m) {
+  const id = $("tune-actor").value, w = m.players[id].w, cs = answers[id] || [];
+  const q = PR.nextPair(baseModel().players[id].w, cs);
+  $("tune-q").textContent = `For ${MODEL.players[id].name}, which matters more?`;
+  $("tune-a").textContent = DIMNAME(q.a); $("tune-b").textContent = DIMNAME(q.b);
+  $("tune-a").dataset.dim = q.a; $("tune-b").dataset.dim = q.b;
+  $("tune-count").textContent = `${cs.length} answer${cs.length === 1 ? "" : "s"}`;
+  $("tune-undo").disabled = !cs.length;
+  const mx = Math.max(...Object.values(w));
+  $("tune-weights").innerHTML = Object.entries(w).sort((a, b) => b[1] - a[1]).map(([d, v]) =>
+    `<div class="wbar"><span>${DIMNAME(d)}</span><i style="width:${(v / mx * 100).toFixed(1)}%"></i><span class="num">${(v * 100).toFixed(0)}%</span></div>`).join("");
+}
+function answer(win) {
+  const id = $("tune-actor").value, a = $("tune-a").dataset.dim, b = $("tune-b").dataset.dim;
+  (answers[id] = answers[id] || []).push({ a, b, win });
+  render();
+}
+function buildTune() {
+  $("tune-actor").innerHTML = Object.entries(MODEL.players).map(([id, p]) => `<option value="${id}"${id === "zwicker" ? " selected" : ""}>${p.name}</option>`).join("");
+  $("tune-actor").onchange = render;
+  $("tune-a").onclick = () => answer("a"); $("tune-b").onclick = () => answer("b"); $("tune-tie").onclick = () => answer("tie");
+  $("tune-undo").onclick = () => { const cs = answers[$("tune-actor").value]; if (cs && cs.length) { cs.pop(); render(); } };
+  $("use-ev").onchange = e => { useEvidence = e.target.checked; render(); };
+  const nEv = Object.values(EVIDENCE.comparisons).reduce((s, c) => s + c.length, 0), fEv = CAL.fit(PR.withEvidence(RAW, EVIDENCE));
+  $("ev-label").textContent = `Start from the ${nEv} sourced answers (fits ${fEv.passed} of ${fEv.total} real outcomes)`;
 }
 
 function sources() {
@@ -500,5 +704,5 @@ document.addEventListener("mousemove", e => { if (tip.hidden) return; const x = 
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
 new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
-sources(); buildControls(); render();
+sources(); buildControls(); buildTune(); render();
 </script>

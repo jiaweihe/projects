@@ -100,6 +100,18 @@ table.heat { border-collapse: separate; border-spacing: 2px; width: 100%; min-wi
 .flip b { font: 600 1.35rem var(--mono) }
 .flip span { font-size: 0.82rem; color: var(--ink-2) }
 
+.tune { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px }
+.tune select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink) }
+.tune .q { margin: 0; font-weight: 600 }
+.ab { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.ab button { color: var(--ink); padding: 12px 8px; font-size: 0.95rem }
+.tune-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+.wbars { display: grid; gap: 4px }
+.wbar { display: grid; grid-template-columns: 82px minmax(0, 1fr) 38px; gap: 6px; align-items: center; font-size: 0.75rem }
+.wbar i { display: block; height: 8px; border-radius: 0 4px 4px 0; background: var(--s1) }
+.check { display: flex; gap: 8px; align-items: flex-start; font-size: 0.8rem; color: var(--ink-2) }
+.readout { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 10px 0 0; font-size: 0.86rem; color: var(--ink-2) }
+.readout b { color: var(--ink); font-family: var(--mono) }
 details { border-top: 1px solid var(--line); padding-top: 10px }
 summary { cursor: pointer; font-weight: 600 }
 .src { display: grid; gap: 12px; margin-top: 12px }
@@ -125,18 +137,29 @@ summary { cursor: pointer; font-weight: 600 }
   <header>
     <div class="eyebrow">Jersey City · autonomous mobility · as of <span id="asof"></span></div>
     <h1>Who gets driverless cars onto Jersey City streets, and on whose terms?</h1>
-    <p class="lede">A four-move game solved by backward induction. The Legislature picks a bill, the Governor signs or vetoes it, the City sets curb rules, and then Waymo, Tesla and Via decide at the same time whether to enter. Each of 24 actors, from Jersey City, Trenton and across the Hudson, scores outcomes on seven dimensions. Move the sliders to change their priorities and watch the equilibrium shift.</p>
+    <p class="lede">A four-move game solved by backward induction. The Legislature picks a bill, the Governor signs or vetoes it, the City sets curb rules, and then Waymo, Tesla and Via decide at the same time whether to enter. Each of 24 actors, from Jersey City, Trenton and across the Hudson, scores outcomes on seven dimensions. Answer quick this-or-that questions, or move the sliders, to tune their priorities and watch the equilibrium shift.</p>
   </header>
 
   <section aria-label="Equilibrium path">
     <div class="path" id="path"></div>
+    <p class="readout"><span>Fit to the record: <b id="fit"></b></span><span>P(committee picks S1677), λ=8: <b id="pqr"></b></span><span id="fit-miss"></span></p>
   </section>
 
   <div class="grid">
     <aside class="panel controls" aria-label="Assumptions">
       <div class="eyebrow">Priorities &amp; unknowns</div>
       <div id="ctls"></div>
-      <button id="reset" type="button">Reset to sourced defaults</button>
+      <button id="reset" type="button">Reset sliders and answers</button>
+      <div class="tune" aria-label="Quick tune">
+        <div class="eyebrow">Quick tune · this or that</div>
+        <label for="tune-actor" class="q">Whose priorities?</label>
+        <select id="tune-actor"></select>
+        <p class="q" id="tune-q"></p>
+        <div class="ab"><button type="button" id="tune-a" aria-describedby="tune-q"></button><button type="button" id="tune-b" aria-describedby="tune-q"></button></div>
+        <div class="tune-row"><button type="button" id="tune-tie">About equal</button><button type="button" id="tune-undo">Undo</button><small class="num" id="tune-count"></small></div>
+        <div class="wbars" id="tune-weights"></div>
+        <label class="check"><input type="checkbox" id="use-ev" checked><span id="ev-label">Start from the sourced answers</span></label>
+      </div>
     </aside>
 
     <div class="results">
@@ -173,14 +196,27 @@ summary { cursor: pointer; font-weight: 600 }
 <div id="tip" hidden></div>
 
 <script>/*SOLVER*/</script>
+<script>/*PREFS*/</script>
+<script>/*CALIBRATE*/</script>
 <script>
 const MODEL = /*MODEL*/;
+const EVIDENCE = /*EVIDENCE*/;
+const PR = window.AVPrefs, CAL = window.AVCalibrate;
 const G = window.AVGame;
 const LAWS = Object.keys(MODEL.laws), CITY = MODEL.city;
 const fmt = (x, d = 2) => { const s = Math.abs(x).toFixed(d); return (+s === 0 ? "" : x > 0 ? "+" : "−") + s; };
 const $ = id => document.getElementById(id);
 
-const W0 = JSON.parse(JSON.stringify(MODEL));
+const RAW = JSON.parse(JSON.stringify(MODEL));
+const answers = {};      // actor id -> Beli answers [{a, b, win}]
+const touched = {};      // sliders the user has moved; untouched sliders don't override tuned weights
+let useEvidence = true;
+function baseModel() {
+  let m = useEvidence ? PR.withEvidence(RAW, EVIDENCE) : JSON.parse(JSON.stringify(RAW));
+  for (const [id, cs] of Object.entries(answers)) if (cs.length) m.players[id].w = PR.fitWeights(m.players[id].w, cs, 4);
+  return m;
+}
+const W0 = RAW;
 const CTL = [
   { id: "leg_risk", label: "Legislature: weight on backlash risk", min: 0, max: 0.6, step: 0.01,
     get: m => m.players.zwicker.w.risk, set: (m, x) => G.setWeight(m, "zwicker", "risk", x),
@@ -204,16 +240,15 @@ const CTL = [
     set: (m, x) => (m.laws.s1677.driverless_share = [Math.max(0, x - 0.125), Math.min(1, x + 0.125)], m),
     note: "Shrinks as the human-driver phase gets longer. Waymo says S1677 means 2028." },
 ];
-let state = Object.fromEntries(CTL.map(c => [c.id, +c.get(W0).toFixed(3)]));
+let state = Object.fromEntries(CTL.map(c => [c.id, +c.get(baseModel()).toFixed(3)]));
 
-function model() { let m = JSON.parse(JSON.stringify(W0)); for (const c of CTL) m = c.set(m, state[c.id]) || m; return m; }
+function model() { let m = baseModel(); for (const c of CTL) if (touched[c.id]) m = c.set(m, state[c.id]) || m; return m; }
 
 function buildControls() {
   $("ctls").innerHTML = CTL.map(c => `<div class="ctl"><label for="${c.id}"><span>${c.label}</span><span class="num" id="${c.id}_v"></span></label>
     <input type="range" id="${c.id}" min="${c.min}" max="${c.max}" step="${c.step}" value="${state[c.id]}"><p>${c.note}</p></div>`).join("");
-  for (const c of CTL) $(c.id).addEventListener("input", e => { state[c.id] = +e.target.value; render(); });
-  $("reset").onclick = () => { state = Object.fromEntries(CTL.map(c => [c.id, +c.get(W0).toFixed(3)]));
-    for (const c of CTL) $(c.id).value = state[c.id]; render(); };
+  for (const c of CTL) $(c.id).addEventListener("input", e => { state[c.id] = +e.target.value; touched[c.id] = true; render(); });
+  $("reset").onclick = () => { for (const k in touched) delete touched[k]; for (const k in answers) delete answers[k]; render(); };
 }
 
 function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
@@ -226,8 +261,14 @@ const opsLabel = a => ["waymo", "tesla", "via"].filter(k => a[k]).map(k => ({ wa
 
 let robTimer;
 function render() {
-  for (const c of CTL) $(c.id + "_v").textContent = state[c.id].toFixed(2);
+  const base = baseModel();
+  for (const c of CTL) { if (!touched[c.id]) { state[c.id] = +c.get(base).toFixed(3); $(c.id).value = state[c.id]; } $(c.id + "_v").textContent = state[c.id].toFixed(2); }
   const m = model(), sol = G.solve(m), eq = sol.eq, B = sol.branches;
+  const fr = CAL.fit(m), pq = G.solveQR(m, { lambda: 8 }).law.s1677;
+  $("fit").textContent = `${fr.passed}/${fr.total} facts`;
+  $("pqr").textContent = `${(pq * 100).toFixed(0)}%`;
+  $("fit-miss").textContent = fr.passed < fr.total ? "Misses: " + fr.results.filter(r => !r.pass).map(r => r.claim).join("; ") : "";
+  renderTune(m);
 
   const lawL = MODEL.laws[eq.proposed].label, first = s => s.split(". ")[0].replace(/\.$/, "") + ".";
   $("path").innerHTML = [
@@ -244,7 +285,7 @@ function render() {
   for (const id of ids) {
     const vals = LAWS.map(l => B[l].u[id]), best = Math.max(...vals);
     h += `<tr class="${P[id].mover ? "mover" : ""}"><th>${P[id].name}<small>${P[id].power}${P[id].region ? " · " + P[id].region : ""}</small></th>` + vals.map((v, i) => {
-      const c = heatColor(v), tip = `${P[id].name} under ${MODEL.laws[LAWS[i]].label}: ${fmt(v)}${v === best ? " (favorite)" : ""}`;
+      const c = heatColor(v), tip = `${P[id].name} under ${MODEL.laws[LAWS[i]].label}: ${fmt(v)}, grade ${CAL.letter(v)}${v === best ? " (favorite)" : ""}`;
       return `<td class="${Math.abs(v - best) < 1e-9 ? "best" : ""}" style="background:${c.bg};color:${c.light ? "#fff" : css("--ink")}" data-tip="${tip}">${fmt(v)}</td>`; }).join("") + `</tr>`;
   }
   $("heat").innerHTML = h + "</tbody>";
@@ -259,14 +300,16 @@ function render() {
     return `<div class="dim"><span>${d[0].toUpperCase() + d.slice(1)}<small>${MODEL.units[d]}</small></span><div class="track">${bar(a, "a", "S1677")}${bar(b, "b", "Amended")}</div></div>`; }).join("");
 
   // tipping points (with current slider settings)
-  const base = model();
-  const t1 = G.threshold(x => G.setWeight(base, "zwicker", "risk", x), e => e.law === "s1677", 0, 0.95);
-  const t2 = G.threshold(x => G.setWeight(base, "gov_sherrill", "jobs", x), e => !(e.proposed === "amended" && e.sign), 0, 0.95);
-  const t3 = G.threshold(x => { const c = JSON.parse(JSON.stringify(base)); c.operators.tesla.hazard = [1 - x, 1 - x]; return c; }, e => e.law === "amended", 0, 1);
+  const tipBase = model();
+  const t1 = G.threshold(x => G.setWeight(tipBase, "zwicker", "risk", x), e => e.law === "s1677", 0, 0.95);
+  const t2 = G.threshold(x => G.setWeight(tipBase, "gov_sherrill", "jobs", x), e => !(e.proposed === "amended" && e.sign), 0, 0.95);
+  const t3 = G.threshold(x => { const c = JSON.parse(JSON.stringify(tipBase)); c.operators.tesla.hazard = [1 - x, 1 - x]; return c; }, e => e.law === "amended", 0, 1);
   const flip = (v, text, f) => `<div class="flip"><b>${v == null ? "never" : f(v)}</b><span>${text}</span></div>`;
   $("flips").innerHTML =
     flip(t1, "Legislature weight on backlash risk at which S1677 beats the amended bill", v => "≥ " + v.toFixed(2)) +
-    flip(t2, "Governor weight on driver jobs at which the amended bill stops being the outcome", v => "≥ " + v.toFixed(2)) +
+    (eq.proposed === "amended" && eq.sign
+      ? flip(t2, "Governor weight on driver jobs at which the amended bill stops being the outcome", v => "≥ " + v.toFixed(2))
+      : `<div class="flip"><b>n/a</b><span>The amended bill isn't the outcome right now, so the Governor's jobs weight has nothing to flip</span></div>`) +
     flip(t3 == null ? null : 1 - t3, "Tesla halt chance below which the Legislature prefers letting Tesla in", v => "≤ " + v.toFixed(2));
 
   clearTimeout(robTimer);
@@ -277,6 +320,34 @@ function render() {
       const txt = `${MODEL.laws[law].label}, ${sign}, ${CITY[city].label.toLowerCase()}, ${ops.replace(/\+/g, " + ")}`;
       return `<div class="robrow"><div class="lab"><code>${txt}</code><div class="fill" style="width:${(r.share * 100).toFixed(1)}%" data-tip="${txt}: ${(r.share * 100).toFixed(1)}% of runs"></div></div><span class="pct num">${(r.share * 100).toFixed(0)}%</span></div>`; }).join("");
   }, 200);
+}
+
+const DIMNAME = d => d === "revenue" ? "own revenue" : d === "risk" ? "backlash risk" : d;
+function renderTune(m) {
+  const id = $("tune-actor").value, w = m.players[id].w, cs = answers[id] || [];
+  const q = PR.nextPair(baseModel().players[id].w, cs);
+  $("tune-q").textContent = `For ${MODEL.players[id].name}, which matters more?`;
+  $("tune-a").textContent = DIMNAME(q.a); $("tune-b").textContent = DIMNAME(q.b);
+  $("tune-a").dataset.dim = q.a; $("tune-b").dataset.dim = q.b;
+  $("tune-count").textContent = `${cs.length} answer${cs.length === 1 ? "" : "s"}`;
+  $("tune-undo").disabled = !cs.length;
+  const mx = Math.max(...Object.values(w));
+  $("tune-weights").innerHTML = Object.entries(w).sort((a, b) => b[1] - a[1]).map(([d, v]) =>
+    `<div class="wbar"><span>${DIMNAME(d)}</span><i style="width:${(v / mx * 100).toFixed(1)}%"></i><span class="num">${(v * 100).toFixed(0)}%</span></div>`).join("");
+}
+function answer(win) {
+  const id = $("tune-actor").value, a = $("tune-a").dataset.dim, b = $("tune-b").dataset.dim;
+  (answers[id] = answers[id] || []).push({ a, b, win });
+  render();
+}
+function buildTune() {
+  $("tune-actor").innerHTML = Object.entries(MODEL.players).map(([id, p]) => `<option value="${id}"${id === "zwicker" ? " selected" : ""}>${p.name}</option>`).join("");
+  $("tune-actor").onchange = render;
+  $("tune-a").onclick = () => answer("a"); $("tune-b").onclick = () => answer("b"); $("tune-tie").onclick = () => answer("tie");
+  $("tune-undo").onclick = () => { const cs = answers[$("tune-actor").value]; if (cs && cs.length) { cs.pop(); render(); } };
+  $("use-ev").onchange = e => { useEvidence = e.target.checked; render(); };
+  const nEv = Object.values(EVIDENCE.comparisons).reduce((s, c) => s + c.length, 0), fEv = CAL.fit(PR.withEvidence(RAW, EVIDENCE));
+  $("ev-label").textContent = `Start from the ${nEv} sourced answers (fits ${fEv.passed} of ${fEv.total} real outcomes)`;
 }
 
 function sources() {
@@ -300,5 +371,5 @@ document.addEventListener("mousemove", e => { if (tip.hidden) return; const x = 
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
 new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
-sources(); buildControls(); render();
+sources(); buildControls(); buildTune(); render();
 </script>

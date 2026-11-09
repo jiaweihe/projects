@@ -64,3 +64,13 @@ Test-first: probabilities sum to 1; λ=0 is uniform; large λ recovers argmax; m
 **Review fixes:** (1) λ is unfittable from one vote, so a λ-sweep test now guards that calibration beats raw at λ ∈ {2,4,8,16}; (2) the mixed design (noisy politicians, exact operators) is now explained in GAME.md; (3) added a Governor sign-probability bounds test.
 **Metrics:** **P(observed committee choice) at λ=8: 0.18 → 0.53; log-loss 1.73 → 0.63** · tests 40→47, all passing · branch coverage 93.80→**94.30%** · lint 0 · tsc 0.
 **Next:** put Beli quick-tuning on the page: A-vs-B buttons per actor that live-update the weights and equilibrium.
+
+## Iteration 5: Beli quick-tune on the page + calibrated defaults
+**Audit, top 3:** (1) Beli tuning exists only as a library, not in the UI the user tunes with; (2) the page still shows raw weights and no grade or fit readout; (3) the page has no automated browser test.
+**Plan:** inline prefs, calibrate and evidence into the page. Add a Quick-tune panel (actor, A / B / about equal, undo) driven by `nextPair` and `fitWeights`, plus a readout of fit x/8 and P(S1677).
+Sliders override only once touched, so they don't wipe out tuned weights.
+Test-first: a Playwright e2e test (Playwright is preinstalled in the environment, not added to the repo) checks that answering changes the weights and the equilibrium readout.
+**Built:** the page now inlines prefs, calibrate and evidence, and opens on the calibrated model. A Quick-tune panel picks an actor, asks the most informative "which matters more?" pair (Beli `nextPair`), offers A / B / about-equal and undo, and shows live weight bars. A readout shows fit x/8 and P(S1677) at λ=8, and heatmap tooltips carry letter grades. Untouched sliders track the tuned weights. Test-first: `page.e2e.js` failed (no panel), then passed. It is wired into `check.sh`.
+**Review fixes:** (1) the hard-coded "8 of 8" label is now computed from the evidence; (2) A/B buttons got `aria-describedby` for screen readers; (3) the Governor tipping card showed a vacuous "≥ 0.00" when amended wasn't the outcome. It now says n/a, and an e2e assertion guards it. The assertion was added together with the fix, not before it.
+**Metrics:** e2e browser tests 0→**1** (with 6 assertions, including 12 Beli answers flipping the equilibrium) · page answers supported 0→**unlimited, with undo** · tests 47→48 · branch coverage 94.30% (unchanged) · lint 0 · tsc 0 · no console errors and no overflow at 1280px light or 400px dark.
+**Next:** an out-of-sample test (the S1677 floor vote, Sherrill's signature); save tuned answers per viewer; fit λ once more votes exist.
