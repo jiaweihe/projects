@@ -1,0 +1,342 @@
+{
+  "title": "Jersey City Autonomous Mobility Power Map",
+  "as_of": "2026-11-09",
+  "question": "Who can enable, block, or shape driverless AV service on Jersey City streets?",
+  "scales": {
+    "power": "1-5: ability to enable/block AV ops in JC (5 = can legally allow/stop it)",
+    "interest": "1-5: how actively engaged on AVs in NJ/JC (5 = core business or active lobbying)",
+    "stance": "-2..+2 toward driverless AV deployment in JC; 0 = neutral or no public position found"
+  },
+  "stakeholders": [
+    {
+      "id": "waymo",
+      "name": "Waymo",
+      "type": "AV operator",
+      "required": true,
+      "power": 4,
+      "interest": 5,
+      "stance": 2,
+      "role": "Mapping Jersey City, Hoboken and the Newark Airport area with human drivers; aims to launch driverless service.",
+      "evidence": "Regional policy head Matt Walsh warned the bill could keep NJ out of scope for years (delay to 2028). Waymo failed to get the safety-driver phase waived. Its lidar+radar+camera stack meets the 3-sensor mandate. Newark Airport manual testing announced Oct 22, 2025.",
+      "lever": "Shaping S1677/A3968 amendments; Port Authority airport partnership; Via transit integration.",
+      "sources": [
+        "https://nj1015.com/autonomous-vehicles-waymo-pilot-program/",
+        "https://www.bloomberg.com/news/articles/2025-10-22/waymo-to-test-vehicles-with-human-drivers-at-newark-airport",
+        "https://www.govtech.com/transportation/new-jersey-bill-could-put-the-brakes-on-autonomous-cabs",
+        "https://electrek.co/2026/07/09/new-jersey-bill-tesla-camera-robotaxi/"
+      ]
+    },
+    {
+      "id": "tesla",
+      "name": "Tesla (Robotaxi / Cybercab)",
+      "type": "AV operator",
+      "required": true,
+      "power": 2,
+      "interest": 4,
+      "stance": 2,
+      "role": "Wants Robotaxi in NJ; camera-only stack and no-pedal Cybercab would fail S1677's 3-sensor and manual-controls rules.",
+      "evidence": "Urged NJ owners to lobby against S1677. No NJ service; unsupervised service is limited to TX and FL.",
+      "lever": "Owner grassroots lobbying; federal preemption arguments.",
+      "sources": [
+        "https://www.teslarati.com/tesla-urges-new-jersey-owners-to-oppose-new-bill-block-robotaxi/",
+        "https://evwire.com/p/new-jersey-robotaxi-bill-tesla-cybercab",
+        "https://www.planetizen.com/news/2026/07/137972-new-jersey-bill-would-require-avs-use-3-sensing-technologies-banning-teslas"
+      ]
+    },
+    {
+      "id": "jc_doi",
+      "name": "JC Dept. of Infrastructure (Dir. Andrew Kaplan)",
+      "type": "City agency",
+      "required": true,
+      "power": 3,
+      "interest": 2,
+      "stance": 0,
+      "role": "Runs traffic engineering, transportation planning and curb design, and leads the Vision Zero update. Kaplan was appointed March 2026 (succeeding Barkha Patel).",
+      "evidence": "No public AV position found. Kaplan: 'zero is the only acceptable number' (traffic deaths). Controls pick-up/drop-off zones and quick-build street design.",
+      "lever": "Curb access, PUDO zones, street-design conditions, data-sharing asks.",
+      "sources": [
+        "https://www.jerseycitynj.gov/news/andrew_kaplan_as_infrastructure_director",
+        "https://hudsoncountyview.com/solomon-names-kaplan-as-jersey-city-infrastruct-dir-cialone-to-remain-hedc-head/",
+        "https://usa.streetsblog.org/2026/06/12/in-new-jersey-mayors-show-how-quickly-we-can-slow-down-drivers"
+      ]
+    },
+    {
+      "id": "bike_jc",
+      "name": "Bike JC (+ Citi Bike JC / Lyft)",
+      "type": "Bike advocacy / operator",
+      "required": true,
+      "power": 2,
+      "interest": 2,
+      "stance": 0,
+      "role": "Bike advocacy group on the reinstated Vision Zero Task Force. Citi Bike (Lyft) runs the JC/Hoboken bike share under a new 2026 long-term contract with no city subsidy.",
+      "evidence": "No public AV position found. Likely issues: AVs blocking bike lanes, and how AVs detect cyclists.",
+      "lever": "Vision Zero Task Force seat; council testimony.",
+      "sources": [
+        "https://www.jerseycitynj.gov/cityhall/infrastructure/transportation_resources/visionzero",
+        "https://citibikenyc.com/pricechange"
+      ]
+    },
+    {
+      "id": "safe_streets_jc",
+      "name": "Safe Streets JC (pedestrians)",
+      "type": "Pedestrian advocacy",
+      "required": true,
+      "power": 2,
+      "interest": 2,
+      "stance": 0,
+      "role": "Pedestrian-safety advocacy group on the Vision Zero Task Force. Gave Mayor Solomon a 10-point first-100-days plan.",
+      "evidence": "No public AV position found. Its focus is traffic deaths (6 killed by vehicles on JC streets the prior year).",
+      "lever": "Vision Zero Task Force seat; public pressure on the Mayor and Council.",
+      "sources": [
+        "https://www.safestreetsjerseycity.org/safe-streets-jc-presents-10-point-plan-to-prioritize-safety-in-mayor-solomons-first-100-days/",
+        "https://www.jerseycitynj.gov/cityhall/infrastructure/transportation_resources/visionzero"
+      ]
+    },
+    {
+      "id": "via",
+      "name": "Via (Via Jersey City)",
+      "type": "Microtransit operator",
+      "required": true,
+      "power": 3,
+      "interest": 4,
+      "stance": 1,
+      "role": "Runs city-funded Via Jersey City (cut to Mon-Fri 6:30a-7p, $2.55 fare, from July 1, 2026). Also runs NJ Transit's MicroLink pilot.",
+      "evidence": "Waymo-Via partnership (Sept 2025) puts Waymo AVs into Chandler, AZ public transit. That gives JC a ready path to AV microtransit. JC's budget gap (about $90M) is shrinking the service.",
+      "lever": "Existing city contract plus the Waymo integration offers a cheaper per-trip AV option.",
+      "sources": [
+        "https://www.jerseycitynj.gov/viachanges",
+        "https://gothamist.com/news/jersey-city-weighs-cutting-via-microtransit-service-amid-budget-crisis",
+        "https://ridewithvia.com/news/waymo-and-via-announce-strategic-partnership-to-advance-avs-in-public-transit",
+        "https://www.aol.com/news/via-nj-transit-partner-microtransit-202851934.html"
+      ]
+    },
+    {
+      "id": "nj_transit",
+      "name": "NJ Transit (CEO Kris Kolluri)",
+      "type": "State transit agency",
+      "required": true,
+      "power": 4,
+      "interest": 2,
+      "stance": 0,
+      "role": "Runs HBLR and buses in JC. Kolluri was kept by Gov. Sherrill and also heads the NJ Turnpike Authority. Running a MicroLink microtransit pilot with Via (launched April 6, 2026).",
+      "evidence": "No public AV position found. Focus is the Rapid Action Plan and the 11% budget increase.",
+      "lever": "First/last-mile partnerships, station access, Turnpike roads (dual role).",
+      "sources": [
+        "https://newjerseyglobe.com/governor/sherrill-says-kolluri-will-run-nj-transit-and-turnpike-authority/",
+        "https://content.njtransit.com/sites/default/files/board/meeting_minutes/2026_04_15_OpenSess.pdf",
+        "https://www.aol.com/news/via-nj-transit-partner-microtransit-202851934.html"
+      ]
+    },
+    {
+      "id": "nj_mvc",
+      "name": "NJ MVC (Acting Chief Admin. Rosalie Johnson)",
+      "type": "State regulator (DMV)",
+      "required": true,
+      "power": 5,
+      "interest": 3,
+      "stance": 0,
+      "role": "Would run the S1677/A3968 3-year AV pilot. The Chief Administrator can immediately halt any AV operator and set safety rules with NJDOT.",
+      "evidence": "Johnson (ex-Colorado DMV) is Acting Chair & Chief Administrator since Jan 20, 2026; no Senate confirmation found. No public AV position found.",
+      "lever": "Permitting, the halt ('kill switch') power, and pilot rulemaking.",
+      "sources": [
+        "https://pub.njleg.gov/Bills/2026/S2000/1677_I1.HTM",
+        "https://www.roi-nj.com/2026/01/13/politics/gov-elect-sherrill-nominates-johnson-to-be-head-of-motor-vehicle-commission/",
+        "https://www.nj.gov/mvc/about/chiefadmin.htm"
+      ]
+    },
+    {
+      "id": "zwicker",
+      "name": "Sen. Andrew Zwicker (S1677 prime sponsor)",
+      "type": "Legislator",
+      "required": false,
+      "power": 4,
+      "interest": 5,
+      "stance": 1,
+      "role": "Writing the AV rules. S1677 cleared Senate Transportation 5-0 on May 11, 2026, and was referred to Budget & Appropriations. Assembly twin A3968 (Moen) was reported June 1.",
+      "evidence": "Pilot design: a human-driver first phase, then driverless only if that phase is incident-free; 3 sensor types; manual controls. Says the bill is 'pro New Jersey safety', not anti-Tesla. Still in Senate Budget & Appropriations; no floor vote found.",
+      "lever": "Bill text: sensor mandate, safety-driver phase, school-zone limits.",
+      "sources": [
+        "https://legiscan.com/NJ/bill/S1677/2026",
+        "https://newjerseymonitor.com/2026/05/13/driverless-cars-nj-senate/",
+        "https://pub.njleg.gov/Bills/2026/A4000/3968_I1.HTM"
+      ]
+    },
+    {
+      "id": "gov_sherrill",
+      "name": "Gov. Mikie Sherrill",
+      "type": "State executive",
+      "required": false,
+      "power": 5,
+      "interest": 1,
+      "stance": 0,
+      "role": "Signs or vetoes S1677/A3968. Appoints the heads of MVC, NJDOT and NJ Transit.",
+      "evidence": "No public AV position found. Transport priorities: NJ Transit reliability, World Cup readiness.",
+      "lever": "Signature or veto; agency direction.",
+      "sources": [
+        "https://njbiz.com/sherrill-kolluri-dual-nj-transit-turnpike-roles/"
+      ]
+    },
+    {
+      "id": "mayor_solomon",
+      "name": "JC Mayor James Solomon",
+      "type": "City executive",
+      "required": false,
+      "power": 3,
+      "interest": 1,
+      "stance": 0,
+      "role": "Took office January 2026. Leading the Vision Zero reboot (100 quick-builds) and the Via cuts amid a budget deficit.",
+      "evidence": "No public AV statement found. Safety and budget framing will decide the city's stance.",
+      "lever": "Curb policy, Via contract, Council agenda, municipal lobbying in Trenton.",
+      "sources": [
+        "https://usa.streetsblog.org/2026/06/12/in-new-jersey-mayors-show-how-quickly-we-can-slow-down-drivers",
+        "https://www.hobokengirl.com/jersey-city-budget-deficit-february-2026-nj/"
+      ]
+    },
+    {
+      "id": "njdot",
+      "name": "NJDOT (Commissioner Priya Jain)",
+      "type": "State agency",
+      "required": false,
+      "power": 3,
+      "interest": 2,
+      "stance": 0,
+      "role": "Consults with MVC on the pilot's safety requirements and task force under S1677/A3968. Jain was confirmed unanimously.",
+      "evidence": "No public AV position found. Priorities: World Cup infrastructure, permitting reform.",
+      "lever": "Co-writes the pilot's safety rules; owns state roads such as Routes 1&9 and 440 in JC.",
+      "sources": [
+        "https://www.progressiverailroading.com/people/news/Jain-nominated-as-next-NJ-DOT-commissioner--76182",
+        "https://pub.njleg.gov/Bills/2026/A4000/3968_I1.HTM"
+      ]
+    },
+    {
+      "id": "panynj",
+      "name": "Port Authority of NY & NJ",
+      "type": "Bi-state authority",
+      "required": false,
+      "power": 3,
+      "interest": 3,
+      "stance": 2,
+      "role": "Partner for Waymo's human-driven testing at Newark Liberty Airport. Also runs PATH, the main JC-Manhattan link.",
+      "evidence": "Hosted Waymo manual testing at Newark (from Oct 2025). Separately announced (Feb 25, 2026) a spring-2026 AV shuttle test at Newark with Oceaneering, Ohmio and Glydways.",
+      "lever": "Airport access is the high-value route for JC robotaxi trips.",
+      "sources": [
+        "https://www.ttnews.com/articles/waymo-test-humans-new-jersey",
+        "https://www.ttnews.com/articles/nj-airport-autonomous-shuttles"
+      ]
+    },
+    {
+      "id": "av_opposition",
+      "name": "Gig drivers / anti-AV petitioners",
+      "type": "Labor / public",
+      "required": false,
+      "power": 1,
+      "interest": 3,
+      "stance": -2,
+      "role": "A public petition asks the Governor to stop AV testing in NJ over rideshare and delivery job losses. No organized NJ union stance found.",
+      "evidence": "Action Network petition. NY's Independent Drivers Guild opposed a similar NY proposal, so NJ labor could follow.",
+      "lever": "Public hearings and pressure on legislators before floor votes.",
+      "sources": [
+        "https://actionnetwork.org/petitions/stop-waymos-autonomous-vehicles-from-spreading-in-new-jersey/",
+        "https://newjersey.news12.com/2026/01/21/rideshare-drivers-raise-concerns-over-robo-taxi-proposal/1rs6YhzUe3vCWPUSCIoY6A"
+      ]
+    }
+  ],
+  "edges": [
+    [
+      "gov_sherrill",
+      "nj_mvc",
+      "appoints"
+    ],
+    [
+      "gov_sherrill",
+      "nj_transit",
+      "appoints"
+    ],
+    [
+      "gov_sherrill",
+      "njdot",
+      "appoints"
+    ],
+    [
+      "zwicker",
+      "nj_mvc",
+      "writes pilot powers for"
+    ],
+    [
+      "nj_mvc",
+      "waymo",
+      "would permit/halt"
+    ],
+    [
+      "nj_mvc",
+      "tesla",
+      "would permit/halt"
+    ],
+    [
+      "njdot",
+      "nj_mvc",
+      "co-sets safety rules"
+    ],
+    [
+      "waymo",
+      "zwicker",
+      "lobbies"
+    ],
+    [
+      "tesla",
+      "zwicker",
+      "lobbies against"
+    ],
+    [
+      "av_opposition",
+      "zwicker",
+      "pressures"
+    ],
+    [
+      "mayor_solomon",
+      "jc_doi",
+      "directs"
+    ],
+    [
+      "mayor_solomon",
+      "via",
+      "funds/cuts contract"
+    ],
+    [
+      "jc_doi",
+      "waymo",
+      "controls curb for"
+    ],
+    [
+      "bike_jc",
+      "jc_doi",
+      "advises (VZ Task Force)"
+    ],
+    [
+      "safe_streets_jc",
+      "jc_doi",
+      "advises (VZ Task Force)"
+    ],
+    [
+      "via",
+      "waymo",
+      "partner (Chandler model)"
+    ],
+    [
+      "nj_transit",
+      "via",
+      "contracts (MicroLink)"
+    ],
+    [
+      "panynj",
+      "waymo",
+      "airport testing partner"
+    ]
+  ],
+  "takeaways": [
+    "The decision sits with the state, not the city. Nothing driverless runs in JC until S1677/A3968 clears Senate Budget & Appropriations and both floors, and Gov. Sherrill signs it. After that, MVC holds a halt power over every operator.",
+    "The bill picks winners. Waymo's sensor stack complies (after a human-driver phase). Tesla's camera-only Robotaxi and pedal-less Cybercab do not.",
+    "The city's levers are the curb and Via. JC's deficit of about $90M already cut Via's hours. The Waymo-Via Chandler model is the cheapest local entry point, and the Mayor, Kaplan and the Council control it.",
+    "The biggest gap: the City, Bike JC and Safe Streets JC have no public AV position. The reinstated Vision Zero Task Force is where that position will form."
+  ]
+}
