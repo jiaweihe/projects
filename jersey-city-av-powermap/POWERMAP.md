@@ -21,9 +21,11 @@ Scores: **power** 1-5: ability to enable/block AV ops in JC (5 = can legally all
 | ★ Waymo | NJ/JC | 4 | 5 | Champion (+2) | Manage closely | Shaping S1677/A3968 amendments; Port Authority airport partnership; Via transit integration. |
 | Sen. Andrew Zwicker (S1677 prime sponsor) | NJ/JC | 4 | 5 | Supportive (+1) | Manage closely | Bill text: sensor mandate, safety-driver phase, school-zone limits. |
 | ★ NJ Transit (CEO Kris Kolluri) | NJ/JC | 4 | 2 | Neutral/unknown (0) | Keep satisfied | First/last-mile partnerships, station access, Turnpike roads (dual role). |
+| Uber | NJ/NY | 3 | 5 | Supportive (+1) | Manage closely | Hybrid-network mandate; its driver base (Lyft's NJ audit alone covered 100k+ drivers); platform access for AV fleets. |
 | ★ Via (Via Jersey City) | NJ/JC | 3 | 4 | Supportive (+1) | Manage closely | Existing city contract plus the Waymo integration offers a cheaper per-trip AV option. |
+| Amalgamated Transit Union (ATU, NJ Transit locals) | NY/NJ | 3 | 4 | Opposed (-2) | Manage closely | Labor pressure on Gov. Sherrill and NJ Transit; opposes AV microtransit that competes with bus routes. |
+| Teamsters (IBT; NJ Joint Council 73) | US/NJ | 3 | 4 | Opposed (-2) | Manage closely | Labor votes in Trenton; human-operator amendments; litigation. |
 | Port Authority of NY & NJ | NJ/JC | 3 | 3 | Champion (+2) | Manage closely | Airport access is the high-value route for JC robotaxi trips. |
-| Amalgamated Transit Union (ATU) | NY/NJ | 3 | 3 | Skeptical (-1) | Manage closely | Labor support in Trenton; operators of the buses AV microtransit would compete with. |
 | ★ JC Dept. of Infrastructure (Dir. Andrew Kaplan) | NJ/JC | 3 | 2 | Neutral/unknown (0) | Keep satisfied | Curb access, PUDO zones, street-design conditions, data-sharing asks. |
 | NJDOT (Commissioner Priya Jain) | NJ/JC | 3 | 2 | Neutral/unknown (0) | Keep satisfied | Co-writes the pilot's safety rules; owns state roads such as Routes 1&9 and 440 in JC. |
 | JC Mayor James Solomon | NJ/JC | 3 | 1 | Neutral/unknown (0) | Keep satisfied | Curb policy, Via contract, Council agenda, municipal lobbying in Trenton. |
@@ -36,6 +38,7 @@ Scores: **power** 1-5: ability to enable/block AV ops in JC (5 = can legally all
 | ★ Safe Streets JC (pedestrians) | NJ/JC | 2 | 2 | Neutral/unknown (0) | Monitor | Vision Zero Task Force seat; public pressure on the Mayor and Council. |
 | Regional Plan Association (RPA) | NY/NJ/CT | 2 | 2 | Neutral/unknown (0) | Monitor | Shapes regional plans and the framing used by NJ and NY agencies. |
 | AAA clubs (Mid-Atlantic / Northeast) | NY/NJ | 2 | 2 | Skeptical (-1) | Monitor | Shapes public opinion and how legislators frame AV votes. |
+| Alliance for Automotive Innovation | US | 2 | 2 | Supportive (+1) | Monitor | Federal preemption (Congress, NHTSA), which could override state rules like S1677's. |
 | Open Plans + Hunter College (Sam Schwartz program) | NY | 1 | 4 | Skeptical (-1) | Keep informed | Evidence base for skeptics on both sides of the Hudson; source of the congestion dimension. |
 | Gig drivers / anti-AV petitioners | NJ/JC | 1 | 3 | Opposed (-2) | Keep informed | Public hearings and pressure on legislators before floor votes. |
 | NY State (Gov. Kathy Hochul) | NY | 1 | 3 | Skeptical (-1) | Keep informed | Regional precedent read in Trenton. NY DMV permits are needed for any NYC leg. |
@@ -52,9 +55,11 @@ graph LR
   waymo["Waymo"]
   zwicker["Sen. Andrew Zwicker"]
   nj_transit["NJ Transit"]
+  uber["Uber"]
   via["Via"]
-  panynj["Port Authority of NY & NJ"]
   atu["Amalgamated Transit Union"]
+  teamsters["Teamsters"]
+  panynj["Port Authority of NY & NJ"]
   jc_doi["JC Dept. of Infrastructure"]
   njdot["NJDOT"]
   mayor_solomon["JC Mayor James Solomon"]
@@ -67,6 +72,7 @@ graph LR
   safe_streets_jc["Safe Streets JC"]
   rpa["Regional Plan Association"]
   aaa["AAA clubs"]
+  aai["Alliance for Automotive Innovation"]
   open_plans["Open Plans + Hunter College"]
   av_opposition["Gig drivers / anti-AV petitioners"]
   ny_hochul["NY State"]
@@ -101,12 +107,18 @@ graph LR
   aaa -->|"motorist opinion"| zwicker
   chamber_progress -->|"testifies: amend"| zwicker
   disability_safety -->|"testifies: support"| zwicker
+  uber -->|"lobbies: hybrid 85% human rule"| zwicker
+  waymo -->|"exits Uber app Jan 2028"| uber
+  teamsters -->|"human-operator push"| zwicker
+  teamsters -->|"labor coalition"| av_opposition
+  aai -->|"federal preemption cover"| tesla
+  atu -->|"opposed Trenton AV project"| njdot
   classDef pro fill:#d6f5d6,stroke:#2e7d32
   classDef neu fill:#eeeeee,stroke:#757575
   classDef con fill:#fbd5d5,stroke:#c62828
-  class waymo,zwicker,via,panynj,tesla,chamber_progress,disability_safety pro
+  class waymo,zwicker,uber,via,panynj,tesla,chamber_progress,disability_safety,aai pro
   class nj_mvc,gov_sherrill,nj_transit,jc_doi,njdot,mayor_solomon,bike_jc,safe_streets_jc,rpa,mta neu
-  class atu,idg,nyc_mamdani,aaa,open_plans,av_opposition,ny_hochul con
+  class atu,teamsters,idg,nyc_mamdani,aaa,open_plans,av_opposition,ny_hochul con
 ```
 
 Green = pro-AV · grey = neutral/no position · red = opposed
@@ -138,20 +150,30 @@ Green = pro-AV · grey = neutral/no position · red = opposed
 - **Evidence:** No public AV position found. Focus is the Rapid Action Plan and the 11% budget increase.
 - **Sources:** [1](https://newjerseyglobe.com/governor/sherrill-says-kolluri-will-run-nj-transit-and-turnpike-authority/) [2](https://content.njtransit.com/sites/default/files/board/meeting_minutes/2026_04_15_OpenSess.pdf) [3](https://www.aol.com/news/via-nj-transit-partner-microtransit-202851934.html)
 
+### Uber
+- **Role:** Biggest ride-hail network in NJ. Partners with 14+ AV companies, but Waymo will leave Uber's app in Austin and Atlanta from Jan 2028. Pushes a 'hybrid network' of robotaxis plus human drivers on one app.
+- **Evidence:** Uber lobbyists in NJ circulated a bill requiring human drivers to do 85% of rideshare work on any platform offering robotaxis, for 3 years. Pro-AV, but on its own platform's terms.
+- **Sources:** [1](https://thenextweb.com/news/uber-robotaxi-lobbying-hybrid-network-waymo) [2](https://techcrunch.com/2026/07/13/ubers-robotaxi-lobbying-effort-has-put-it-on-a-collision-course-with-waymo/) [3](https://techcrunch.com/2026/11/04/waymo-confirms-its-shaking-up-its-uber-relationship-in-january-2028/)
+
 ### Via (Via Jersey City)
 - **Role:** Runs city-funded Via Jersey City (cut to Mon-Fri 6:30a-7p, $2.55 fare, from July 1, 2026). Also runs NJ Transit's MicroLink pilot.
 - **Evidence:** Waymo-Via partnership (Sept 2025) puts Waymo AVs into Chandler, AZ public transit. That gives JC a ready path to AV microtransit. JC's budget gap (about $90M) is shrinking the service.
 - **Sources:** [1](https://www.jerseycitynj.gov/viachanges) [2](https://gothamist.com/news/jersey-city-weighs-cutting-via-microtransit-service-amid-budget-crisis) [3](https://ridewithvia.com/news/waymo-and-via-announce-strategic-partnership-to-advance-avs-in-public-transit) [4](https://www.aol.com/news/via-nj-transit-partner-microtransit-202851934.html)
 
+### Amalgamated Transit Union (ATU, NJ Transit locals)
+- **Role:** Represents NJ Transit bus workers. Opposed NJDOT's Trenton MOVES autonomous transit project in 2022, asked Congress in 2023 to ban AVs in transit and school buses, and joined IDG against Hochul's 2026 robotaxi plan.
+- **Evidence:** ATU called the Trenton AV project a 'serious public safety risk' and a waste of taxpayer money (2022): 'Don't let the robot drive the bus' (2023). No S1677 statement found.
+- **Sources:** [1](https://atu.org/media/press/2022/atu-nj-dots-autonomous-vehicle-trenton-project-poses-serious-public-safety-risks-and-wastes-precious-taxpayer-resources) [2](https://www.atu.org/media/in-transit/april-may-june-2023/dont-let-the-robot-drive-the-bus) [3](https://www.cnbc.com/2026/02/19/new-york-driverless-rideshare-nyc-waymo.html)
+
+### Teamsters (IBT; NJ Joint Council 73)
+- **Role:** Leads the national push for human-operator mandates: fought DC's Waymo bill (26-0684), backed human-operator bills in MA and TX, and is suing California's DMV over driverless trucks (Aug 2026).
+- **Evidence:** Teamsters say AV legalization failed in every state where it was filed this year, including NY, MD and VA. No NJ-specific statement found; Joint Council 73 is the NJ affiliate.
+- **Sources:** [1](https://teamster.org/2026/07/dc-teamsters-labor-coalition-demand-city-council-reject-anti-worker-waymo-bill/) [2](https://teamster.org/2026/08/teamsters-california-sues-dmv-to-protect-public-from-driverless-truck-dangers/) [3](https://www.dcvelocity.com/transportation/trucking/autonomous-trucks/teamsters-ask-mass-lawmakers-to-require-human-drivers-in-avs)
+
 ### Port Authority of NY & NJ
 - **Role:** Partner for Waymo's human-driven testing at Newark Liberty Airport. Also runs PATH, the main JC-Manhattan link.
 - **Evidence:** Hosted Waymo manual testing at Newark (from Oct 2025). Separately announced (Feb 25, 2026) a spring-2026 AV shuttle test at Newark with Oceaneering, Ohmio and Glydways.
 - **Sources:** [1](https://www.ttnews.com/articles/waymo-test-humans-new-jersey) [2](https://www.ttnews.com/articles/nj-airport-autonomous-shuttles)
-
-### Amalgamated Transit Union (ATU)
-- **Role:** Transit operators' union that joined IDG against Hochul's robotaxi plan. Its locals represent NJ bus operators, a constituency Gov. Sherrill and NJ Transit cannot ignore.
-- **Evidence:** Pushed back on Hochul's plan on safety and job-loss grounds (Feb 2026). No NJ-specific statement on S1677 found.
-- **Sources:** [1](https://www.cnbc.com/2026/02/19/new-york-driverless-rideshare-nyc-waymo.html)
 
 ### JC Dept. of Infrastructure (Dir. Andrew Kaplan)
 - **Role:** Runs traffic engineering, transportation planning and curb design, and leads the Vision Zero update. Kaplan was appointed March 2026 (succeeding Barkha Patel).
@@ -212,6 +234,11 @@ Green = pro-AV · grey = neutral/no position · red = opposed
 - **Role:** Biggest motorist voice in Trenton and Albany. AAA polling shows deep public distrust of self-driving cars.
 - **Evidence:** 2025 AAA survey: only 13% of US drivers trust riding in self-driving cars, and 53% wouldn't ride a robotaxi. AAA Mid-Atlantic, quoted in NJ: 71% are afraid. Reads as public skepticism, not formal opposition.
 - **Sources:** [1](https://www.motor.com/2025/02/aaa-fear-in-self-driving-vehicles-persists/) [2](https://nj1015.com/most-americans-not-on-board-with-self-driving-vehicles/)
+
+### Alliance for Automotive Innovation
+- **Role:** Main automaker lobby. Wants a federal AV framework that preempts the 'patchwork' of state rules, such as NJ's sensor mandate. Praised NHTSA's AV framework and called the AV STEP 2,500-vehicle cap arbitrary.
+- **Evidence:** No S1677 position found. Its national line: states are 'filling the gap', and federal standards would preempt them.
+- **Sources:** [1](https://www.autosinnovate.org/posts/press-release/new-nhtsa-av-framework) [2](https://www.autosinnovate.org/posts/press-release/alliance-for-automotive-innovation-statement-on-av-step-proposal) [3](https://www.autosinnovate.org/posts/testimony/committee-on-energy-and-commerce-statement)
 
 ### Open Plans + Hunter College (Sam Schwartz program)
 - **Role:** July 2026 study: Waymo drives 1.71 total miles per passenger mile against 1.49 for NYC's ride-hail fleet, so robotaxis add traffic. The safety section was later pulled over data discrepancies.

@@ -3,17 +3,56 @@
   "alpha": 4,
   "comparisons": {
     "zwicker": [
-      {"a": "risk", "b": "innovation", "win": "a", "why": "S1677 keeps a 3-sensor mandate and a human-driver phase even though it shuts out Tesla and delays Waymo.", "src": "https://electrek.co/2026/07/09/new-jersey-bill-tesla-camera-robotaxi/"},
-      {"a": "safety", "b": "innovation", "win": "a", "why": "Zwicker: the bill is 'pro New Jersey safety', not anti-Tesla.", "src": "https://www.govtech.com/transportation/new-jersey-bill-could-put-the-brakes-on-autonomous-cabs"}
+      {
+        "a": "risk",
+        "b": "innovation",
+        "win": "a",
+        "why": "S1677 keeps a 3-sensor mandate and a human-driver phase even though it shuts out Tesla and delays Waymo.",
+        "src": "https://electrek.co/2026/07/09/new-jersey-bill-tesla-camera-robotaxi/"
+      },
+      {
+        "a": "safety",
+        "b": "innovation",
+        "win": "a",
+        "why": "Zwicker: the bill is 'pro New Jersey safety', not anti-Tesla.",
+        "src": "https://www.govtech.com/transportation/new-jersey-bill-could-put-the-brakes-on-autonomous-cabs"
+      }
     ],
     "mayor_solomon": [
-      {"a": "budget", "b": "access", "win": "a", "why": "Cut Via evenings and Saturdays and raised the fare to $2.55 to close a ~$90M gap.", "src": "https://www.jerseycitynj.gov/viachanges"}
+      {
+        "a": "budget",
+        "b": "access",
+        "win": "a",
+        "why": "Cut Via evenings and Saturdays and raised the fare to $2.55 to close a ~$90M gap.",
+        "src": "https://www.jerseycitynj.gov/viachanges"
+      }
     ],
     "ny_hochul": [
-      {"a": "jobs", "b": "innovation", "win": "a", "why": "Pulled her own robotaxi plan after driver and transit unions opposed it on job grounds.", "src": "https://www.cnbc.com/2026/02/19/new-york-driverless-rideshare-nyc-waymo.html"}
+      {
+        "a": "jobs",
+        "b": "innovation",
+        "win": "a",
+        "why": "Pulled her own robotaxi plan after driver and transit unions opposed it on job grounds.",
+        "src": "https://www.cnbc.com/2026/02/19/new-york-driverless-rideshare-nyc-waymo.html"
+      }
     ],
     "nyc_mamdani": [
-      {"a": "jobs", "b": "safety", "win": "a", "why": "Let Waymo's permits lapse; DOT: AV decisions 'will center workers and their well-being'.", "src": "https://www.thecityreporter.nyc/2026/04/06/waymo-driverless-cars-testing-roads-autonomous-vehicle/"}
+      {
+        "a": "jobs",
+        "b": "safety",
+        "win": "a",
+        "why": "Let Waymo's permits lapse; DOT: AV decisions 'will center workers and their well-being'.",
+        "src": "https://www.thecityreporter.nyc/2026/04/06/waymo-driverless-cars-testing-roads-autonomous-vehicle/"
+      }
+    ],
+    "uber": [
+      {
+        "a": "jobs",
+        "b": "innovation",
+        "win": "a",
+        "why": "Uber's NJ lobbyists circulated a bill keeping 85% of rideshare work with human drivers on robotaxi platforms for 3 years.",
+        "src": "https://thenextweb.com/news/uber-robotaxi-lobbying-hybrid-network-waymo"
+      }
     ]
   }
 }

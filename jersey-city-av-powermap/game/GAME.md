@@ -39,8 +39,8 @@ Solved by backward induction. Each of 14 actors scores outcomes on **6 dimension
 | Port Authority | 3 | +0.00 | +0.35 | +1.00 | +0.00 | Industry-amended |
 | Gig drivers | 1 | +0.00 | −0.34 | −1.00 | +0.00 | Stall (no AV law) |
 | Mayor Solomon | 3 | +0.00 | +0.43 | +0.77 | +0.00 | Industry-amended |
-| Legislature (Zwicker) | 4 | +0.00 | +0.38 | +0.54 | +0.00 | Industry-amended |
-| Gov. Sherrill | 5 | +0.00 | +0.37 | +0.66 | +0.00 | Industry-amended |
+| Legislature (Zwicker) | 4 | +0.00 | +0.37 | +0.53 | +0.00 | Industry-amended |
+| Gov. Sherrill | 5 | +0.00 | +0.35 | +0.64 | +0.00 | Industry-amended |
 | NYC (Mamdani/DOT) | 2 | +0.00 | −0.11 | −0.62 | +0.00 | Stall (no AV law) |
 | NY State (Hochul) | 1 | +0.00 | +0.16 | +0.52 | +0.00 | Industry-amended |
 | MTA | 1 | +0.00 | +0.43 | +0.69 | +0.00 | Industry-amended |
@@ -51,6 +51,9 @@ Solved by backward induction. Each of 14 actors scores outcomes on **6 dimension
 | AAA clubs | 2 | +0.00 | +0.29 | −0.31 | +0.00 | S1677 as written |
 | Chamber of Progress | 2 | +0.00 | +0.32 | +1.00 | +0.00 | Industry-amended |
 | Blind & disability advocates | 2 | +0.00 | +0.44 | +0.84 | +0.00 | Industry-amended |
+| Uber | 3 | +0.00 | +0.35 | +1.00 | +0.00 | Industry-amended |
+| Teamsters | 3 | +0.00 | −0.25 | −0.92 | +0.00 | Stall (no AV law) |
+| Auto Innovation (AAI) | 2 | +0.00 | +0.32 | +1.00 | +0.00 | Industry-amended |
 
 Utilities are normalized per actor: −1 is the worst reachable outcome, +1 the best.
 
@@ -68,10 +71,10 @@ Utilities are normalized per actor: −1 is the worst reachable outcome, +1 the 
 
 | Path | Default weights | Legislature risk weight 0.30 |
 |---|:-:|:-:|
-| amended → signed → managed → waymo+tesla+via | 71.1% | 45.1% |
-| s1677 → signed → managed → waymo+via | 28.1% | 51.8% |
-| stall → signed → open → no entry | 0.4% | 1.2% |
-| s1677 → signed → open → waymo+via | 0.4% | 1.9% |
+| amended → signed → managed → waymo+tesla+via | 69.2% | 41.5% |
+| s1677 → signed → managed → waymo+via | 29.4% | 54.1% |
+| stall → signed → open → no entry | 0.8% | 2.3% |
+| s1677 → signed → open → waymo+via | 0.7% | 2.1% |
 
 ## The New York effect
 
@@ -80,7 +83,7 @@ The same game run with and without the 10 NY-region and advocacy actors in the c
 | | NJ actors only | + NY region & advocacy |
 |---|:-:|:-:|
 | Legislature's margin for amended over S1677 | +0.23 | +0.16 |
-| Robustness runs won by amended | 78% | 71% |
+| Robustness runs won by amended | 78% | 69% |
 | Backlash-risk weight at which S1677 wins | 0.30 | 0.26 |
 
 NY labor (IDG, ATU), NYC's worker-first DOT, and congestion-focused advocates (Open Plans, AAA) pull the Legislature toward S1677. The tech industry and blind/disability advocates pull the other way, toward more driverless miles. On balance New York makes S1677 easier to justify: less of a risk premium is needed to pick it.
@@ -91,21 +94,22 @@ Weights are tuned with Boolean answers ("for this actor, does A matter more than
 
 | | Raw weights | Calibrated |
 |---|:-:|:-:|
-| Observed facts reproduced | 6/8 | 8/8 |
+| Observed facts reproduced | 8/8 | 10/8 |
 | Equilibrium | amended → signed → managed → waymo+tesla+via | s1677 → signed → managed → waymo+via |
-| Robustness runs won by S1677 | 29% | 63% |
+| Robustness runs won by S1677 | 30% | 65% |
 
-Facts: ✓ NJ Senate committee advanced S1677 (5-0), not the industry-amended bill; ✓ Waymo is preparing to operate under S1677-style rules (mapping JC, Newark tests); ✓ Waymo wants the safety-driver phase removed (prefers amended); ✓ Gig-driver petitioners want AVs stopped in NJ; ✓ Chamber of Progress supports S1677 only with loosening amendments; ✓ Blind/disability advocates and SAVE-US testified for S1677; ✓ NY Gov. Hochul withdrew her robotaxi-service plan (prefers stall to a loose law); ✓ NYC driver unions fought robotaxis and claimed victory when the plan died.
+Facts: ✓ NJ Senate committee advanced S1677 (5-0), not the industry-amended bill; ✓ Waymo is preparing to operate under S1677-style rules (mapping JC, Newark tests); ✓ Waymo wants the safety-driver phase removed (prefers amended); ✓ Gig-driver petitioners want AVs stopped in NJ; ✓ Chamber of Progress supports S1677 only with loosening amendments; ✓ Blind/disability advocates and SAVE-US testified for S1677; ✓ NY Gov. Hochul withdrew her robotaxi-service plan (prefers stall to a loose law); ✓ NYC driver unions fought robotaxis and claimed victory when the plan died; ✓ Teamsters fight robotaxi legalization and push human-operator mandates (DC, MA, TX); ✓ ATU opposed NJDOT's Trenton AV transit project and wants AVs barred from transit.
 
-**How fragile is it?** The prior-strength sweep gives α=1: 8/8 · α=2: 8/8 · α=4: 8/8 · α=8: 7/8 · α=16: 6/8. Dropping one answer at a time:
+**How fragile is it?** The prior-strength sweep gives α=1: 10/8 · α=2: 10/8 · α=4: 10/8 · α=8: 9/8 · α=16: 8/8. Dropping one answer at a time:
 
 | Answer dropped | Fit |
 |---|:-:|
-| Legislature (Zwicker): risk > innovation | 7/8 (misses committee_s1677) |
-| Legislature (Zwicker): safety > innovation | 8/8  |
-| Mayor Solomon: budget > access | 8/8  |
-| NY State (Hochul): jobs > innovation | 7/8 (misses hochul_withdrew) |
-| NYC (Mamdani/DOT): jobs > safety | 8/8  |
+| Legislature (Zwicker): risk > innovation | 9/8 (misses committee_s1677) |
+| Legislature (Zwicker): safety > innovation | 10/8  |
+| Mayor Solomon: budget > access | 10/8  |
+| NY State (Hochul): jobs > innovation | 9/8 (misses hochul_withdrew) |
+| NYC (Mamdani/DOT): jobs > safety | 10/8  |
+| Uber: jobs > innovation | 10/8  |
 
 Each missed fact is fixed by one targeted answer, so the calibration fits the record rather than predicting it. Treat it as a consistency check. New, out-of-sample observations (an S1677 floor vote, Gov. Sherrill's signature) would be the real test.
 
@@ -115,18 +119,18 @@ Movers don't always pick their best option. The Legislature, Governor and City c
 
 | P(committee picks S1677) | λ=2 | λ=4 | λ=8 | λ=16 |
 |---|:-:|:-:|:-:|:-:|
-| Raw weights | 0.28 (log-loss 1.26) | 0.27 (log-loss 1.32) | 0.18 (log-loss 1.73) | 0.06 (log-loss 2.89) |
-| Calibrated (Beli answers) | 0.30 (log-loss 1.22) | 0.36 (log-loss 1.02) | 0.53 (log-loss 0.63) | 0.79 (log-loss 0.24) |
+| Raw weights | 0.28 (log-loss 1.26) | 0.27 (log-loss 1.31) | 0.18 (log-loss 1.70) | 0.06 (log-loss 2.80) |
+| Calibrated (Beli answers) | 0.30 (log-loss 1.22) | 0.36 (log-loss 1.02) | 0.53 (log-loss 0.63) | 0.79 (log-loss 0.23) |
 
-Most likely paths, calibrated, λ=8: s1677 → signed → managed → waymo+via **35%**; amended → signed → managed → waymo+tesla+via **24%**; s1677 → signed → open → waymo+via **13%**; amended → signed → open → waymo+tesla+via **4%**.
+Most likely paths, calibrated, λ=8: s1677 → signed → managed → waymo+via **35%**; amended → signed → managed → waymo+tesla+via **22%**; s1677 → signed → open → waymo+via **13%**; stall → signed → open → no entry **4%**.
 
 λ cannot be fitted from one vote; λ=8 is the default, and the sweep shows the calibrated model wins at every λ.
 
 ## What the model says
 
 1. **The committee's choice reveals a risk premium.** Every actor except gig drivers scores the amended bill higher, because the benefits scale with how long cars run driverless. Yet the Senate committee advanced S1677 with a 5-0 vote. The model reproduces that only if the Legislature puts at least **0.26** weight on backlash risk, the chance a serious crash forces a Cruise-style halt. That is the real price of the human-driver phase.
-2. **Tesla's swing variable is evidence, not lobbying.** Take the Legislature's revealed risk weight of 0.30. Once Tesla's halt chance drops below **0.40** per driverless window, the Legislature itself prefers letting Tesla in, because then the amended bill wins. Owner lobbying moves nothing in this model. Verified crash data published through NHTSA would.
-3. **The Governor is not the bottleneck.** She keeps signing the amended bill unless her weight on driver jobs passes **0.61**, far above any stated priority.
+2. **Tesla's swing variable is evidence, not lobbying.** Take the Legislature's revealed risk weight of 0.30. Once Tesla's halt chance drops below **0.39** per driverless window, the Legislature itself prefers letting Tesla in, because then the amended bill wins. Owner lobbying moves nothing in this model. Verified crash data published through NHTSA would.
+3. **The Governor is not the bottleneck.** She keeps signing the amended bill unless her weight on driver jobs passes **0.60**, far above any stated priority.
 4. **The city holds a quiet veto.** With a restricted curb under S1677, Waymo **stays out**: the expected revenue no longer covers the entry cost. The Mayor's best response is a **managed curb** in every branch. The city takes curb fees plus Via integration savings of about $1-3M/yr against a ~$90M deficit, and trades access for safety rules.
 5. **Via is the city's lever on the budget.** Via only integrates when Waymo is in and the curb is not restricted. That makes Via the bridge between the Mayor's budget priority and Waymo's entry. The Chandler, AZ model is the playbook.
 

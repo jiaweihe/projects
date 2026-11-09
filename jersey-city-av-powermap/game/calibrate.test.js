@@ -29,3 +29,9 @@ test("letter grades cover the normalized utility range", () => {
   assert.equal(c.letter(-0.3), "D");
   assert.equal(c.letter(-0.9), "F");
 });
+
+test("round 3: labor facts for Teamsters and ATU are graded", () => {
+  const ids = c.FACTS.map(f => f.id);
+  assert.ok(ids.includes("teamsters_stall") && ids.includes("atu_stall"), ids.join());
+  assert.ok(["uber", "teamsters", "aai"].every(k => m.players[k]), "game players missing");
+});

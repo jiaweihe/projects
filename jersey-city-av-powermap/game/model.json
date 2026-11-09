@@ -498,9 +498,38 @@
         "risk": 0.15
       },
       "region": "NY/NJ"
+    },
+    "uber": {
+      "name": "Uber",
+      "power": 3,
+      "region": "NJ/NY",
+      "w": {
+        "innovation": 0.35,
+        "jobs": 0.35,
+        "access": 0.3
+      }
+    },
+    "teamsters": {
+      "name": "Teamsters",
+      "power": 3,
+      "region": "US/NJ",
+      "w": {
+        "jobs": 0.75,
+        "safety": 0.15,
+        "risk": 0.1
+      }
+    },
+    "aai": {
+      "name": "Auto Innovation (AAI)",
+      "power": 2,
+      "region": "US",
+      "w": {
+        "innovation": 0.7,
+        "safety": 0.3
+      }
     }
   },
-  "weights_basis": "Weights are assumptions inferred from each actor's stated priorities (sources in ../stakeholders.json): Vision Zero for DOI, Bike JC and Safe Streets JC; the $90M deficit for the Mayor; the safety-framed bill and Zwicker's 'pro New Jersey safety'; Sherrill's NJ Transit budget and jobs priorities. Power scores come from the power map. Movers weigh their own priorities and a power-weighted coalition of everyone else equally (coalition = 0.5). NY-region actors (round 2) enter as coalition members only. They have no vote in Trenton, so their influence runs through their power-map score: NYC DOT 'centers workers'; IDG and ATU killed Hochul's plan over jobs; Open Plans focuses on congestion; AAA polling shows safety fears; Chamber of Progress pushes innovation; blind advocates want access.",
+  "weights_basis": "Weights are assumptions inferred from each actor's stated priorities (sources in ../stakeholders.json): Vision Zero for DOI, Bike JC and Safe Streets JC; the $90M deficit for the Mayor; the safety-framed bill and Zwicker's 'pro New Jersey safety'; Sherrill's NJ Transit budget and jobs priorities. Power scores come from the power map. Movers weigh their own priorities and a power-weighted coalition of everyone else equally (coalition = 0.5). NY-region actors (round 2) enter as coalition members only. They have no vote in Trenton, so their influence runs through their power-map score: NYC DOT 'centers workers'; IDG and ATU killed Hochul's plan over jobs; Open Plans focuses on congestion; AAA polling shows safety fears; Chamber of Progress pushes innovation; blind advocates want access. Round 3: Uber weighs innovation and its human-driver network equally (its NJ bill keeps 85% of rideshare work human); Teamsters weigh jobs above all (human-operator mandates); AAI weighs innovation and safety (federal framework). These are coalition-only players.",
   "risk_basis": "P(halt) = sum over entering operators of hazard x driverless share x (1 - law validation), capped at 0.9. A halt mid-window wipes out about half the expected AV benefits and revenue. Precedent: California DMV suspended Cruise's driverless permits on Oct 24, 2023, three weeks after one pedestrian-dragging crash. S1677 gives MVC's Chief Administrator the same immediate-halt power.",
   "units": {
     "safety": "1 pt = 5% fewer serious-injury crashes in JC",

@@ -51,7 +51,7 @@ def test_every_stakeholder_is_connected():
 
 
 def test_not_bloated():
-    assert len(S) <= 25  # 14 NJ/JC + 10 NY-region & advocacy (round 2)
+    assert len(S) <= 30  # 14 NJ/JC + 10 NY-region & advocacy (round 2) + Uber, Teamsters, AAI (round 3)
     for s in S:
         assert len(s["role"]) <= 300 and len(s["evidence"]) <= 300, s["id"]
 
@@ -96,3 +96,11 @@ def test_ny_region_and_advocacy_coverage():
     assert {"open_plans", "rpa"} <= IDS                          # transportation advocacy
     assert {"aaa", "chamber_progress"} <= IDS                    # motorist + industry advocacy
     assert {"idg", "atu"} <= IDS                                 # regional labor
+
+
+def test_round3_platform_labor_and_automaker_coverage():
+    by = {s["id"]: s for s in S}
+    assert {"uber", "teamsters", "aai", "atu"} <= IDS
+    assert "85%" in by["uber"]["evidence"]                 # Uber's NJ hybrid-network rule
+    assert by["teamsters"]["stance"] == -2 and by["atu"]["stance"] == -2
+    assert "Trenton" in by["atu"]["role"]                   # ATU's NJ-specific AV record

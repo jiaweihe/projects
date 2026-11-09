@@ -12,7 +12,8 @@ const assert = require("node:assert/strict");
   await p.waitForSelector("#tune-a");
 
   // Calibrated defaults: the page opens on the evidence-tuned model.
-  assert.match(await p.textContent("#fit"), /8\/8/);
+  const fitTxt = await p.textContent("#fit"), [got, of] = fitTxt.match(/(\d+)\/(\d+)/).slice(1).map(Number);
+  assert.ok(of >= 10 && got === of, `calibrated page must reproduce every fact: ${fitTxt}`);
   const law0 = await p.textContent("#path .move b");
   assert.match(law0, /S1677/);
 

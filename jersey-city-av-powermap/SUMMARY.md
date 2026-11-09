@@ -1,7 +1,7 @@
 # Session summary (2026-11-09, 5 iterations)
 | Metric | Baseline | Final |
 |---|---|---|
-| Real outcomes reproduced | 6/8 | **8/8** |
+| Real outcomes reproduced | 6/8 | **10/10** (2 labor facts added later) |
 | P(committee picks S1677), λ=8 | n/a (argmax) | 0.18 raw → **0.53** |
 | Tests passing | 23 | **48** (+1 browser test) |
 | Branch coverage / lint / type errors | 93.8% / 1 / 0 | **94.3% / 0 / 0** |

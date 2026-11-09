@@ -29,6 +29,12 @@
     { id: "idg_stall", claim: "NYC driver unions fought robotaxis and claimed victory when the plan died",
       check: s => u(s.branches, "idg", "stall") > u(s.branches, "idg", "amended"),
       src: ["https://driversguild.org/idg-victory-in-ny-governor-pulls-robotaxi-proposal-from-budgetidg-warns-hochul-robotaxi-proposal-will-kill-jobs/"] },
+    { id: "teamsters_stall", claim: "Teamsters fight robotaxi legalization and push human-operator mandates (DC, MA, TX)",
+      check: s => u(s.branches, "teamsters", "stall") > u(s.branches, "teamsters", "amended"),
+      src: ["https://teamster.org/2026/07/dc-teamsters-labor-coalition-demand-city-council-reject-anti-worker-waymo-bill/"] },
+    { id: "atu_stall", claim: "ATU opposed NJDOT's Trenton AV transit project and wants AVs barred from transit",
+      check: s => u(s.branches, "atu", "stall") > u(s.branches, "atu", "amended"),
+      src: ["https://atu.org/media/press/2022/atu-nj-dots-autonomous-vehicle-trenton-project-poses-serious-public-safety-risks-and-wastes-precious-taxpayer-resources"] },
   ];
 
   function fit(m, opts = {}) {

@@ -309,17 +309,19 @@
     },
     {
       "id": "atu",
-      "name": "Amalgamated Transit Union (ATU)",
+      "name": "Amalgamated Transit Union (ATU, NJ Transit locals)",
       "type": "Transit labor",
       "region": "NY/NJ",
       "required": false,
       "power": 3,
-      "interest": 3,
-      "stance": -1,
-      "role": "Transit operators' union that joined IDG against Hochul's robotaxi plan. Its locals represent NJ bus operators, a constituency Gov. Sherrill and NJ Transit cannot ignore.",
-      "evidence": "Pushed back on Hochul's plan on safety and job-loss grounds (Feb 2026). No NJ-specific statement on S1677 found.",
-      "lever": "Labor support in Trenton; operators of the buses AV microtransit would compete with.",
+      "interest": 4,
+      "stance": -2,
+      "role": "Represents NJ Transit bus workers. Opposed NJDOT's Trenton MOVES autonomous transit project in 2022, asked Congress in 2023 to ban AVs in transit and school buses, and joined IDG against Hochul's 2026 robotaxi plan.",
+      "evidence": "ATU called the Trenton AV project a 'serious public safety risk' and a waste of taxpayer money (2022): 'Don't let the robot drive the bus' (2023). No S1677 statement found.",
+      "lever": "Labor pressure on Gov. Sherrill and NJ Transit; opposes AV microtransit that competes with bus routes.",
       "sources": [
+        "https://atu.org/media/press/2022/atu-nj-dots-autonomous-vehicle-trenton-project-poses-serious-public-safety-risks-and-wastes-precious-taxpayer-resources",
+        "https://www.atu.org/media/in-transit/april-may-june-2023/dont-let-the-robot-drive-the-bus",
         "https://www.cnbc.com/2026/02/19/new-york-driverless-rideshare-nyc-waymo.html"
       ]
     },
@@ -404,6 +406,60 @@
       "lever": "A sympathetic coalition that keeps the bill moving and keeps the crash-reporting rule in.",
       "sources": [
         "https://newjerseymonitor.com/2026/05/13/driverless-cars-nj-senate/"
+      ]
+    },
+    {
+      "id": "uber",
+      "name": "Uber",
+      "type": "Ride-hail platform",
+      "region": "NJ/NY",
+      "required": false,
+      "power": 3,
+      "interest": 5,
+      "stance": 1,
+      "role": "Biggest ride-hail network in NJ. Partners with 14+ AV companies, but Waymo will leave Uber's app in Austin and Atlanta from Jan 2028. Pushes a 'hybrid network' of robotaxis plus human drivers on one app.",
+      "evidence": "Uber lobbyists in NJ circulated a bill requiring human drivers to do 85% of rideshare work on any platform offering robotaxis, for 3 years. Pro-AV, but on its own platform's terms.",
+      "lever": "Hybrid-network mandate; its driver base (Lyft's NJ audit alone covered 100k+ drivers); platform access for AV fleets.",
+      "sources": [
+        "https://thenextweb.com/news/uber-robotaxi-lobbying-hybrid-network-waymo",
+        "https://techcrunch.com/2026/07/13/ubers-robotaxi-lobbying-effort-has-put-it-on-a-collision-course-with-waymo/",
+        "https://techcrunch.com/2026/11/04/waymo-confirms-its-shaking-up-its-uber-relationship-in-january-2028/"
+      ]
+    },
+    {
+      "id": "teamsters",
+      "name": "Teamsters (IBT; NJ Joint Council 73)",
+      "type": "Labor",
+      "region": "US/NJ",
+      "required": false,
+      "power": 3,
+      "interest": 4,
+      "stance": -2,
+      "role": "Leads the national push for human-operator mandates: fought DC's Waymo bill (26-0684), backed human-operator bills in MA and TX, and is suing California's DMV over driverless trucks (Aug 2026).",
+      "evidence": "Teamsters say AV legalization failed in every state where it was filed this year, including NY, MD and VA. No NJ-specific statement found; Joint Council 73 is the NJ affiliate.",
+      "lever": "Labor votes in Trenton; human-operator amendments; litigation.",
+      "sources": [
+        "https://teamster.org/2026/07/dc-teamsters-labor-coalition-demand-city-council-reject-anti-worker-waymo-bill/",
+        "https://teamster.org/2026/08/teamsters-california-sues-dmv-to-protect-public-from-driverless-truck-dangers/",
+        "https://www.dcvelocity.com/transportation/trucking/autonomous-trucks/teamsters-ask-mass-lawmakers-to-require-human-drivers-in-avs"
+      ]
+    },
+    {
+      "id": "aai",
+      "name": "Alliance for Automotive Innovation",
+      "type": "Automaker trade group",
+      "region": "US",
+      "required": false,
+      "power": 2,
+      "interest": 2,
+      "stance": 1,
+      "role": "Main automaker lobby. Wants a federal AV framework that preempts the 'patchwork' of state rules, such as NJ's sensor mandate. Praised NHTSA's AV framework and called the AV STEP 2,500-vehicle cap arbitrary.",
+      "evidence": "No S1677 position found. Its national line: states are 'filling the gap', and federal standards would preempt them.",
+      "lever": "Federal preemption (Congress, NHTSA), which could override state rules like S1677's.",
+      "sources": [
+        "https://www.autosinnovate.org/posts/press-release/new-nhtsa-av-framework",
+        "https://www.autosinnovate.org/posts/press-release/alliance-for-automotive-innovation-statement-on-av-step-proposal",
+        "https://www.autosinnovate.org/posts/testimony/committee-on-energy-and-commerce-statement"
       ]
     }
   ],
@@ -557,6 +613,36 @@
       "disability_safety",
       "zwicker",
       "testifies: support"
+    ],
+    [
+      "uber",
+      "zwicker",
+      "lobbies: hybrid 85% human rule"
+    ],
+    [
+      "waymo",
+      "uber",
+      "exits Uber app Jan 2028"
+    ],
+    [
+      "teamsters",
+      "zwicker",
+      "human-operator push"
+    ],
+    [
+      "teamsters",
+      "av_opposition",
+      "labor coalition"
+    ],
+    [
+      "aai",
+      "tesla",
+      "federal preemption cover"
+    ],
+    [
+      "atu",
+      "njdot",
+      "opposed Trenton AV project"
     ]
   ],
   "takeaways": [

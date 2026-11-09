@@ -137,7 +137,7 @@ summary { cursor: pointer; font-weight: 600 }
   <header>
     <div class="eyebrow">Jersey City · autonomous mobility · as of <span id="asof"></span></div>
     <h1>Who gets driverless cars onto Jersey City streets, and on whose terms?</h1>
-    <p class="lede">A four-move game solved by backward induction. The Legislature picks a bill, the Governor signs or vetoes it, the City sets curb rules, and then Waymo, Tesla and Via decide at the same time whether to enter. Each of 24 actors, from Jersey City, Trenton and across the Hudson, scores outcomes on seven dimensions. Answer quick this-or-that questions, or move the sliders, to tune their priorities and watch the equilibrium shift.</p>
+    <p class="lede">A four-move game solved by backward induction. The Legislature picks a bill, the Governor signs or vetoes it, the City sets curb rules, and then Waymo, Tesla and Via decide at the same time whether to enter. Each of <span id="nact"></span> actors, from Jersey City, Trenton, across the Hudson and national labor and industry, scores outcomes on seven dimensions. Answer quick this-or-that questions, or move the sliders, to tune their priorities and watch the equilibrium shift.</p>
   </header>
 
   <section aria-label="Equilibrium path">
@@ -352,6 +352,7 @@ function buildTune() {
 
 function sources() {
   $("asof").textContent = MODEL.as_of;
+  $("nact").textContent = Object.keys(MODEL.players).length;
   $("scale").textContent = MODEL.scale + " " + MODEL.normalization;
   const blocks = [
     ...LAWS.map(k => [MODEL.laws[k].label, MODEL.laws[k].basis, MODEL.laws[k].src]),

@@ -74,3 +74,10 @@ Test-first: a Playwright e2e test (Playwright is preinstalled in the environment
 **Review fixes:** (1) the hard-coded "8 of 8" label is now computed from the evidence; (2) A/B buttons got `aria-describedby` for screen readers; (3) the Governor tipping card showed a vacuous "≥ 0.00" when amended wasn't the outcome. It now says n/a, and an e2e assertion guards it. The assertion was added together with the fix, not before it.
 **Metrics:** e2e browser tests 0→**1** (with 6 assertions, including 12 Beli answers flipping the equilibrium) · page answers supported 0→**unlimited, with undo** · tests 47→48 · branch coverage 94.30% (unchanged) · lint 0 · tsc 0 · no console errors and no overflow at 1280px light or 400px dark.
 **Next:** an out-of-sample test (the S1677 floor vote, Sherrill's signature); save tuned answers per viewer; fit λ once more votes exist.
+
+## Follow-up (user request): add Alliance for Automotive Innovation, Uber, Teamsters; deepen ATU
+- **Added to the power map (24→27):** Uber (+1; its NJ lobbyists circulated an 85%-human-driver "hybrid network" bill; Waymo leaves Uber's app in Austin/Atlanta from Jan 2028), Teamsters (−2; DC, MA and TX human-operator fights, CA DMV lawsuit; no NJ-specific statement found), Alliance for Automotive Innovation (+1; federal preemption of state "patchwork"; no S1677 position found).
+- **ATU deepened:** stance −1→−2, interest 3→4, using its 2022 opposition to NJDOT's Trenton MOVES AV project and its 2023 call to ban AVs from transit. It was already in the map, so no duplicate was added.
+- **Game:** Uber, Teamsters and AAI added as coalition players; Uber's 85% rule added as a sourced Beli answer (jobs > innovation); 2 new graded facts (Teamsters and ATU prefer stall).
+- **Metrics:** facts 8→10 · fit raw 8/10, calibrated **10/10** · P(S1677) at λ=8 still 0.53 · tests 48→51, all passing (36 node + 13 py + e2e + 1) · branch coverage 94.30→94.39% · lint 0 · tsc 0.
+- **Test change:** e2e asserted "8/8"; it now asserts that every fact passes (n/n, with n ≥ 10). This is stricter. The page intro's actor count is now computed instead of hard-coded.
