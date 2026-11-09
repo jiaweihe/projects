@@ -1,13 +1,14 @@
 // node build.js  -> index.html (interactive page) + GAME.md (static summary)
 const fs = require("fs"), path = require("path");
 const g = require("./solver.js"), m = require("./model.json");
-const prefs = require("./prefs.js"), cal = require("./calibrate.js"), ev = require("./evidence.json");
+const prefs = require("./prefs.js"), cal = require("./calibrate.js"), ev = require("./evidence.json"), LA = require("./launch.js");
 const here = f => path.join(__dirname, f);
 
 const page = fs.readFileSync(here("page.template.html"), "utf8")
   .replace("/*SOLVER*/", () => fs.readFileSync(here("solver.js"), "utf8"))
   .replace("/*PREFS*/", () => fs.readFileSync(here("prefs.js"), "utf8"))
   .replace("/*CALIBRATE*/", () => fs.readFileSync(here("calibrate.js"), "utf8"))
+  .replace("/*LAUNCH*/", () => fs.readFileSync(here("launch.js"), "utf8"))
   .replace("/*MODEL*/", () => JSON.stringify(m))
   .replace("/*EVIDENCE*/", () => JSON.stringify(ev));
 fs.writeFileSync(here("index.html"), page);
@@ -34,6 +35,30 @@ const restrict = g.operatorsNE(R, "s1677", "restrict").a;
 const md = [
 `# ${m.title}: a multi-dimensional game`, "",
 `_As of ${m.as_of}. Horizon: ${m.horizon}. Open \`index.html\` for the interactive version with sliders._`, "",
+...(() => {
+  const tuned = prefs.withEvidence(m, ev), y7 = LA.outlook(tuned, 2000, 7, 0.5, "2027"), y6 = LA.outlook(tuned, 2000, 7, 0.5, "2026");
+  const s7 = LA.solveLaunch(tuned, { year: "2027" }), pc = x => (x * 100).toFixed(0) + "%";
+  const mix = (reg, k) => Object.entries(s7.regimes[reg].mix[k]).map(([a, v]) => `${a} ${pc(v)}`).join(", ");
+  const L = m.launch;
+  return ["## 2027 outlook, whatever happens to S1677", "", `_${L.question}_`, "", L.basis, "",
+    "**The game:** Waymo and Tesla each choose to wait, test with safety drivers, or launch driverless (simultaneous logit equilibrium; no pure equilibrium exists in the legal gap). Then the City sets curb policy, then the State (Gov. + MVC) tolerates, adds conditions, or halts. It is played under two legal regimes, today's gap and S1677 enacted, blended by P(S1677 law before 2027) = 10-30%.", "",
+    "| Calibrated model, 2,000 runs | 2026 (check vs today) | **2027** |", "|---|:-:|:-:|",
+    `| Any driverless AV carrying riders in JC | ${pc(y6.any_driverless)} | **${pc(y7.any_driverless)}** |`,
+    `| Waymo driverless | ${pc(y6.waymo_driverless)} | ${pc(y7.waymo_driverless)} |`,
+    `| Tesla driverless | ${pc(y6.tesla_driverless)} | ${pc(y7.tesla_driverless)} |`,
+    `| Any AV on JC streets, incl. testing | ${pc(y6.any_operating)} | ${pc(y7.any_operating)} |`,
+    `| State deliberately halts a launch | ${pc(y6.halted)} | ${pc(y7.halted)} |`,
+    `| Expected chance a crash forces a halt | ${pc(y6.crash_halt)} | ${pc(y7.crash_halt)} |`, "",
+    `2027 operator strategies at midpoints. Legal gap: Waymo ${mix("gap", "waymo")}; Tesla ${mix("gap", "tesla")}. Under S1677: Waymo ${mix("s1677", "waymo")}; Tesla ${mix("s1677", "tesla")}.`, "",
+    "Most likely 2027 paths: " + y7.paths.slice(0, 4).map(p => `${p.path.replace(/\|/g, " → ")} **${pc(p.share)}**`).join("; ") + ".", "",
+    "**What it says:**",
+    "1. **The 2026 check holds.** Under today's gap the model has nobody running driverless in 2026, which matches reality: Waymo is mapping JC with drivers. The permission-first cost is calibrated to that fact, and Waymo itself says it won't launch until NJ changes its rules.",
+    "2. **2027 turns on operators, not Trenton.** In the gap both operators mix between testing and launching. **Tesla is the likelier first mover** because it bears a lower cost for launching without permission. S1677 would keep Tesla out entirely and slow Waymo, consistent with Waymo's 'delays us to 2028'.",
+    "3. **The State's tool is conditions, not a ban.** Within sourced ranges the State never prefers a deliberate halt: the MVC's safety weight values Waymo's crash record, so it adds conditions instead. The real halt risk is a crash forcing one (the Cruise 2023 pattern).",
+    "4. **Curb management is the City's lever** either way: managed curb in most paths. Waymo-Via integration only happens if Waymo launches and the curb isn't restricted.", "",
+    "Sources: " + [...L.src, ...L.permissionless_src, ...L.halt_src, ...L.readiness_src].map(u => `<${u}>`).join(" · "), "",
+    "---", "", "# If Trenton legislates first: the S1677 game", ""];
+})(),
 "## The game", "",
 "1. **Legislature** (Zwicker, S1677 sponsor) proposes: stall / S1677 as written / industry-amended / moratorium",
 "2. **Governor** (Sherrill) signs or vetoes; a veto means stall",

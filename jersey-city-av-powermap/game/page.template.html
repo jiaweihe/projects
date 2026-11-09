@@ -7,7 +7,7 @@
 :root {
   --bg: #f4f6f8; --surface: #ffffff; --ink: #141920; --ink-2: #485260; --muted: #737d8b; --line: #dde2e8;
   --accent: #1f5fa8; --accent-soft: #e3edf9;
-  --pos: #2a78d6; --neg: #e34948; --mid: #f0efec; --s1: #2a78d6; --s2: #eb6834;
+  --pos: #2a78d6; --neg: #e34948; --mid: #f0efec; --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
   --display: "Public Sans", "Helvetica Neue", Arial, sans-serif;
   --body: "Public Sans", "Helvetica Neue", Arial, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -15,11 +15,11 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #0f1216; --surface: #171b20; --ink: #eef1f4; --ink-2: #b7bfca; --muted: #8b94a1; --line: #29303a;
   --accent: #74abee; --accent-soft: #1b2a3d;
-  --pos: #3987e5; --neg: #e66767; --mid: #383835; --s1: #3987e5; --s2: #d95926; color-scheme: dark } }
+  --pos: #3987e5; --neg: #e66767; --mid: #383835; --s1: #3987e5; --s2: #d95926; --s3: #199e70; color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #0f1216; --surface: #171b20; --ink: #eef1f4; --ink-2: #b7bfca; --muted: #8b94a1; --line: #29303a;
   --accent: #74abee; --accent-soft: #1b2a3d;
-  --pos: #3987e5; --neg: #e66767; --mid: #383835; --s1: #3987e5; --s2: #d95926; color-scheme: dark }
+  --pos: #3987e5; --neg: #e66767; --mid: #383835; --s1: #3987e5; --s2: #d95926; --s3: #199e70; color-scheme: dark }
 
 * { box-sizing: border-box }
 body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body);
@@ -112,6 +112,21 @@ table.heat { border-collapse: separate; border-spacing: 2px; width: 100%; min-wi
 .check { display: flex; gap: 8px; align-items: flex-start; font-size: 0.8rem; color: var(--ink-2) }
 .readout { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 10px 0 0; font-size: 0.86rem; color: var(--ink-2) }
 .readout b { color: var(--ink); font-family: var(--mono) }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px }
+.tile { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 2px; min-width: 0 }
+.tile b { font: 600 1.7rem/1.1 var(--mono); font-variant-numeric: tabular-nums }
+.tile.hero b { color: var(--accent) }
+.tile span { font-size: 0.8rem; color: var(--ink-2) }
+.ol-grid { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 24px }
+.ol-col { display: grid; gap: 10px; align-content: start; min-width: 0 }
+#ol-ctls { display: grid; gap: 14px }
+.mixes { display: grid; gap: 8px }
+.mixrow { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 8px; align-items: center; font-size: 0.82rem }
+.stack { display: flex; height: 14px; gap: 2px }
+.stack i { display: block; height: 100%; border-radius: 3px; min-width: 0 }
+.section-h { margin: 0 0 10px }
+#ol-year { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink) }
+@media (max-width: 860px) { .ol-grid { grid-template-columns: minmax(0, 1fr) } .mixrow { grid-template-columns: 110px minmax(0, 1fr) } }
 details { border-top: 1px solid var(--line); padding-top: 10px }
 summary { cursor: pointer; font-weight: 600 }
 .src { display: grid; gap: 12px; margin-top: 12px }
@@ -136,11 +151,33 @@ summary { cursor: pointer; font-weight: 600 }
 <div class="wrap">
   <header>
     <div class="eyebrow">Jersey City · autonomous mobility · as of <span id="asof"></span></div>
-    <h1>Who gets driverless cars onto Jersey City streets, and on whose terms?</h1>
-    <p class="lede">A four-move game solved by backward induction. The Legislature picks a bill, the Governor signs or vetoes it, the City sets curb rules, and then Waymo, Tesla and Via decide at the same time whether to enter. Each of <span id="nact"></span> actors, from Jersey City, Trenton, across the Hudson and national labor and industry, scores outcomes on seven dimensions. Answer quick this-or-that questions, or move the sliders, to tune their priorities and watch the equilibrium shift.</p>
+    <h1>Will driverless cars run on Jersey City streets in 2027?</h1>
+    <p class="lede">New Jersey has no AV statute, so nothing authorizes driverless service and nothing bans it. The first section shows who moves in 2027: the operators, the City and the State. The second shows the legislative game, if Trenton acts first. All <span id="nact"></span> actors score outcomes on seven dimensions. Tune their priorities with this-or-that answers or the sliders.</p>
   </header>
 
+  <section class="panel" aria-label="2027 outlook" id="outlook">
+    <h2>2027 outlook, whatever happens to S1677</h2>
+    <p class="note" id="ol-basis"></p>
+    <div class="tiles" id="ol-tiles"></div>
+    <div class="ol-grid">
+      <div class="ol-col">
+        <div class="eyebrow">What each operator does</div>
+        <div class="legend"><span><i style="background:var(--s1)"></i>Driverless service</span><span><i style="background:var(--s3)"></i>Testing with safety drivers</span><span><i style="background:var(--line)"></i>Not operating</span></div>
+        <div id="ol-mix" class="mixes"></div>
+        <div class="eyebrow" style="margin-top:6px">Most likely 2027 paths</div>
+        <div id="ol-paths" class="rob"></div>
+      </div>
+      <div class="ol-col ol-ctl">
+        <div class="eyebrow">Unknowns</div>
+        <div id="ol-ctls"></div>
+        <div class="ctl"><label for="ol-year"><span>Year</span></label>
+          <select id="ol-year"><option value="2027" selected>2027</option><option value="2026">2026 (check against today)</option></select></div>
+      </div>
+    </div>
+  </section>
+
   <section aria-label="Equilibrium path">
+    <h2 class="section-h">If Trenton legislates first: the S1677 game</h2>
     <div class="path" id="path"></div>
     <p class="readout"><span>Fit to the record: <b id="fit"></b></span><span>P(committee picks S1677), λ=8: <b id="pqr"></b></span><span id="fit-miss"></span></p>
   </section>
@@ -198,10 +235,11 @@ summary { cursor: pointer; font-weight: 600 }
 <script>/*SOLVER*/</script>
 <script>/*PREFS*/</script>
 <script>/*CALIBRATE*/</script>
+<script>/*LAUNCH*/</script>
 <script>
 const MODEL = /*MODEL*/;
 const EVIDENCE = /*EVIDENCE*/;
-const PR = window.AVPrefs, CAL = window.AVCalibrate;
+const PR = window.AVPrefs, CAL = window.AVCalibrate, LA = window.AVLaunch;
 const G = window.AVGame;
 const LAWS = Object.keys(MODEL.laws), CITY = MODEL.city;
 const fmt = (x, d = 2) => { const s = Math.abs(x).toFixed(d); return (+s === 0 ? "" : x > 0 ? "+" : "−") + s; };
@@ -240,9 +278,21 @@ const CTL = [
     set: (m, x) => (m.laws.s1677.driverless_share = [Math.max(0, x - 0.125), Math.min(1, x + 0.125)], m),
     note: "Shrinks as the human-driver phase gets longer. Waymo says S1677 means 2028." },
 ];
+const mid = a => (a[0] + a[1]) / 2, around = (x, w) => [Math.max(0, x - w), Math.min(1, x + w)];
+const OLCTL = [
+  { id: "ol_bill", label: "Chance S1677 is law before 2027", min: 0, max: 1, step: 0.01, get: m => mid(m.launch.p_bill),
+    set: (m, x) => { m.launch.p_bill = around(x, 0.1); }, note: "It has sat in Budget & Appropriations since May 2026, and the last version died." },
+  { id: "ol_halt", label: "State's power to halt without a statute", min: 0, max: 1, step: 0.01, get: m => mid(m.launch.regimes.gap.halt_success),
+    set: (m, x) => { m.launch.regimes.gap.halt_success = around(x, 0.1); }, note: "California revoked Uber's 16 registrations in 2016. NJ's TNC Act assumes a human driver." },
+  { id: "ol_wpc", label: "Waymo: cost of launching without permission", min: 0, max: 1.5, step: 0.01, get: m => mid(m.launch.permissionless_cost.waymo),
+    set: (m, x) => { m.launch.permissionless_cost.waymo = [Math.max(0, x - 0.2), x + 0.2]; }, note: "Waymo says it won't bring service until NJ changes its rules." },
+  { id: "ol_tpc", label: "Tesla: cost of launching without permission", min: 0, max: 1.5, step: 0.01, get: m => mid(m.launch.permissionless_cost.tesla),
+    set: (m, x) => { m.launch.permissionless_cost.tesla = [Math.max(0, x - 0.15), x + 0.15]; }, note: "Tesla launched fast in Austin but uses safety drivers in California." },
+];
+const olState = Object.fromEntries(OLCTL.map(c => [c.id, +c.get(RAW).toFixed(3)]));
 let state = Object.fromEntries(CTL.map(c => [c.id, +c.get(baseModel()).toFixed(3)]));
 
-function model() { let m = baseModel(); for (const c of CTL) if (touched[c.id]) m = c.set(m, state[c.id]) || m; return m; }
+function model() { let m = baseModel(); for (const c of CTL) if (touched[c.id]) m = c.set(m, state[c.id]) || m; for (const c of OLCTL) c.set(m, olState[c.id]); return m; }
 
 function buildControls() {
   $("ctls").innerHTML = CTL.map(c => `<div class="ctl"><label for="${c.id}"><span>${c.label}</span><span class="num" id="${c.id}_v"></span></label>
@@ -269,6 +319,8 @@ function render() {
   $("pqr").textContent = `${(pq * 100).toFixed(0)}%`;
   $("fit-miss").textContent = fr.passed < fr.total ? "Misses: " + fr.results.filter(r => !r.pass).map(r => r.claim).join("; ") : "";
   renderTune(m);
+  for (const c of OLCTL) $(c.id + "_v").textContent = olState[c.id].toFixed(2);
+  renderOutlook(m);
 
   const lawL = MODEL.laws[eq.proposed].label, first = s => s.split(". ")[0].replace(/\.$/, "") + ".";
   $("path").innerHTML = [
@@ -350,6 +402,36 @@ function buildTune() {
   $("ev-label").textContent = `Start from the ${nEv} sourced answers (fits ${fEv.passed} of ${fEv.total} real outcomes)`;
 }
 
+let olTimer;
+const MODE_LABEL = { wait: "not operating", test: "testing", driverless: "driverless" };
+function renderOutlook(m) {
+  $("ol-basis").textContent = MODEL.launch.basis;
+  clearTimeout(olTimer);
+  olTimer = setTimeout(() => {
+    const year = $("ol-year").value, h = LA.outlook(m, 300, 7, 0.5, year), s = LA.solveLaunch(m, { year });
+    const pct = x => (x * 100).toFixed(0) + "%";
+    const tiles = [["hero", h.any_driverless, `Any driverless AV carrying riders in JC, ${year}`], ["", h.waymo_driverless, "Waymo driverless"],
+      ["", h.tesla_driverless, "Tesla driverless"], ["", h.any_operating, "Any AV on JC streets (incl. testing)"], ["", h.crash_halt, "Chance a crash forces a halt"]];
+    $("ol-tiles").innerHTML = tiles.map(([c, v, l]) => `<div class="tile ${c}"><b>${pct(v)}</b><span>${l}</span></div>`).join("");
+    const rows = [];
+    for (const [reg, lab] of [["gap", "No statute"], ["s1677", "S1677 law"]]) for (const k of ["waymo", "tesla"]) {
+      const mx = s.regimes[reg].mix[k];
+      const seg = (mode, col) => (mx[mode] || 0) > 0.005 ? `<i style="flex:${mx[mode]};background:var(${col})" data-tip="${MODEL.players[k].name}, ${lab}: ${MODE_LABEL[mode]} ${pct(mx[mode])}"></i>` : "";
+      rows.push(`<div class="mixrow"><span>${MODEL.players[k].name} · ${lab}</span><div class="stack">${seg("driverless", "--s1")}${seg("test", "--s3")}${seg("wait", "--line")}</div></div>`);
+    }
+    $("ol-mix").innerHTML = rows.join("");
+    $("ol-paths").innerHTML = h.paths.slice(0, 5).map(r => { const [reg, w, te, city, st] = r.path.split("|");
+      const txt = `${reg === "gap" ? "No statute" : "S1677 law"}: Waymo ${MODE_LABEL[w]}, Tesla ${MODE_LABEL[te]}, ${CITY[city].label.toLowerCase()}, State ${st === "conditions" ? "adds conditions" : st === "halt" ? "halts" : "tolerates"}`;
+      return `<div class="robrow"><div class="lab"><code>${txt}</code><div class="fill" style="width:${(r.share * 100).toFixed(1)}%" data-tip="${txt}: ${pct(r.share)}"></div></div><span class="pct num">${pct(r.share)}</span></div>`; }).join("");
+  }, 150);
+}
+function buildOutlook() {
+  $("ol-ctls").innerHTML = OLCTL.map(c => `<div class="ctl"><label for="${c.id}"><span>${c.label}</span><span class="num" id="${c.id}_v"></span></label>
+    <input type="range" id="${c.id}" min="${c.min}" max="${c.max}" step="${c.step}" value="${olState[c.id]}"><p>${c.note}</p></div>`).join("");
+  for (const c of OLCTL) $(c.id).addEventListener("input", e => { olState[c.id] = +e.target.value; render(); });
+  $("ol-year").onchange = render;
+}
+
 function sources() {
   $("asof").textContent = MODEL.as_of;
   $("nact").textContent = Object.keys(MODEL.players).length;
@@ -372,5 +454,5 @@ document.addEventListener("mousemove", e => { if (tip.hidden) return; const x = 
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
 new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
-sources(); buildControls(); buildTune(); render();
+sources(); buildControls(); buildTune(); buildOutlook(); render();
 </script>

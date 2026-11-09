@@ -2,6 +2,39 @@
 
 _As of 2026-11-09. Horizon: 3-year pilot window (2027-2029). Open `index.html` for the interactive version with sliders._
 
+## 2027 outlook, whatever happens to S1677
+
+_Will autonomous vehicles operate on Jersey City streets in 2027, whatever happens to S1677?_
+
+NJ has no AV statute, so nothing authorizes or bans driverless operation. S1677/A3968 sits in Senate Budget & Appropriations, and its 2024-25 version (S4702) died. Operators can choose to launch; the State can respond after the fact.
+
+**The game:** Waymo and Tesla each choose to wait, test with safety drivers, or launch driverless (simultaneous logit equilibrium; no pure equilibrium exists in the legal gap). Then the City sets curb policy, then the State (Gov. + MVC) tolerates, adds conditions, or halts. It is played under two legal regimes, today's gap and S1677 enacted, blended by P(S1677 law before 2027) = 10-30%.
+
+| Calibrated model, 2,000 runs | 2026 (check vs today) | **2027** |
+|---|:-:|:-:|
+| Any driverless AV carrying riders in JC | 2% | **69%** |
+| Waymo driverless | 1% | 46% |
+| Tesla driverless | 1% | 48% |
+| Any AV on JC streets, incl. testing | 93% | 98% |
+| State deliberately halts a launch | 0% | 0% |
+| Expected chance a crash forces a halt | 0% | 13% |
+
+2027 operator strategies at midpoints. Legal gap: Waymo wait 17%, test 40%, driverless 44%; Tesla wait 5%, test 20%, driverless 75%. Under S1677: Waymo wait 19%, test 47%, driverless 34%; Tesla wait 19%, test 81%.
+
+Most likely 2027 paths: gap → driverless → driverless → managed → tolerate **23%**; gap → test → driverless → managed → conditions **12%**; gap → driverless → test → managed → tolerate **11%**; gap → test → test → open → tolerate **11%**.
+
+**What it says:**
+1. **The 2026 check holds.** Under today's gap the model has nobody running driverless in 2026, which matches reality: Waymo is mapping JC with drivers. The permission-first cost is calibrated to that fact, and Waymo itself says it won't launch until NJ changes its rules.
+2. **2027 turns on operators, not Trenton.** In the gap both operators mix between testing and launching. **Tesla is the likelier first mover** because it bears a lower cost for launching without permission. S1677 would keep Tesla out entirely and slow Waymo, consistent with Waymo's 'delays us to 2028'.
+3. **The State's tool is conditions, not a ban.** Within sourced ranges the State never prefers a deliberate halt: the MVC's safety weight values Waymo's crash record, so it adds conditions instead. The real halt risk is a crash forcing one (the Cruise 2023 pattern).
+4. **Curb management is the City's lever** either way: managed curb in most paths. Waymo-Via integration only happens if Waymo launches and the curb isn't restricted.
+
+Sources: <https://newjerseymonitor.com/2026/05/13/driverless-cars-nj-senate/> · <https://legiscan.com/NJ/bill/S1677/2026> · <https://law.justia.com/codes/new-jersey/title-39/section-39-5h-2/> · <https://njballot.com/post/nj-robotaxi-bill-s1677> · <https://www.thecityreporter.nyc/2026/04/06/waymo-driverless-cars-testing-roads-autonomous-vehicle/> · <https://www.engadget.com/2016/12/22/uber-self-driving-tests-california-to-arizona/> · <https://www.axios.com/2023/10/24/cruise-permit-suspended-driverless-cars> · <https://nj1015.com/autonomous-vehicles-waymo-pilot-program/> · <https://www.robotaxiatlas.com/operators/waymo/>
+
+---
+
+# If Trenton legislates first: the S1677 game
+
 ## The game
 
 1. **Legislature** (Zwicker, S1677 sponsor) proposes: stall / S1677 as written / industry-amended / moratorium

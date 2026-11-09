@@ -17,6 +17,17 @@ const assert = require("node:assert/strict");
   const law0 = await p.textContent("#path .move b");
   assert.match(law0, /S1677/);
 
+  // 2027 outlook (bill-agnostic) renders, and 2026 shows less driverless service than 2027.
+  await p.waitForSelector("#ol-tiles .tile.hero b");
+  const hero = async () => +(await p.textContent("#ol-tiles .tile.hero b")).replace("%", "");
+  const h2027 = await hero();
+  await p.selectOption("#ol-year", "2026");
+  await p.waitForTimeout(1500);
+  const h2026 = await hero();
+  assert.ok(h2027 > h2026, `2027 ${h2027}% should exceed 2026 ${h2026}%`);
+  await p.selectOption("#ol-year", "2027");
+  await p.waitForTimeout(1500);
+
   // Tipping-point cards never show a vacuous threshold of 0.00.
   assert.doesNotMatch(await p.textContent("#flips"), /≥ 0\.00/);
 

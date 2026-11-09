@@ -1,13 +1,13 @@
 # Jersey City Autonomous Mobility Power Map
 
-_As of 2026-11-09. Who can enable, block, or shape driverless AV service on Jersey City streets?_
+_As of 2026-11-09. Who can enable, block, or shape driverless AV service on Jersey City streets in 2027, with or without a state AV law?_
 
 Scores: **power** 1-5: ability to enable/block AV ops in JC (5 = can legally allow/stop it) · **interest** 1-5: how actively engaged on AVs in NJ/JC (5 = core business or active lobbying) · **stance** -2..+2 toward driverless AV deployment in JC; 0 = neutral or no public position found
 
 ## So what
 
-1. The decision sits with the state, not the city. Nothing driverless runs in JC until S1677/A3968 clears Senate Budget & Appropriations and both floors, and Gov. Sherrill signs it. After that, MVC holds a halt power over every operator.
-2. The bill picks winners. Waymo's sensor stack complies (after a human-driver phase). Tesla's camera-only Robotaxi and pedal-less Cybercab do not.
+1. No law blocks 2027. NJ has no AV statute (nothing authorizes or bans driverless service), and S1677 is stalled. So the 2027 gate is the operators' own choice (Waymo is permission-first; Tesla moves faster) and the State's response after launch, where MVC's registration powers are untested for AVs.
+2. S1677 is a scenario, not the gate. If it passed it would bar Tesla's camera-only fleet and slow Waymo (a safety-driver phase, 50,000 NJ miles). Without it, Tesla is the likelier first mover.
 3. The city's levers are the curb and Via. JC's deficit of about $90M already cut Via's hours. The Waymo-Via Chandler model is the cheapest local entry point, and the Mayor, Kaplan and the Council control it.
 4. The biggest gap: the City, Bike JC and Safe Streets JC have no public AV position. The reinstated Vision Zero Task Force is where that position will form.
 5. Across the Hudson, the regional wind blows against AVs. NYC let Waymo's permits lapse; Hochul pulled her robotaxi plan after the drivers' guild and the transit union fought it. NJ's own coalition (disability advocates, the tech industry) supports S1677, but NY labor is the template for opposition.
@@ -16,7 +16,7 @@ Scores: **power** 1-5: ability to enable/block AV ops in JC (5 = can legally all
 
 | Stakeholder | Region | Power | Interest | Stance | Quadrant | Lever |
 |---|---|:-:|:-:|---|---|---|
-| ★ NJ MVC (Acting Chief Admin. Rosalie Johnson) | NJ/JC | 5 | 3 | Neutral/unknown (0) | Manage closely | Permitting, the halt ('kill switch') power, and pilot rulemaking. |
+| ★ NJ MVC (Acting Chief Admin. Rosalie Johnson) | NJ/JC | 5 | 3 | Neutral/unknown (0) | Manage closely | Registration and halt power, permit-like conditions, and pilot rulemaking if S1677 passes. |
 | Gov. Mikie Sherrill | NJ/JC | 5 | 1 | Neutral/unknown (0) | Keep satisfied | Signature or veto; agency direction. |
 | ★ Waymo | NJ/JC | 4 | 5 | Champion (+2) | Manage closely | Shaping S1677/A3968 amendments; Port Authority airport partnership; Via transit integration. |
 | Sen. Andrew Zwicker (S1677 prime sponsor) | NJ/JC | 4 | 5 | Supportive (+1) | Manage closely | Bill text: sensor mandate, safety-driver phase, school-zone limits. |
@@ -126,9 +126,9 @@ Green = pro-AV · grey = neutral/no position · red = opposed
 ## Stakeholder detail
 
 ### NJ MVC (Acting Chief Admin. Rosalie Johnson)
-- **Role:** Would run the S1677/A3968 3-year AV pilot. The Chief Administrator can immediately halt any AV operator and set safety rules with NJDOT.
+- **Role:** Today: the only state lever over a no-statute launch is registration/licensing (California revoked Uber's 16 self-driving registrations in 2016; untested in NJ). If S1677 passes: runs the pilot, with an explicit immediate-halt power.
 - **Evidence:** Johnson (ex-Colorado DMV) is Acting Chair & Chief Administrator since Jan 20, 2026; no Senate confirmation found. No public AV position found.
-- **Sources:** [1](https://pub.njleg.gov/Bills/2026/S2000/1677_I1.HTM) [2](https://www.roi-nj.com/2026/01/13/politics/gov-elect-sherrill-nominates-johnson-to-be-head-of-motor-vehicle-commission/) [3](https://www.nj.gov/mvc/about/chiefadmin.htm)
+- **Sources:** [1](https://pub.njleg.gov/Bills/2026/S2000/1677_I1.HTM) [2](https://www.roi-nj.com/2026/01/13/politics/gov-elect-sherrill-nominates-johnson-to-be-head-of-motor-vehicle-commission/) [3](https://www.nj.gov/mvc/about/chiefadmin.htm) [4](https://www.engadget.com/2016/12/22/uber-self-driving-tests-california-to-arizona/)
 
 ### Gov. Mikie Sherrill
 - **Role:** Signs or vetoes S1677/A3968. Appoints the heads of MVC, NJDOT and NJ Transit.

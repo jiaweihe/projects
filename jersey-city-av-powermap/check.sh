@@ -8,4 +8,4 @@ echo "== node tests";    (cd game && node --test --experimental-test-coverage 2>
 echo "== e2e (playwright)"; node game/page.e2e.js 2>&1 | tail -1 | sed "s/^/e2e: /"
 echo "== lint (eslint)"; "$TOOLS/node_modules/.bin/eslint" -c "$TOOLS/eslint.config.mjs" game/*.js 2>&1 | tail -3; echo "eslint exit ${PIPESTATUS[0]}"
 echo "== lint (pyflakes)"; python -m pyflakes build.py test_powermap.py; echo "pyflakes exit $?"
-echo "== types (tsc --checkJs)"; "$TOOLS/node_modules/.bin/tsc" --noEmit --allowJs --checkJs --target es2022 --module commonjs --moduleResolution node --resolveJsonModule --types node --typeRoots "$TOOLS/node_modules/@types" game/solver.js game/calibrate.js game/prefs.js 2>&1 | grep -c "error TS" | sed 's/^/tsc errors: /'
+echo "== types (tsc --checkJs)"; "$TOOLS/node_modules/.bin/tsc" --noEmit --allowJs --checkJs --target es2022 --module commonjs --moduleResolution node --resolveJsonModule --types node --typeRoots "$TOOLS/node_modules/@types" game/solver.js game/calibrate.js game/prefs.js game/launch.js 2>&1 | grep -c "error TS" | sed 's/^/tsc errors: /'
