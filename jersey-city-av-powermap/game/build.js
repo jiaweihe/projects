@@ -77,6 +77,18 @@ const md = [
     "| Answer dropped | Fit |", "|---|:-:|", ...loo, "",
     "Each missed fact is fixed by one targeted answer, so the calibration fits the record rather than predicting it. Treat it as a consistency check. New, out-of-sample observations (an S1677 floor vote, Gov. Sherrill's signature) would be the real test.", ""];
 })(),
+...(() => {
+  const tuned = prefs.withEvidence(m, ev), lams = [2, 4, 8, 16];
+  const row = (name, model) => `| ${name} | ` + lams.map(l => { const q = g.solveQR(model, { lambda: l }).law.s1677; return `${q.toFixed(2)} (log-loss ${(-Math.log(q)).toFixed(2)})`; }).join(" | ") + " |";
+  const q8 = g.solveQR(tuned, { lambda: 8 });
+  const top = Object.entries(q8.paths).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  return ["## Probabilistic play (logit quantal response)", "",
+    "Movers don't always pick their best option. The Legislature, Governor and City choose by logit, P ∝ exp(λ·U). λ is rationality: 0 is random, ∞ is the strict best choice. Operators keep their pure Nash equilibrium, because firms optimize harder than political bodies. Grading becomes the probability the model gave to what actually happened.", "",
+    "| P(committee picks S1677) | " + lams.map(l => `λ=${l}`).join(" | ") + " |", "|---|" + lams.map(() => ":-:").join("|") + "|",
+    row("Raw weights", m), row("Calibrated (Beli answers)", tuned), "",
+    "Most likely paths, calibrated, λ=8: " + top.map(([k, v]) => `${k.replace(/\|/g, " → ")} **${(v * 100).toFixed(0)}%**`).join("; ") + ".", "",
+    "λ cannot be fitted from one vote; λ=8 is the default, and the sweep shows the calibrated model wins at every λ.", ""];
+})(),
 "## What the model says", "",
 `1. **The committee's choice reveals a risk premium.** Every actor except gig drivers scores the amended bill higher, because the benefits scale with how long cars run driverless. Yet the Senate committee advanced S1677 with a 5-0 vote. The model reproduces that only if the Legislature puts at least **${tRisk.toFixed(2)}** weight on backlash risk, the chance a serious crash forces a Cruise-style halt. That is the real price of the human-driver phase.`,
 `2. **Tesla's swing variable is evidence, not lobbying.** Take the Legislature's revealed risk weight of 0.30. Once Tesla's halt chance drops below **${(1 - tTes).toFixed(2)}** per driverless window, the Legislature itself prefers letting Tesla in, because then the amended bill wins. Owner lobbying moves nothing in this model. Verified crash data published through NHTSA would.`,

@@ -54,3 +54,13 @@ Make GAME.md report the calibrated model alongside the raw one.
 **Review fixes:** (1) Overfitting risk: leave-one-out shows each fixed fact depends on one targeted answer. This is now stated plainly in GAME.md as fitting the record, not predicting it. (2) α=4 was arbitrary: the sweep shows 8/8 for α≤4, 7/8 at 8, 6/8 at 16, and a test now guards fit ≥7 for α≤8.
 **Metrics:** **fit 6/8 → 8/8** · S1677 robustness share 29% → 63% · tests 37→40, all passing · branch coverage 93.61→93.80% · lint 0 · tsc 0.
 **Next:** make the mechanism probabilistic (logit quantal response), so the model gives choice probabilities and can be scored by log-likelihood, not just pass/fail.
+
+## Iteration 4: probabilistic mechanism (logit quantal response) + log-loss grading
+**Audit, top 3:** (1) movers use hard argmax, so the model can't say how likely an outcome is, and fit (8/8) is now saturated as a metric; (2) the page doesn't expose Beli tuning yet; (3) GAME.md headline results still use raw weights.
+**Plan:** add `solveQR(model, {lambda})`, softmax choices for Legislature, Governor and City (operators keep their pure Nash equilibrium). It returns law and path probabilities.
+New grading metric: P(observed committee choice = S1677) and its log-loss, raw vs calibrated.
+Test-first: probabilities sum to 1; λ=0 is uniform; large λ recovers argmax; more risk weight raises P(S1677).
+**Built:** `solveQR()` in solver.js: a logit quantal-response equilibrium over Legislature, Governor and City, returning law, sign and path probabilities. GAME.md gains a probabilistic-play section. Test-first: 5 tests failed, then passed.
+**Review fixes:** (1) λ is unfittable from one vote, so a λ-sweep test now guards that calibration beats raw at λ ∈ {2,4,8,16}; (2) the mixed design (noisy politicians, exact operators) is now explained in GAME.md; (3) added a Governor sign-probability bounds test.
+**Metrics:** **P(observed committee choice) at λ=8: 0.18 → 0.53; log-loss 1.73 → 0.63** · tests 40→47, all passing · branch coverage 93.80→**94.30%** · lint 0 · tsc 0.
+**Next:** put Beli quick-tuning on the page: A-vs-B buttons per actor that live-update the weights and equilibrium.

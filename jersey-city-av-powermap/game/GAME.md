@@ -109,6 +109,19 @@ Facts: ✓ NJ Senate committee advanced S1677 (5-0), not the industry-amended bi
 
 Each missed fact is fixed by one targeted answer, so the calibration fits the record rather than predicting it. Treat it as a consistency check. New, out-of-sample observations (an S1677 floor vote, Gov. Sherrill's signature) would be the real test.
 
+## Probabilistic play (logit quantal response)
+
+Movers don't always pick their best option. The Legislature, Governor and City choose by logit, P ∝ exp(λ·U). λ is rationality: 0 is random, ∞ is the strict best choice. Operators keep their pure Nash equilibrium, because firms optimize harder than political bodies. Grading becomes the probability the model gave to what actually happened.
+
+| P(committee picks S1677) | λ=2 | λ=4 | λ=8 | λ=16 |
+|---|:-:|:-:|:-:|:-:|
+| Raw weights | 0.28 (log-loss 1.26) | 0.27 (log-loss 1.32) | 0.18 (log-loss 1.73) | 0.06 (log-loss 2.89) |
+| Calibrated (Beli answers) | 0.30 (log-loss 1.22) | 0.36 (log-loss 1.02) | 0.53 (log-loss 0.63) | 0.79 (log-loss 0.24) |
+
+Most likely paths, calibrated, λ=8: s1677 → signed → managed → waymo+via **35%**; amended → signed → managed → waymo+tesla+via **24%**; s1677 → signed → open → waymo+via **13%**; amended → signed → open → waymo+tesla+via **4%**.
+
+λ cannot be fitted from one vote; λ=8 is the default, and the sweep shows the calibrated model wins at every λ.
+
 ## What the model says
 
 1. **The committee's choice reveals a risk premium.** Every actor except gig drivers scores the amended bill higher, because the benefits scale with how long cars run driverless. Yet the Senate committee advanced S1677 with a 5-0 vote. The model reproduces that only if the Legislature puts at least **0.26** weight on backlash risk, the chance a serious crash forces a Cruise-style halt. That is the real price of the human-driver phase.

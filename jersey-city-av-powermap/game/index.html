@@ -306,6 +306,43 @@ summary { cursor: pointer; font-weight: 600 }
     return { eq: branches[lawChoice], branches, resolved: r };
   }
 
+  // Logit choice: P(i) ∝ exp(lambda * U_i). lambda = 0 is random; a large lambda approaches argmax.
+  function softmax(xs, lambda) {
+    const mx = Math.max(...xs), e = xs.map(x => Math.exp(lambda * (x - mx))), s = e.reduce((a, b) => a + b, 0);
+    return e.map(x => x / s);
+  }
+
+  // Quantal-response version of the game: Legislature, Governor and City choose by logit,
+  // anticipating each other's choice probabilities. Operators keep their pure Nash equilibrium.
+  function solveQR(m, opts = {}) {
+    const r = opts.resolved || resolve(m, opts.rng || null, opts.jitter || 0);
+    const lambda = opts.lambda ?? 8;
+    const cityDist = law => {
+      const rows = Object.keys(r.city).map(city => {
+        const ne = operatorsNE(r, law, city);
+        return { city, a: ne.a, u: utilities(r, outcome(r, law, city, ne.a)) };
+      });
+      const pr = softmax(rows.map(x => x.u.mayor_solomon), lambda);
+      return rows.map((x, i) => ({ ...x, p: pr[i] }));
+    };
+    const ev = (dist, id) => dist.reduce((s, x) => s + x.p * x.u[id], 0);
+    const vetoDist = cityDist("stall"), laws = Object.keys(r.laws), branch = {};
+    for (const law of laws) {
+      const signed = law === "stall" ? vetoDist : cityDist(law);
+      const sign = law === "stall" ? 1 : 1 / (1 + Math.exp(-lambda * (ev(signed, "gov_sherrill") - ev(vetoDist, "gov_sherrill"))));
+      branch[law] = { signed, sign, eu: sign * ev(signed, "zwicker") + (1 - sign) * ev(vetoDist, "zwicker") };
+    }
+    const lp = softmax(laws.map(l => branch[l].eu), lambda), law = {}, paths = {}, sign = {};
+    const add = (k, v) => { paths[k] = (paths[k] || 0) + v; };
+    const key = (l, signed, x) => `${l}|${signed ? "signed" : "vetoed"}|${x.city}|` + (OPS.filter(k => x.a[k]).join("+") || "no entry");
+    laws.forEach((l, i) => {
+      law[l] = lp[i]; sign[l] = branch[l].sign;
+      for (const x of branch[l].signed) add(key(l, true, x), lp[i] * branch[l].sign * x.p);
+      if (l !== "stall") for (const x of vetoDist) add(key(l, false, x), lp[i] * (1 - branch[l].sign) * x.p);
+    });
+    return { law, sign, paths, lambda };
+  }
+
   const pathKey = e => `${e.proposed}|${e.sign ? "signed" : "vetoed"}|${e.city}|` +
     (OPS.filter(k => e.a[k]).join("+") || "no entry");
 
@@ -332,7 +369,7 @@ summary { cursor: pointer; font-weight: 600 }
     return hi;
   }
 
-  const api = { setWeight, threshold, cityStage, DIMS, OPS, resolve, outcome, utilities, operatorsNE, solve, robustness, pathKey, rngFrom, feasible };
+  const api = { solveQR, softmax, setWeight, threshold, cityStage, DIMS, OPS, resolve, outcome, utilities, operatorsNE, solve, robustness, pathKey, rngFrom, feasible };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.AVGame = api;
 })(typeof window !== "undefined" ? window : globalThis);
 </script>
