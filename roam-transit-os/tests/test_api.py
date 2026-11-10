@@ -123,3 +123,38 @@ def test_raw_export_downloads_a_zip_and_leaves_nothing_on_the_server(platform, t
     assert not any(tmp_path.rglob("*.csv"))  # ...but none of it is left on the API host
     ops = c.post("/tenants/testville/exports/raw", headers=OPS)
     assert "+15550009999" not in zipfile.ZipFile(io.BytesIO(ops.content)).read("rider.csv").decode()
+
+
+def test_driver_app_reports_breakdown_and_position(platform):
+    c = _client(platform)
+    rider = c.post("/tenants/testville/riders", json={"eligibility_status": "certified"}, headers=OPS).json()
+    trip = c.post("/tenants/testville/trips", headers=OPS, json={"rider_id": rider["id"], **TRIP}).json()
+    c.post(f"/tenants/testville/days/{SERVICE_DAY}/start", headers=OPS)
+    d = platform.dispatcher("testville", SERVICE_DAY)
+    vid = next(u.vehicle_id for u in d.units if any(n.trip_id == trip["id"] for n in u.route))
+    r = c.post(f"/driver/{vid}/telemetry", headers=OPS, json={"location": [-75.04, 40.05], "time": "08:30", "speed_kmh": 20})
+    assert r.status_code == 200
+    assert any(v["vehicle_id"] == vid for v in c.get("/ops/map", headers=OPS).json())
+    r = c.post(f"/driver/{vid}/fault", headers=OPS, json={"location": [-75.04, 40.05], "time": "08:40", "reason": "engine light"})
+    assert r.status_code == 200
+    faults = [e for e in platform.ops.exceptions.values() if e.type == "vehicle_fault" and e.vehicle_id == vid]
+    assert len(faults) == 1
+    assert all(n.trip_id != trip["id"] for u in d.units if u.vehicle_id == vid for n in u.route)  # moved off the broken van
+
+
+def test_driver_times_are_validated(platform):
+    c = _client(platform)
+    c.post(f"/tenants/testville/days/{SERVICE_DAY}/start", headers=OPS)
+    for bad in ("abc", "25:00", "9:7:1", "12:60"):
+        r = c.post("/driver/testville:TV01/telemetry", headers=OPS, json={"location": [-75.04, 40.05], "time": bad})
+        assert r.status_code == 422, bad
+
+
+def test_driver_positions_validated_and_duplicate_fault_alerts_once(platform):
+    c = _client(platform)
+    c.post(f"/tenants/testville/days/{SERVICE_DAY}/start", headers=OPS)
+    assert c.post("/driver/testville:TV01/telemetry", headers=OPS, json={"location": [500, 500]}).status_code == 422
+    body = {"location": [-75.04, 40.05], "reason": "flat", "time": "09:00"}
+    c.post("/driver/testville:TV01/fault", headers=OPS, json=body)
+    c.post("/driver/testville:TV01/fault", headers=OPS, json=body)  # driver taps twice
+    assert len([e for e in platform.ops.exceptions.values() if e.type == "vehicle_fault"]) == 1

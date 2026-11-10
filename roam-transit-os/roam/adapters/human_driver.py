@@ -130,5 +130,5 @@ class HumanDriverAdapter(VehicleAdapter):
         self._emit_telemetry(Telemetry(self.vehicle_id, timestamp, location, speed_kmh, None, odometer_km))
 
     def report_fault(self, timestamp: float, location: tuple[float, float], reason: str) -> None:
-        run_id = next(iter(self.runs), None)
-        self._emit_event(VehicleEvent(self.vehicle_id, timestamp, "fault", location=location, payload={"run_id": run_id, "reason": reason}))
+        # faults are handled per vehicle (every shift), so no run id is needed
+        self._emit_event(VehicleEvent(self.vehicle_id, timestamp, "fault", location=location, payload={"reason": reason}))

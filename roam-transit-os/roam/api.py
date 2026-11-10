@@ -12,18 +12,19 @@ import base64
 import hashlib
 import hmac
 import io
+import re
 import tempfile
 import zipfile
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from zoneinfo import ZoneInfo
 
 import yaml
 from fastapi import Depends, FastAPI, Form, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from . import billing, kpi
 from .adapters.human_driver import HumanDriverAdapter
@@ -73,6 +74,21 @@ class DriverAction(BaseModel):
     location: tuple[float, float] | None = None
     wheelchair: bool = False
     checklist: dict[str, bool] = {}
+
+
+LonLatIn = tuple[Annotated[float, Field(ge=-180, le=180)], Annotated[float, Field(ge=-90, le=90)]]
+
+
+class DriverPosition(BaseModel):
+    location: LonLatIn
+    time: str | None = None
+    speed_kmh: float = 0.0
+
+
+class DriverFault(BaseModel):
+    location: LonLatIn
+    reason: str
+    time: str | None = None
 
 
 class IncidentIn(BaseModel):
@@ -269,16 +285,32 @@ def create_app(
     @app.post("/driver/{vehicle_id}/actions")
     def driver_action(vehicle_id: str, body: DriverAction, pr: Principal = Depends(principal)):
         a = _driver_adapter(vehicle_id, pr)
-        tid = vehicle_id.split(":")[0]
-        sync_clock(tid)
-        t = p.clock.minute
-        if body.time:
-            hh, mm = body.time.split(":")
-            t = int(hh) * 60 + int(mm)
+        t = _driver_minute(vehicle_id, body.time)
         ack = a.driver_action(body.stop_id, body.action, t, body.location, body.checklist, body.wheelchair)
         if not ack.ok:
             raise HTTPException(409, ack.message)
         return {"ok": True}
+
+    @app.post("/driver/{vehicle_id}/telemetry")
+    def driver_telemetry(vehicle_id: str, body: DriverPosition, pr: Principal = Depends(principal)):
+        _driver_adapter(vehicle_id, pr).driver_telemetry(_driver_minute(vehicle_id, body.time), body.location, body.speed_kmh)
+        return {"ok": True}
+
+    @app.post("/driver/{vehicle_id}/fault")
+    def driver_fault(vehicle_id: str, body: DriverFault, pr: Principal = Depends(principal)):
+        """Breakdown reported from the driver app: the dispatcher re-plans every shift of the van."""
+        _driver_adapter(vehicle_id, pr).report_fault(_driver_minute(vehicle_id, body.time), body.location, body.reason)
+        return {"ok": True}
+
+    def _driver_minute(vehicle_id: str, hhmm: str | None) -> float:
+        """Minutes after local midnight: the driver's reported time, else the tenant's clock."""
+        sync_clock(vehicle_id.split(":")[0])
+        if not hhmm:
+            return p.clock.minute
+        m = re.fullmatch(r"([01]?\d|2[0-3]):([0-5]\d)", hhmm)
+        if m is None:
+            raise HTTPException(422, "time must be HH:MM (24h)")
+        return int(m.group(1)) * 60 + int(m.group(2))
 
     # ------------------------------------------------------------- ops console
     def _ops(pr: Principal) -> Principal:

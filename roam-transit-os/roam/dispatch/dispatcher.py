@@ -292,6 +292,8 @@ class Dispatcher:
         """Take every shift of the broken vehicle out of service, re-plan its pickups on other
         vehicles and send a rescue for anyone onboard."""
         mine = [x for x in self.units if x.vehicle_id == vehicle_id]
+        if mine and not any(u.active for u in mine):
+            return  # already out of service (duplicate report)
         stranded: list[tuple[Task, LonLat]] = []
         pending: list[Task] = []
         for u in mine:

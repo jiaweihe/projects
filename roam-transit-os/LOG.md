@@ -177,3 +177,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) one test still built `RunPatch(stop_order=…)` → updated; (b) kept `KPISnapshot` although unused in code — it's in the spec's data model and `db/schema.sql`; (c) `RunPatch` is now a single-field dataclass; kept (rather than passing a bare list) because it is the spec's adapter interface type and leaves room for ETAs later.
 **Metrics:** tests 104 pass; **coverage 92→93%**; ruff 0; mypy 0; **statements 3501→3481**; bench unchanged.
 **Next:** expose driver fault/telemetry in the API (the driver app can't report a breakdown today).
+
+## Iteration 21 — driver app could not report a breakdown or its position (missing MVP feature)
+**Audit (top 5):** (1) `HumanDriverAdapter.report_fault/driver_telemetry` existed but no API route reached them — a human-driven van could never report a breakdown, and the ops live map had no human-driver positions; (2) driver `time` strings parsed with `split(":")` → 500 on bad input; (3) `/kpis` start>end; (4) PINs unhashed; (5) `api.py` size.
+**Plan:** `POST /driver/{id}/telemetry` and `/driver/{id}/fault` (same authZ as other driver routes); one `_driver_minute()` helper with strict `HH:MM` validation shared by all driver routes. Tests fail first (404 on routes, 500 on bad times).
+**Review of own diff:** (a) coordinates weren't range-checked → `LonLatIn` type with lon/lat bounds (422); (b) a double-tapped fault raised two critical alerts → dispatcher ignores a fault for a vehicle already out of service; (c) `report_fault` picked an arbitrary run id it no longer needs (faults are per vehicle since iter 8) → removed.
+**Metrics:** tests 104→107 pass; coverage 93%; ruff 0; mypy 0; bench unchanged.
+**Next:** fresh audit; if nothing substantial, close out.
