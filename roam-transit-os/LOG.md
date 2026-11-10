@@ -163,3 +163,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) item (2): `../evil` as tenant id would traverse directories in the export → `TenantConfig.id` constrained to `^[a-z0-9][a-z0-9_]{1,62}$`, six bad ids tested; (b) a test used id `"d"` and would now fail on the id instead of the date it meant to test → renamed so it still tests the date path; (c) export is built in memory — fine at MVP volumes; streaming noted for later.
 **Metrics:** tests 92→99 pass; coverage 92%; ruff 0; mypy 0; bench unchanged.
 **Next:** malformed invoice period → 422.
+
+## Iteration 19 — invoice input validation (bug)
+**Audit (top 5):** (1) `POST /invoices/{period}` with `2026-13`, `abc`, `2026`… → unhandled ValueError/IndexError → 500; (2) `build_invoice` accepted a date range outside the billed month (prorated platform fee for the wrong month); (3) `/kpis` with start > end silently returns zeros; (4) PINs unhashed (open); (5) `api.py` size.
+**Plan:** strict `YYYY-MM` check and range-within-period check in `build_invoice` (raise ValueError); API maps to 422. Five tests fail first.
+**Review of own diff:** (a) the validation lives in `billing.py`, not only the API, so CLI/library callers can't produce wrong invoices either; (b) re-issuing an invoice for the same period replaces the stored one (same id) — deterministic and idempotent, intentional; (c) `/kpis` start>end left as an open minor issue (returns empty KPIs, not wrong money).
+**Metrics:** tests 99→104 pass; coverage 92%; ruff 0; mypy 0; bench unchanged; 500s on bad invoice input: 4 cases → 0.
+**Next:** fresh audit.

@@ -358,7 +358,10 @@ def create_app(
     @app.post("/tenants/{tenant_id}/invoices/{period}")
     def invoice(tenant_id: str, period: str, pr: Principal = Depends(principal)):
         tenant_access(tenant_id, pr, ("ops", "city"))
-        return billing.build_invoice(p, tenant_id, period).model_dump()
+        try:
+            return billing.build_invoice(p, tenant_id, period).model_dump()
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
 
     # ----------------------------------------------------------------- exports
     @app.get("/tenants/{tenant_id}/exports/gtfs-flex.zip")

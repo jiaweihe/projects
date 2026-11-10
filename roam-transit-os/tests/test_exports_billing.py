@@ -66,3 +66,21 @@ def test_performance_adjustment_capped_and_ada_penalty():
     assert adj == pytest.approx(1_000) and d["total_pct"] == t.cap_pct
     adj, d = performance_adjustment({**great, "ada_denials": 1}, t, 10_000)
     assert adj < 1_000 and "ada_denials" in d
+
+
+@pytest.mark.parametrize("period", ["2026-13", "abc", "2026", "2026-1-1"])
+def test_bad_invoice_period_is_rejected_cleanly(testville, period):
+    from fastapi.testclient import TestClient
+
+    from roam.api import Principal, create_app
+
+    p, rt = testville
+    c = TestClient(create_app(p, {"city": Principal("city", {"testville"})}, realtime_clock=False))
+    r = c.post(f"/tenants/testville/invoices/{period}", headers={"X-Api-Key": "city"})
+    assert r.status_code == 422, (period, r.status_code)
+
+
+def test_invoice_rejects_range_outside_period(simulated):
+    p, rt = simulated
+    with pytest.raises(ValueError):
+        build_invoice(p, "testville", "2026-10", SERVICE_DAY, SERVICE_DAY)  # Nov 17 is not in October

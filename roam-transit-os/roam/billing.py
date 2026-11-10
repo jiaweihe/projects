@@ -6,6 +6,7 @@ per vehicle revenue hour, so Roam's dollars hold steady as drivers come out of t
 
 from __future__ import annotations
 
+import re
 from calendar import monthrange
 from datetime import date
 from typing import TYPE_CHECKING
@@ -35,10 +36,14 @@ def performance_adjustment(kpis: dict, terms, ops_fee: float) -> tuple[float, di
 
 def build_invoice(platform: Platform, tenant_id: str, period: str, start: date | None = None, end: date | None = None) -> Invoice:
     """Invoice for a calendar month ``YYYY-MM`` (or an explicit date range within it)."""
-    y, m = map(int, period.split("-"))
+    if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", period):
+        raise ValueError(f"period must be YYYY-MM, got {period!r}")
+    y, m = int(period[:4]), int(period[5:])
     days_in_month = monthrange(y, m)[1]
-    start = start or date(y, m, 1)
-    end = end or date(y, m, days_in_month)
+    first, last = date(y, m, 1), date(y, m, days_in_month)
+    start, end = start or first, end or last
+    if not (first <= start <= end <= last):
+        raise ValueError(f"billing range {start}..{end} is not within {period}")
     rt = platform.tenant(tenant_id)
     pricing = rt.config.pricing
     k = compute_kpis(platform, tenant_id, start, end)
