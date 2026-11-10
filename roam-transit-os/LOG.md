@@ -114,3 +114,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) behind a TLS-terminating proxy the process sees `http://…` while Twilio signs `https://public…` → `public_base_url` option (env `ROAM_PUBLIC_URL`), tested; (b) `roam serve` had no way to pass the token → reads `TWILIO_AUTH_TOKEN`; (c) abandoned calls never hit `done`, so `ivr_sessions` grew without bound → capped at `MAX_IVR_SESSIONS` (oldest evicted), tested. Signature comparison uses `hmac.compare_digest`.
 **Metrics:** tests 74→78 pass; coverage 91%; ruff 0; mypy 0; bench unchanged; one unauthenticated write endpoint → 0.
 **Next:** malformed config → 422.
+
+## Iteration 12 — bad input gave HTTP 500; re-provisioning silently overwrote a live tenant (bugs)
+**Audit (top 5):** (1) `POST /tenants` / `/tenants/validate` with a schema-invalid, non-mapping or unparsable body → unhandled exception → 500; (2) posting an existing tenant id replaced the running tenant (config, zones, vehicles) without warning; (3) driver endpoint leaks vehicle-id existence via message; (4) README drift; (5) `api.py` size.
+**Plan:** `_parse_config()` maps pydantic `ValidationError` → 422; YAML errors / non-mapping → 422; `Platform.provision` raises `TenantExistsError` for a known id → API 409.
+**Review of own diff:** (a) pydantic error details echo inputs, and YAML turns `2026-01-01` into a `date` that isn't JSON-serialisable → would 500 again → `include_input=False`, regression test added (it failed before the fix); (b) the duplicate guard lives in `Platform.provision` (core), not just the API, so CLI/library callers get it too; (c) error detail no longer includes pydantic doc URLs/context (smaller, no internals).
+**Metrics:** tests 78→81 pass; coverage 91%; ruff 0; mypy 0; bench unchanged; 500-class failures on bad input: 5 cases → 0.
+**Next:** README/docs drift + driver-id existence leak.

@@ -32,6 +32,10 @@ class Clock:
     minute: float = 0.0
 
 
+class TenantExistsError(ValueError):
+    pass
+
+
 class ProvisioningError(ValueError):
     def __init__(self, report: ValidationReport):
         super().__init__("; ".join(report.errors or report.golive_blockers))
@@ -54,6 +58,8 @@ class Platform:
     # ---------------------------------------------------------- tenancy
     def provision(self, source: str | Path | tuple[TenantConfig, dict], *, require_go_live: bool = False) -> TenantRuntime:
         cfg, geoms = load_config(source) if not isinstance(source, tuple) else source
+        if cfg.id in self.store.tenants:  # service changes are versioned updates, never a silent overwrite
+            raise TenantExistsError(f"tenant {cfg.id} already exists")
         report = validate(cfg, geoms)
         if not report.ok or (require_go_live and not report.can_go_live):
             raise ProvisioningError(report)

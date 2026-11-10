@@ -77,3 +77,28 @@ def test_driver_app_flow(platform):
         assert r.status_code == 200, r.text
     t = c.get(f"/tenants/testville/trips/{trip['id']}", headers=OPS).json()
     assert t["status"] == "completed" and t["actual_pickup"] == 9 * 60 + 7
+
+
+def test_malformed_config_is_a_422_not_a_500(platform):
+    c = _client(platform)
+    bad_type = new_city_config(type="spaceport")
+    for body in (yaml.safe_dump(bad_type), "just a string", "- a\n- list", "{unclosed: [", ""):
+        r = c.post("/tenants", content=body, headers=OPS)
+        assert r.status_code == 422, (body[:30], r.status_code, r.text[:200])
+    r = c.post("/tenants/validate", json={"id": "x"}, headers=OPS)
+    assert r.status_code == 422
+
+
+def test_reprovisioning_an_existing_tenant_is_refused(platform):
+    c = _client(platform)  # testville already provisioned
+    r = c.post("/tenants", content=yaml.safe_dump(new_city_config(name="Hijacked")), headers=OPS)
+    assert r.status_code == 409
+    assert platform.tenant("testville").config.name == "Testville"
+
+
+def test_schema_error_with_yaml_date_still_returns_422(platform):
+    c = _client(platform)
+    r = c.post(
+        "/tenants", content=yaml.safe_dump(new_city_config(id="d", phase="2026-01-01")).replace("'2026-01-01'", "2026-01-01"), headers=OPS
+    )
+    assert r.status_code == 422

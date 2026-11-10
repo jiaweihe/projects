@@ -23,7 +23,7 @@ from zoneinfo import ZoneInfo
 import yaml
 from fastapi import Depends, FastAPI, Form, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from . import billing, kpi
 from .adapters.human_driver import HumanDriverAdapter
@@ -33,7 +33,7 @@ from .exports import gtfs_flex, gtfs_realtime, mds, ntd, raw
 from .ivr import IVRSession, twiml
 from .models import AccessibilityNeed, Channel, EligibilityStatus, Mode, Rider, Severity, TripRequest, new_id
 from .ops.incidents import close_incident, open_incident
-from .platform import Platform, ProvisioningError
+from .platform import Platform, ProvisioningError, TenantExistsError
 from .proposal.generator import ProposalInput, generate_proposal, slug, write_pdf
 
 
@@ -96,6 +96,14 @@ class ProposalIn(BaseModel):
 MAX_IVR_SESSIONS = 1000
 
 
+def _parse_config(body: dict[str, Any]):
+    """Schema-check a tenant config; schema errors are the caller's fault (422), never a 500."""
+    try:
+        return config_from_dict(body)
+    except ValidationError as e:
+        raise HTTPException(422, e.errors(include_url=False, include_context=False, include_input=False)) from e
+
+
 def twilio_signature_ok(auth_token: str, url: str, params: dict[str, str], signature: str) -> bool:
     """Twilio request validation: base64(HMAC-SHA1(token, url + sorted key/value pairs))."""
     data = url + "".join(k + params[k] for k in sorted(params))
@@ -144,17 +152,22 @@ def create_app(
     # ----------------------------------------------------------- tenants
     @app.post("/tenants/validate")
     def validate_config(body: dict[str, Any], pr: Principal = Depends(principal)):
-        cfg, geoms = config_from_dict(body)
+        cfg, geoms = _parse_config(body)
         return validate(cfg, geoms).as_dict()
 
     @app.post("/tenants", status_code=201)
     async def provision(request: Request, pr: Principal = Depends(principal)):
         if pr.role != "ops":
             raise HTTPException(403, "only Roam ops can provision tenants")
-        text = (await request.body()).decode()
-        body = yaml.safe_load(text)
         try:
-            rt = p.provision(config_from_dict(body))
+            body = yaml.safe_load((await request.body()).decode())
+            if not isinstance(body, dict):
+                raise HTTPException(422, "tenant config must be a YAML/JSON mapping")
+            rt = p.provision(_parse_config(body))
+        except yaml.YAMLError as e:
+            raise HTTPException(422, f"invalid YAML: {e}") from e
+        except TenantExistsError as e:
+            raise HTTPException(409, str(e)) from e
         except ProvisioningError as e:
             raise HTTPException(422, e.report.as_dict()) from e
         return {"tenant_id": rt.id, "validation": rt.validation.as_dict(), "vehicles": len(rt.vehicles), "zones": len(rt.zones)}
