@@ -33,6 +33,7 @@ from .exports import gtfs_flex, gtfs_realtime, mds, ntd, raw
 from .ivr import IVRSession, set_pin, twiml
 from .models import AccessibilityNeed, Channel, EligibilityStatus, Mode, Rider, Severity, TripRequest, new_id
 from .ops.incidents import close_incident, open_incident
+from .persistence import PostgresStore
 from .platform import Platform, ProvisioningError, TenantExistsError
 from .proposal.generator import ProposalInput, generate_proposal, slug, write_pdf
 
@@ -137,6 +138,7 @@ def create_app(
     twilio_auth_token: str | None = None,
     allow_unsigned_ivr: bool = False,
     public_base_url: str | None = None,
+    persistence: PostgresStore | None = None,
 ) -> FastAPI:
     """``twilio_auth_token`` enables the IVR webhook; without it the webhook refuses every
     request unless ``allow_unsigned_ivr`` is set explicitly (local development only)."""
@@ -147,6 +149,15 @@ def create_app(
     app.state.keys = keys
     ivr_sessions: dict[str, IVRSession] = {}
     app.state.ivr_sessions = ivr_sessions
+
+    if persistence is not None:
+
+        @app.middleware("http")
+        async def persist_after_writes(request: Request, call_next):
+            response = await call_next(request)
+            if request.method not in ("GET", "HEAD", "OPTIONS"):
+                persistence.flush(p)  # save every record the request changed (Supabase / Postgres)
+            return response
 
     # ------------------------------------------------------------ auth
     def principal(x_api_key: str = Header(default="")) -> Principal:

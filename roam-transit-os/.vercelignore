@@ -1,0 +1,5 @@
+tests/
+out/
+scripts/
+*.md
+!README.md

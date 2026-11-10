@@ -5,7 +5,7 @@ A multi-tenant operations layer that lets a city, county or community **own** it
 Python 3.11+, FastAPI, pydantic. The core needs no database or routing server. H3 is optional and used when installed. The batch solver is pluggable (`Platform(batch_solver=...)`), so an OR-Tools or VROOM wrapper can be dropped in.
 
 ```bash
-pip install -e ".[dev,geo]"
+pip install -e ".[dev,geo,supabase]"
 pytest -q                                   # full suite incl. the four v0.1 acceptance tests and ruff/mypy gates
 
 roam validate tenants/mercer_county_nj.yaml
@@ -15,6 +15,24 @@ roam simulate tenants/mercer_county_nj.yaml tenants/austin_tx.yaml tenants/miami
 roam propose  --config tenants/mercer_county_nj.yaml --population 387340   # JSON + one-page PDF
 roam serve    tenants/*.yaml                # API + ops console at http://127.0.0.1:8000
 ```
+
+## Deploy: Supabase (database) + Vercel (API and ops console)
+
+1. **Supabase.** Create a project, then apply `supabase/migrations/20261110000000_roam_records.sql`
+   (`supabase db push`, or paste it into the SQL editor). It creates one `roam_records` table with
+   row-level security on and no access for the public `anon`/`authenticated` keys.
+2. **Vercel.** Import the repo and set **Root Directory** to `roam-transit-os`. `vercel.json` routes
+   everything to `api/index.py` (FastAPI). Set these environment variables:
+   - `DATABASE_URL`: Supabase connection string, transaction pooler (port 6543)
+   - `ROAM_API_KEYS`: JSON, e.g. `{"<long-random-key>": {"role": "ops", "tenant_ids": null, "seat_id": "seat-1"}}`
+   - `ROAM_TENANTS` (optional): which `tenants/*.yaml` to load; defaults to the three fixtures
+   - `TWILIO_AUTH_TOKEN` and `ROAM_PUBLIC_URL` (optional): turn on the phone-booking webhook
+3. Open the deployment URL and enter your ops key in the console.
+
+What persists in Supabase: riders, standing orders, trips, events, incidents, complaints and invoices.
+After a cold start, booked trips are reloaded and the day plan is rebuilt. Tenant configuration stays
+in git (`tenants/`). **Not persisted:** the ops exceptions queue and in-progress vehicle state. Run live
+dispatch for a service day on a long-lived host (`roam serve`) rather than on serverless functions.
 
 ## v0.1 build order (spec §13): status
 

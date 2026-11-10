@@ -95,7 +95,32 @@ class Platform:
                 on_vehicle_event=partial(self._on_vehicle_event, tenant_id, service_date),
             )
             self.dispatchers[key] = d
+            self._rebuild_plan(rt, d)
         return self.dispatchers[key]
+
+    def _rebuild_plan(self, rt: TenantRuntime, d: Dispatcher) -> None:
+        """Promised trips already in the store (loaded from the database after a restart)
+        but no plan in memory: re-plan them, and alert ops about any that no longer fit."""
+        trips = [
+            t
+            for t in self.store.scope(rt.id).list(TripRequest, service_date=d.service_date)
+            if t.status in (TripStatus.booked, TripStatus.scheduled)
+        ]
+        tasks = [task for t in trips if (task := self.booking.rebuild_task(rt, t)) is not None]
+        if not tasks:
+            return
+        sol = self.solver.solve(d.units, tasks, rt.travel)
+        d.tasks.update({t.trip_id: t for t in tasks if t not in sol.unassigned})
+        for t in sol.unassigned:
+            self.ops.raise_exception(
+                type="replan_failed",
+                severity=2,
+                tenant_id=rt.id,
+                at=self.clock.minute,
+                service_date=d.service_date,
+                trip_id=t.trip_id,
+                message="promised trip did not fit when the day plan was rebuilt; assign manually",
+            )
 
     def build_adapters(
         self, tenant_id: str, world: SimWorld | None = None, sim_params: SimParams | None = None

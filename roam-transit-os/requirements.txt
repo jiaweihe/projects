@@ -1,0 +1,7 @@
+# Runtime dependencies for Vercel's Python builder (mirrors pyproject.toml [project] + [supabase]).
+pydantic>=2.6
+PyYAML>=6
+fastapi>=0.110
+reportlab>=4
+h3>=4
+psycopg[binary]>=3.1

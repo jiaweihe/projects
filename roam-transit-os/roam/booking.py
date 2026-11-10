@@ -279,6 +279,40 @@ class BookingService:
         return min(cands, key=lambda s: geo.haversine_km((s["lon"], s["lat"]), dest))
 
     # ----------------------------------------------------------- lifecycle
+    def rebuild_task(self, rt, trip: TripRequest) -> Task | None:
+        """Re-derive the dispatch task of an already-promised trip (used after a restart,
+        e.g. a cold start on serverless hosting, to rebuild the day plan from the database)."""
+        if trip.window is None or trip.negotiated_pickup is None:
+            return None
+        if trip.mode == Mode.paratransit:
+            rules = rt.config.booking_rules.paratransit
+            P = trip.negotiated_pickup
+            pu_earliest, pu_latest = P - rules.early_window_min, P + rules.pickup_window_min - PLANNING_SLACK_MIN
+            do_latest = trip.requested_time if trip.time_type == "appointment" else float("inf")
+            priority = 1
+        else:
+            rules = getattr(rt.config.booking_rules, trip.mode.value)
+            pu_earliest, pu_latest = trip.window
+            do_latest, priority = float("inf"), 0
+        direct = rt.travel.travel_min(trip.origin, trip.destination)
+        service = rules.wheelchair_service_min if trip.wheelchair else rules.service_min
+        d = self.p.dispatcher(rt.id, trip.service_date)
+        return Task(
+            trip_id=trip.id,
+            pickup=trip.origin,
+            dropoff=trip.destination,
+            pu_earliest=pu_earliest,
+            pu_latest=pu_latest,
+            max_ride=self._max_ride(direct, rules.max_ride_factor, rules.max_ride_extra_min, rules.max_ride_cap_min),
+            seats=trip.seats,
+            wc=1 if trip.wheelchair else 0,
+            pu_service=service,
+            do_service=service,
+            do_latest=do_latest,
+            allowed_units=d.allowed_units_for(rt.odd_vehicle_ids(trip.origin, trip.destination)),
+            priority=priority,
+        )
+
     def cancel_trip(self, tenant_id: str, trip_id: str, reason: str = "rider request") -> TripRequest:
         scope = self.p.store.scope(tenant_id)
         trip = scope.get(TripRequest, trip_id)
