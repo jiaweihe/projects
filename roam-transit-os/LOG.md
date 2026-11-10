@@ -62,3 +62,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) the formatter inflated the line-count metric (4426→4759) while the code didn't grow → switched the size metric to **coverage statement count** (3385→3382), which formatting can't game; (b) `datetime.timezone.utc`→`datetime.UTC` needs Python ≥3.11 — matches `requires-python`; (c) the quality test skips (not fails) when ruff isn't installed so runtime-only installs still pass.
 **Metrics:** tests 57→58 pass; coverage 85%; **ruff 120→0**; mypy 21; statements 3385→3382; bench unchanged.
 **Next:** mypy to zero (same gate approach).
+
+## Iteration 6 — type-checker gate to zero (quality)
+**Audit (top 5):** (1) 21 mypy errors, some masking real fragility (`tuple(cfg.depot)` copies everywhere because the value was already a tuple; lambdas with default-arg capture; KPI on-time maths on `Optional` fields guarded by a `type: ignore`); (2) no committed mypy config; (3) tests for KPIs/incidents/ops seat thin; (4) `api.py` closure size; (5) README/docs drift after removals.
+**Plan:** `[tool.mypy]` in pyproject + `test_mypy_clean` (fails first); fix root causes: drop redundant `tuple(...)`, `functools.partial` instead of default-arg lambdas, KPI on-time computed from `(arrival, window)` pairs (removes the `type: ignore`), explicit row types in GTFS-Flex/raw export.
+**Review of own diff:** (a) I first used `assert trip.window is not None` in the IVR — asserts disappear under `python -O` → replaced with a typed fallback; (b) a `type: ignore` was *removed* rather than added (KPI) — net fewer suppressions; (c) the new import broke isort order → ruff fixed; gate tests caught it.
+**Metrics:** tests 58→59 pass; coverage 85%; ruff 0; **mypy 21→0**; statements 3382→3386; bench unchanged (sim 0.67 s, proposal 1.58 s).
+**Next:** raise coverage on the least-tested business logic (incidents, ops seat, KPIs).

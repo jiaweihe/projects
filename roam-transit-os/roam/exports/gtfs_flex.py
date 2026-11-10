@@ -27,7 +27,7 @@ def _hhmmss(minutes: float) -> str:
 
 def build_gtfs_flex(rt, start_date: str = "20260101", end_date: str = "20271231") -> dict[str, str]:
     cfg = rt.config
-    files: dict[str, list[list]] = {}
+    files: dict[str, list[list[object]]] = {}
     files["agency.txt"] = [
         ["agency_id", "agency_name", "agency_url", "agency_timezone", "agency_phone"],
         [cfg.id, cfg.branding.display_name, cfg.branding.info_url or "https://example.org", cfg.timezone, cfg.branding.phone_number],
@@ -38,7 +38,9 @@ def build_gtfs_flex(rt, start_date: str = "20260101", end_date: str = "20271231"
         h = cfg.service_hours.get(d)
         if h:
             patterns.setdefault(tuple(h), []).append(d)  # type: ignore[arg-type]
-    cal = [["service_id", *["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"], "start_date", "end_date"]]
+    cal: list[list[object]] = [
+        ["service_id", *["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"], "start_date", "end_date"]
+    ]
     svc_ids = {}
     for i, (hrs, days) in enumerate(patterns.items()):
         sid = f"svc{i + 1}"
@@ -46,7 +48,7 @@ def build_gtfs_flex(rt, start_date: str = "20260101", end_date: str = "20271231"
         cal.append([sid, *[1 if d in days else 0 for d in DAYS], start_date, end_date])
     files["calendar.txt"] = cal
 
-    br = [
+    br: list[list[object]] = [
         [
             "booking_rule_id",
             "booking_type",
@@ -58,9 +60,9 @@ def build_gtfs_flex(rt, start_date: str = "20260101", end_date: str = "20271231"
             "info_url",
         ]
     ]
-    routes = [["route_id", "agency_id", "route_short_name", "route_long_name", "route_type"]]
-    trips = [["route_id", "service_id", "trip_id"]]
-    st = [
+    routes: list[list[object]] = [["route_id", "agency_id", "route_short_name", "route_long_name", "route_type"]]
+    trips: list[list[object]] = [["route_id", "service_id", "trip_id"]]
+    st: list[list[object]] = [
         [
             "trip_id",
             "location_id",

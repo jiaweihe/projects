@@ -103,7 +103,7 @@ def cmd_propose(a) -> int:
             boundary=boundary,
             population=a.population,
             microtransit_boundary=zones.get("microtransit"),
-            depot=tuple(cfg.depot),
+            depot=cfg.depot,
             timezone=cfg.timezone,
             modes=tuple(m for m in ("paratransit", "microtransit") if m in zones) or ("microtransit",),
             current_annual_cost=a.current_cost,

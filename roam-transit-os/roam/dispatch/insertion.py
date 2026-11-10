@@ -44,7 +44,7 @@ class InsertionSolver:
         for _ in range(self.improve_passes):
             improved = False
             for u in units:
-                for tid in list(dict.fromkeys(n.trip_id for n in u.route if n.task is not None)):
+                for tid in list(dict.fromkeys(n.task.trip_id for n in u.route if n.task is not None)):
                     nodes = [n for n in u.route if n.trip_id == tid]
                     task = nodes[0].task
                     assert task is not None

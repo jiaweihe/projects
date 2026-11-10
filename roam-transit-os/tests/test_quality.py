@@ -11,3 +11,9 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_ruff_clean():
     r = subprocess.run(["ruff", "check", "roam", "tests", "--output-format", "concise"], cwd=ROOT, capture_output=True, text=True)
     assert r.returncode == 0, r.stdout[-3000:]
+
+
+@pytest.mark.skipif(shutil.which("mypy") is None, reason="mypy not installed (pip install -e .[dev])")
+def test_mypy_clean():
+    r = subprocess.run(["mypy", "--no-error-summary"], cwd=ROOT, capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout[-3000:]

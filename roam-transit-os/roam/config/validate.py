@@ -95,7 +95,7 @@ def validate(cfg: TenantConfig, geoms: dict[str, dict[str, Any]], policy: dict[s
     for m in cfg.modes:
         if m not in zone_modes:
             E(f"mode {m.value} has no service zone")
-    if not any(geo.point_in_geometry(tuple(cfg.depot), geoms[z.id]) for z in cfg.zones if z.id in geoms):
+    if not any(geo.point_in_geometry(cfg.depot, geoms[z.id]) for z in cfg.zones if z.id in geoms):
         W("depot is outside every service zone (deadhead will be counted)")
 
     # ---- hours

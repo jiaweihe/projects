@@ -248,7 +248,8 @@ class IVRSession:
                 return IVRResponse(
                     f"Sorry, I couldn't book that ride: {trip.status_reason}. Press 0 for an agent, or " + self._menu().lower()
                 )
-            w = trip.window or (trip.negotiated_pickup, trip.negotiated_pickup)
+            # every booked trip carries its promised window; fall back defensively (asserts vanish under -O)
+            w = trip.window or (trip.requested_time, trip.requested_time + 30)
             self.state, self.failures = "confirm", 0
             return IVRResponse(
                 f"I can pick you up on {trip.service_date:%A %B %d} between {_fmt(w[0])} and {_fmt(w[1])}"

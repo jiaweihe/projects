@@ -13,12 +13,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from pydantic import BaseModel
+
 from .. import models as M
 
 if TYPE_CHECKING:
     from ..platform import Platform
 
-TABLES = [
+TABLES: list[type[BaseModel]] = [
     M.Tenant,
     M.ServiceZone,
     M.ServicePolicy,
@@ -39,7 +41,8 @@ def export_tenant(platform: Platform, tenant_id: str, out_dir: str | Path, inclu
     out = Path(out_dir) / tenant_id
     out.mkdir(parents=True, exist_ok=True)
     scope = platform.store.scope(tenant_id)
-    manifest = {"tenant_id": tenant_id, "exported_at": datetime.now(UTC).isoformat(), "tables": {}}
+    tables: dict[str, dict] = {}
+    manifest = {"tenant_id": tenant_id, "exported_at": datetime.now(UTC).isoformat(), "tables": tables}
     for cls in TABLES:
         rows = [r.model_dump(mode="json") for r in scope.list(cls)]
         if cls is M.Rider and not include_pii:
@@ -53,7 +56,7 @@ def export_tenant(platform: Platform, tenant_id: str, out_dir: str | Path, inclu
             w.writeheader()
             for r in rows:
                 w.writerow({k: json.dumps(v) if isinstance(v, (dict, list)) else v for k, v in r.items()})
-        manifest["tables"][cls.__name__] = {"rows": len(rows), "file": path.name}
+        tables[cls.__name__] = {"rows": len(rows), "file": path.name}
         try:  # optional Parquet
             import pyarrow as pa
             import pyarrow.parquet as pq

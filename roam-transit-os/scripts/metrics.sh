@@ -2,7 +2,7 @@
 cd /home/user/projects/roam-transit-os
 echo "== tests+coverage"; timeout 900 python3 -m pytest -q -p no:cacheprovider --cov=roam --cov-report=term 2>&1 | grep -E "passed|failed|^TOTAL"
 echo "== ruff"; ruff check roam tests -q --statistics 2>&1 | tail -15; echo "ruff total: $(ruff check roam tests --output-format concise -q 2>/dev/null | wc -l)"
-echo "== mypy"; mypy roam --ignore-missing-imports --no-error-summary 2>&1 | grep -c "error:"
+echo "== mypy"; mypy --no-error-summary 2>&1 | grep -c "error:"
 echo "== LOC"; find roam -name '*.py' | xargs cat | grep -cvE '^\s*(#|$)'
 echo "== bench"
 python3 - <<'PY'

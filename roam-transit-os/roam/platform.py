@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -85,7 +86,7 @@ class Platform:
                 rt.travel,
                 batch_solver=self.batch_solver,
                 on_exception=ops_sink(self.ops, service_date),
-                on_vehicle_event=lambda e, t=tenant_id, sd=service_date: self._on_vehicle_event(t, sd, e),
+                on_vehicle_event=partial(self._on_vehicle_event, tenant_id, service_date),
             )
             self.dispatchers[key] = d
         return self.dispatchers[key]
@@ -106,7 +107,7 @@ class Platform:
                     caps,
                     world,
                     rt.travel,
-                    tuple(rt.config.depot),
+                    rt.config.depot,
                     sim_params,
                     rng=__import__("random").Random(f"{v.id}:{world.rng.random()}"),
                 )
@@ -116,7 +117,7 @@ class Platform:
                         caps,
                         SimulatedAVProvider({v.id: sim}),
                         {z: zone_geo[z] for z in v.odd_zone_ids},
-                        on_assist=lambda ctx, t, tid=tenant_id: self._on_assist(tid, ctx, t),
+                        on_assist=partial(self._on_assist, tenant_id),
                     )
                 else:
                     a = sim

@@ -53,8 +53,8 @@ def compute_kpis(platform: Platform, tenant_id: str, start: date, end: date, cos
     vehicles_in_service = len(vehicles) or len(rt.vehicles)
 
     # on-time performance: vehicle arrival within the promised window (no-shows included)
-    arrived = [t for t in completed + no_show if t.pickup_arrival is not None and t.window]
-    on_time = [t for t in arrived if max(t.pickup_arrival, t.window[0]) <= t.window[1] + 1e-6]  # type: ignore[index,arg-type]
+    arrivals = [(t.pickup_arrival, t.window) for t in completed + no_show if t.pickup_arrival is not None and t.window]
+    on_time = [a for a, w in arrivals if max(a, w[0]) <= w[1] + 1e-6]
 
     waits: list[float] = []
     for t in completed:
@@ -108,7 +108,7 @@ def compute_kpis(platform: Platform, tenant_id: str, start: date, end: date, cos
         "cost_per_vrh": round(cost["cost_per_vrh"], 2),
         "roam_take_share": round(cost["roam_take_share"], 4),
         "passengers_per_vrh": round(passengers / vrh, 2) if vrh else 0.0,
-        "on_time_performance": round(len(on_time) / len(arrived), 4) if arrived else 1.0,
+        "on_time_performance": round(len(on_time) / len(arrivals), 4) if arrivals else 1.0,
         "wait_avg_min": round(sum(waits) / len(waits), 2) if waits else 0.0,
         "wait_p95_min": round(_pct(waits, 0.95), 2),
         "ride_time_avg_min": round(sum(ride_times) / len(ride_times), 2) if ride_times else 0.0,
