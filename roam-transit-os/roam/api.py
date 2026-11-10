@@ -30,7 +30,7 @@ from .adapters.human_driver import HumanDriverAdapter
 from .config.schema import config_from_dict
 from .config.validate import validate
 from .exports import gtfs_flex, gtfs_realtime, mds, ntd, raw
-from .ivr import IVRSession, twiml
+from .ivr import IVRSession, set_pin, twiml
 from .models import AccessibilityNeed, Channel, EligibilityStatus, Mode, Rider, Severity, TripRequest, new_id
 from .ops.incidents import close_incident, open_incident
 from .platform import Platform, ProvisioningError, TenantExistsError
@@ -54,7 +54,8 @@ class RiderIn(BaseModel):
     phone: str = ""
     accessibility_needs: list[AccessibilityNeed] = []
     eligibility_status: EligibilityStatus = EligibilityStatus.none
-    saved_places: dict[str, tuple[float, float]] = {}
+    saved_places: dict[str, LonLatIn] = {}
+    pin: Annotated[str, Field(pattern=r"^\d{4,8}$")] | None = None  # phone-booking PIN; stored hashed
 
 
 class TripIn(BaseModel):
@@ -206,6 +207,8 @@ def create_app(
     @app.post("/tenants/{tenant_id}/riders", status_code=201)
     def create_rider(tenant_id: str, body: RiderIn, pr: Principal = Depends(principal)):
         tenant_access(tenant_id, pr, ("ops", "city", "agent", "rider"))
+        if pr.role == "rider" and body.eligibility_status != EligibilityStatus.none:
+            raise HTTPException(403, "ADA eligibility is set by the agency, not by riders")
         r = Rider(
             id=new_id("rider"),
             tenant_id=tenant_id,
@@ -214,7 +217,12 @@ def create_app(
             eligibility_status=body.eligibility_status,
             saved_places=body.saved_places,
         )
-        return p.store.scope(tenant_id).add(r).model_dump()
+        if body.pin:
+            set_pin(r, body.pin)
+        p.store.scope(tenant_id).add(r)
+        out = r.model_dump()
+        out["contact"].pop("pin_hash", None)  # credentials are never echoed
+        return out
 
     # ------------------------------------------------------------ booking
 

@@ -9,7 +9,9 @@ Pressing 0, saying "agent", or two failed attempts transfers to a human and rais
 
 from __future__ import annotations
 
+import hashlib
 import hmac
+import os
 import re
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -88,6 +90,29 @@ class RuleBasedAgent:
                 return {"choice": "2"}
         digits = "".join(WORD_DIGITS.get(w, w) for w in re.findall(r"[a-z]+|\d", t) if w in WORD_DIGITS or w.isdigit())
         return {"choice": digits} if digits else {}
+
+
+_PIN_ITERATIONS = 200_000
+
+
+def set_pin(rider: Rider, pin: str) -> None:
+    """Store a salted PBKDF2 hash of the rider's phone PIN (never the PIN itself)."""
+    salt = os.urandom(16)
+    digest = hashlib.pbkdf2_hmac("sha256", pin.encode(), salt, _PIN_ITERATIONS)
+    rider.contact.pop("pin", None)
+    rider.contact["pin_hash"] = f"pbkdf2_sha256${_PIN_ITERATIONS}${salt.hex()}${digest.hex()}"
+
+
+def check_pin(rider: Rider | None, pin: str) -> bool:
+    stored = rider.contact.get("pin_hash", "") if rider else ""
+    if not stored or not pin:
+        return False
+    try:
+        _, iters, salt, digest = stored.split("$")
+        candidate = hashlib.pbkdf2_hmac("sha256", pin.encode(), bytes.fromhex(salt), int(iters))
+    except ValueError:  # corrupt record: fail closed
+        return False
+    return hmac.compare_digest(candidate.hex(), digest)
 
 
 def _next_occurrence(today: date, month: int, day: int) -> date | None:
@@ -179,8 +204,7 @@ class IVRSession:
 
         if self.state == "pin":
             cand: Rider | None = self.data["candidate"]
-            pin = cand.contact.get("pin", "") if cand else ""
-            if not pin or not hmac.compare_digest(choice.encode(), pin.encode()):
+            if not check_pin(cand, choice):
                 return self._retry("Please enter your PIN followed by pound.")
             self.rider, self.state, self.failures = cand, "menu", 0
             del self.data["candidate"]

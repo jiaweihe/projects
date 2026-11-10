@@ -45,10 +45,12 @@ def export_tenant(platform: Platform, tenant_id: str, out_dir: str | Path, inclu
     manifest = {"tenant_id": tenant_id, "exported_at": datetime.now(UTC).isoformat(), "tables": tables}
     for cls in TABLES:
         rows = [r.model_dump(mode="json") for r in scope.list(cls)]
-        if cls is M.Rider and not include_pii:
+        if cls is M.Rider:
             for r in rows:
-                r["contact"] = {}
-                r["saved_places"] = {}
+                r["contact"].pop("pin_hash", None)  # a credential, not data: never exported
+                if not include_pii:
+                    r["contact"] = {}
+                    r["saved_places"] = {}
         path = out / f"{cls.__name__.lower()}.csv"
         cols = sorted({k for r in rows for k in r}) or ["id"]
         with path.open("w", newline="") as f:

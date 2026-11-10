@@ -32,7 +32,7 @@ def _client(platform):
 
 def test_provision_book_and_isolation(platform):
     c = _client(platform)
-    rider = c.post("/tenants/testville/riders", json={"eligibility_status": "certified"}, headers={"X-Api-Key": "rider-tv"}).json()
+    rider = c.post("/tenants/testville/riders", json={"eligibility_status": "certified"}, headers=OPS).json()  # agency certifies
     trip = c.post("/tenants/testville/trips", headers={"X-Api-Key": "rider-tv"}, json={"rider_id": rider["id"], **TRIP}).json()
     assert trip["status"] == "booked"
     # another city cannot see this tenant (404, not 403: no existence leak)
@@ -175,3 +175,28 @@ def test_bad_proposal_boundary_is_422(platform):
     for boundary in ({"type": "Point", "coordinates": [0, 0]}, {"type": "Polygon"}, {}):
         r = c.post("/proposals", headers=OPS, json={"name": "X", "state": "PA", "boundary": boundary})
         assert r.status_code == 422, boundary
+
+
+def test_rider_pin_set_via_api_is_hashed_and_not_echoed(platform):
+    from roam.ivr import check_pin
+    from roam.models import Rider
+
+    c = _client(platform)
+    r = c.post("/tenants/testville/riders", json={"phone": "+1555", "pin": "8642"}, headers=OPS)
+    assert r.status_code == 201 and "pin" not in str(r.json()["contact"])
+    assert check_pin(platform.store.scope("testville").get(Rider, r.json()["id"]), "8642")
+    assert c.post("/tenants/testville/riders", json={"pin": "12"}, headers=OPS).status_code == 422  # 4-8 digits
+
+
+def test_corrupt_pin_hash_fails_closed():
+    from roam.ivr import check_pin
+    from roam.models import Rider
+
+    assert not check_pin(Rider(id="r", tenant_id="t", contact={"pin_hash": "garbage"}), "1234")
+
+
+def test_riders_cannot_self_certify_ada_eligibility(platform):
+    c = _client(platform)
+    r = c.post("/tenants/testville/riders", json={"eligibility_status": "certified"}, headers={"X-Api-Key": "rider-tv"})
+    assert r.status_code == 403
+    assert c.post("/tenants/testville/riders", json={}, headers={"X-Api-Key": "rider-tv"}).status_code == 201

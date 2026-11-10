@@ -200,3 +200,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) the scope hole above; (b) my first ack fix duplicated the state transition from `OpsCenter.acknowledge` → routed back through it (seat check now optional for unregistered seats); (c) the sweep runs with `raise_server_exceptions=False` so a crash is reported as a 500 instead of aborting the loop.
 **Metrics:** tests 109→111 pass; **coverage 93→94%**; ruff 0; mypy 0; bench unchanged; routes returning 5xx under garbage input: 3 → 0 (sweep-enforced from now on).
 **Next:** fresh audit.
+
+## Iteration 24 — PINs hashed; riders could self-certify ADA eligibility (security)
+**Audit (top 5):** (1) phone PINs stored in plaintext in `rider.contact` (open since iter 15); (2) no API way to set a PIN; (3) remaining items are minor (`api.py` size, docs).
+**Plan:** `set_pin()`/`check_pin()` with salted PBKDF2-SHA256 (200k iterations, stdlib only, constant-time compare); IVR uses `check_pin`; `pin_hash` never exported, even with PII. Test fails first (no `set_pin`).
+**Review of own diff:** (a) a corrupt stored hash raised inside the call → fails closed (`False`), tested; (b) `RiderIn` gained `pin` (4–8 digits, 422 otherwise), and the create response would have echoed `pin_hash` → stripped from the response; (c) while there: a **rider** key could create a rider with `eligibility_status: certified`, i.e. self-certify for ADA paratransit → 403 unless ops/city/agent; the one test that relied on that now certifies via the ops key (the agency's job).
+**Metrics:** tests 111→115 pass; coverage 94%; ruff 0; mypy 0; bench unchanged; plaintext credentials at rest: 1 → 0.
+**Next:** final audit pass.

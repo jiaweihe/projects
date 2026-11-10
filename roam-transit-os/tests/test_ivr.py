@@ -1,4 +1,4 @@
-from roam.ivr import IVRSession, twiml
+from roam.ivr import IVRSession, set_pin, twiml
 from roam.models import EligibilityStatus, Rider, TripRequest, TripStatus
 
 
@@ -35,7 +35,7 @@ def test_keypad_booking_call(testville):
 
 def test_speech_and_unknown_caller(testville):
     p, r = _setup(testville)
-    r.contact["pin"] = "2468"
+    set_pin(r, "2468")
     s = IVRSession(p, "testville", "+19999999999")
     assert "rider number" in s.start().say
     s.handle("42#")
@@ -63,7 +63,7 @@ def test_human_fallback_raises_ops_item(testville):
 
 def test_unknown_caller_needs_rider_number_and_pin(testville):
     p, r = _setup(testville)
-    r.contact["pin"] = "2468"
+    set_pin(r, "2468")
     s = IVRSession(p, "testville", "+19999999999")
     s.start()
     assert "PIN" in s.handle("42#").say
@@ -86,7 +86,7 @@ def test_rider_without_pin_cannot_be_reached_by_number(testville):
 
 def test_rider_numbers_cannot_be_enumerated_and_pin_never_logged(testville):
     p, r = _setup(testville)
-    r.contact["pin"] = "2468"
+    set_pin(r, "2468")
     known, unknown = IVRSession(p, "testville", "+1999"), IVRSession(p, "testville", "+1999")
     known.start(), unknown.start()
     assert known.handle("42#").say == unknown.handle("777#").say  # same prompt whether or not the rider exists
@@ -145,3 +145,19 @@ def test_cancel_confirmation_by_speech_and_race_with_other_channel(testville):
     p.booking.cancel_trip("testville", t.id, "cancelled in the app meanwhile")
     resp = s.handle("yes cancel it")
     assert not resp.transfer and "no longer" in resp.say
+
+
+def test_pins_are_stored_hashed_and_never_exported(testville, tmp_path):
+    from roam.exports import raw
+    from roam.ivr import check_pin, set_pin
+
+    p, r = _setup(testville)
+    set_pin(r, "2468")
+    assert "2468" not in repr(r.contact) and "pin" not in r.contact
+    assert check_pin(r, "2468") and not check_pin(r, "2469") and not check_pin(r, "")
+    s = IVRSession(p, "testville", "+1999")
+    s.start(), s.handle("42#")
+    assert "To book" in s.handle("2468#").say
+    raw.export_tenant(p, "testville", tmp_path, include_pii=True)
+    exported = (tmp_path / "testville" / "rider.csv").read_text()
+    assert "2468" not in exported and "pbkdf2" not in exported
