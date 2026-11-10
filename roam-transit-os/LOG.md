@@ -78,3 +78,14 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) close-out report still listed undelivered parties under "Notified" → split into "Notified" / "Not delivered"; (b) moved a function-local `import pytest` to module top; (c) gave the new exception type a handling-time estimate so seat-load maths stays meaningful.
 **Metrics:** tests 59→64 pass; **coverage 85→86%** (incidents 39→~100%); ruff 0; mypy 0; bench unchanged.
 **Next:** vehicle-fault rescue path test (highest-risk untested logic).
+
+## Iteration 8 — vehicle-fault rescue path: three bugs (bug + coverage)
+**Audit (top 5):** (1) fault/rescue logic (dispatcher ~45 lines) never executed by any test; (2) CLI 0%; (3) GTFS import 0%; (4) GTFS-RT trip updates untested; (5) human-driver adapter update/cancel paths untested.
+**Plan:** add `SimulatorAdapter.inject_fault()` (drill hook); test a mid-trip breakdown: pickups reassigned, onboard rider rescued by another vehicle, critical ops alert.
+**Bugs found test-first:**
+1. A simulated vehicle kept driving and serving stops after breaking down mid-leg → `_arrive/_serve` now stop when faulted.
+2. The rescue overwrote the rider's original boarding/arrival time (corrupting OTP and raising a false `late_pickup`) → first arrival/boarding are kept.
+3. (found in review) a fault while the vehicle had no active run (between shifts, before pull-out) was ignored, and the vehicle's *other* shifts were deactivated with their trips still on them → orphaned trips. Fault handling is now by vehicle: every shift of that vehicle is emptied and re-planned. Second test injects a fault at 00:00 across a two-shift day.
+**Review of own diff:** (a) bug 3 above; (b) reassigned pickups get a widened planning window — the rider's *promised* window (`trip.window`) is unchanged, so OTP still counts the lateness honestly (documented, intentional); (c) removed the per-unit `allowed_units` exclusion that only excluded one of the broken vehicle's shifts — inactive units are already skipped.
+**Metrics:** tests 64→66 pass; **coverage 86→87%**; ruff 0; mypy 0; bench unchanged.
+**Next:** CLI smoke tests (0% coverage, user-facing entry point).

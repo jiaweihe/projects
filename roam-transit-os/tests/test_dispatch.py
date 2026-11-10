@@ -144,3 +144,80 @@ def test_any_solver_object_can_be_plugged_in_for_batch_planning():
     p.booking.request_trip("testville", r.id, Mode.paratransit, (-75.05, 40.06), (-75.0, 40.03), date(2026, 11, 17), 600)
     info = p.start_day("testville", date(2026, 11, 17), p.build_adapters("testville"))
     assert Recording.calls == 1 and info["solver"] in ("recording", "tentative")
+
+
+def test_vehicle_fault_reassigns_pickups_and_rescues_onboard_riders():
+    from datetime import date
+
+    from roam.config.schema import config_from_dict
+    from roam.models import EligibilityStatus, Mode, Rider, TripRequest, TripStatus
+    from roam.platform import Platform
+    from roam.sim.world import SimWorld
+
+    from .conftest import new_city_config
+
+    day = date(2026, 11, 17)
+    p = Platform(today=date(2026, 11, 16))
+    p.provision(config_from_dict(new_city_config()))
+    p.clock.minute = 600
+    scope = p.store.scope("testville")
+    pts = [(-75.08, 40.02), (-75.0, 40.08), (-75.06, 40.09), (-74.99, 40.01), (-75.04, 40.04)]
+    for k in range(12):
+        r = scope.add(Rider(id=f"r{k}", tenant_id="testville", eligibility_status=EligibilityStatus.certified))
+        p.booking.request_trip("testville", r.id, Mode.paratransit, pts[k % 5], pts[(k + 2) % 5], day, 420 + 20 * k)
+    p.clock.today = day
+    w = SimWorld(seed=4)
+    adapters = p.build_adapters("testville", w)
+    for a in adapters.values():
+        a.params.no_show_rate = 0.0
+    p.start_day("testville", day, adapters)
+    trips = scope.list(TripRequest)
+    while not any(t.status == TripStatus.onboard for t in trips):
+        w.run_until(w.now + 1)
+    victim = next(t for t in trips if t.status == TripStatus.onboard)
+    broken = victim.vehicle_id
+    first_boarding, first_arrival = victim.actual_pickup, victim.pickup_arrival
+    adapters[broken].inject_fault("flat tyre")
+    w.run_until(26 * 60)
+
+    faults = [e for e in p.ops.exceptions.values() if e.type == "vehicle_fault"]
+    assert len(faults) == 1 and faults[0].severity == 1  # rider onboard -> critical
+    assert all(t.status == TripStatus.completed for t in trips), [(t.id, t.status) for t in trips]
+    assert victim.vehicle_id != broken  # rescued by another vehicle
+    # the rescue is not a new pickup: original boarding/arrival times (OTP basis) are kept
+    assert (victim.actual_pickup, victim.pickup_arrival) == (first_boarding, first_arrival)
+    assert not [e for e in p.ops.exceptions.values() if e.type == "late_pickup" and e.trip_id == victim.id]
+
+
+def test_fault_before_shift_reassigns_all_of_that_vehicles_shifts():
+    from datetime import date
+
+    from roam.config.schema import config_from_dict
+    from roam.models import EligibilityStatus, Mode, Rider, TripRequest, TripStatus
+    from roam.platform import Platform
+    from roam.sim.world import SimWorld
+
+    from .conftest import new_city_config
+
+    day = date(2026, 11, 17)
+    p = Platform(today=date(2026, 11, 16))
+    p.provision(config_from_dict(new_city_config()))
+    p.clock.minute = 600
+    scope = p.store.scope("testville")
+    pts = [(-75.08, 40.02), (-75.0, 40.08), (-75.06, 40.09), (-74.99, 40.01)]
+    for k in range(16):  # spread over both shifts (05:30-14:00 and 14:00-22:00)
+        r = scope.add(Rider(id=f"r{k}", tenant_id="testville", eligibility_status=EligibilityStatus.certified))
+        p.booking.request_trip("testville", r.id, Mode.paratransit, pts[k % 4], pts[(k + 1) % 4], day, 420 + 45 * k)
+    p.clock.today = day
+    w = SimWorld(seed=2)
+    adapters = p.build_adapters("testville", w)
+    for a in adapters.values():
+        a.params.no_show_rate = 0.0
+    p.start_day("testville", day, adapters)
+    d = p.dispatcher("testville", day)
+    busiest = max({u.vehicle_id for u in d.units}, key=lambda v: sum(len(u.route) for u in d.units if u.vehicle_id == v))
+    adapters[busiest].inject_fault("will not start")  # at 00:00, before any run is active
+    w.run_until(26 * 60)
+    trips = scope.list(TripRequest)
+    assert all(t.status == TripStatus.completed for t in trips), [(t.id, t.status.value) for t in trips]
+    assert all(t.vehicle_id != busiest for t in trips)

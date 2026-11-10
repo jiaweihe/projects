@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from ..adapters.base import RunPatch, VehicleAdapter, VehicleEvent
-from ..models import Run, Shift, Stop, StopType
+from ..models import LonLat, Run, Shift, Stop, StopType
 from .core import Insertion, Node, Solver, Task, Unit, best_insertion, evaluate, make_break
 
 ExceptionSink = Callable[..., None]
@@ -230,6 +230,10 @@ class Dispatcher:
         raise KeyError(run_id)
 
     def _handle_event(self, e: VehicleEvent) -> None:
+        if e.type == "fault":  # may arrive between runs (no run_id): handle by vehicle
+            self._handle_fault(e.vehicle_id, e)
+            self.on_vehicle_event(e)
+            return
         run_id = e.payload.get("run_id")
         if run_id is None:
             self.on_vehicle_event(e)
@@ -282,26 +286,30 @@ class Dispatcher:
                 u.route = [n for n in u.route if n.trip_id != e.trip_id]
                 u.start_time = e.timestamp
                 self._push(u)
-        elif e.type == "fault":
-            self._handle_fault(u, e)
         self.on_vehicle_event(e)
 
-    def _handle_fault(self, u: Unit, e: VehicleEvent) -> None:
-        u.active = False
-        stranded = [tid for tid in u.onboard]
-        pending = [n.task for n in u.route if n.kind == "pickup" and n.task is not None]
-        u.route = []
+    def _handle_fault(self, vehicle_id: str, e: VehicleEvent) -> None:
+        """Take every shift of the broken vehicle out of service, re-plan its pickups on other
+        vehicles and send a rescue for anyone onboard."""
+        mine = [x for x in self.units if x.vehicle_id == vehicle_id]
+        stranded: list[tuple[Task, LonLat]] = []
+        pending: list[Task] = []
+        for u in mine:
+            u.active = False
+            stranded += [(task, e.location or u.start_loc) for task, _ in u.onboard.values()]
+            pending += [n.task for n in u.route if n.kind == "pickup" and n.task is not None]
+            u.onboard.clear()
+            u.route = []
         self.on_exception(
             type="vehicle_fault",
             severity=1 if stranded else 2,
             tenant_id=self.tenant_id,
-            vehicle_id=u.vehicle_id,
+            vehicle_id=vehicle_id,
             at=e.timestamp,
             message=f"vehicle fault; {len(stranded)} riders onboard, {len(pending)} pickups to reassign",
         )
         for t in pending:
             t2 = copy.copy(t)
-            t2.allowed_units = (t.allowed_units - {u.unit_id}) if t.allowed_units else None
             t2.pu_latest = max(t2.pu_latest, e.timestamp + 45)
             if self.try_insert(t2, now=e.timestamp) is None:
                 self.on_exception(
@@ -312,25 +320,19 @@ class Dispatcher:
                     at=e.timestamp,
                     message="could not reassign trip after vehicle fault; arrange backup",
                 )
-        for tid in stranded:
-            task, _ = u.onboard.pop(tid)
+        for task, where in stranded:
             rescue = copy.copy(task)
-            rescue.pickup = e.location or u.start_loc
-            rescue.pu_earliest = e.timestamp
-            rescue.pu_latest = e.timestamp + 45
-            rescue.allowed_units = None
-            rescue.priority = 10
+            rescue.pickup, rescue.pu_earliest, rescue.pu_latest = where, e.timestamp, e.timestamp + 45
+            rescue.allowed_units, rescue.priority = None, 10
             if self.try_insert(rescue, now=e.timestamp) is None:
                 self.on_exception(
                     type="rescue_failed",
                     severity=1,
                     tenant_id=self.tenant_id,
-                    trip_id=tid,
+                    trip_id=task.trip_id,
                     at=e.timestamp,
                     message="stranded rider: no rescue vehicle available",
                 )
-        for _u in [x for x in self.units if x.vehicle_id == u.vehicle_id]:
-            _u.active = False
 
     # -------------------------------------------------------------- metrics
     def revenue_hours(self) -> float:

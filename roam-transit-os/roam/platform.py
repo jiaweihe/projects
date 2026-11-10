@@ -182,7 +182,7 @@ class Platform:
         is_pickup = (e.stop_id or "").endswith(":pu")
         if e.type == "en_route" and is_pickup:
             trip.status, trip.vehicle_id = TripStatus.en_route, e.vehicle_id
-        elif e.type == "arrival" and is_pickup:
+        elif e.type == "arrival" and is_pickup and trip.pickup_arrival is None:  # a rescue is not a new pickup
             trip.pickup_arrival = e.timestamp
             if trip.window and max(e.timestamp, trip.window[0]) > trip.window[1]:
                 self.ops.raise_exception(
@@ -196,7 +196,9 @@ class Platform:
                     message=f"pickup {e.timestamp - trip.window[1]:.0f} min outside window",
                 )
         elif e.type == "boarding":
-            trip.status, trip.actual_pickup, trip.vehicle_id = TripStatus.onboard, e.timestamp, e.vehicle_id
+            trip.status, trip.vehicle_id = TripStatus.onboard, e.vehicle_id
+            if trip.actual_pickup is None:  # keep the original boarding time after a rescue transfer
+                trip.actual_pickup = e.timestamp
         elif e.type == "dropoff":
             trip.status, trip.actual_dropoff = TripStatus.completed, e.timestamp
         elif e.type == "no_show":

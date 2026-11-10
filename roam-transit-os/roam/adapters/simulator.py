@@ -126,10 +126,16 @@ class SimulatorAdapter(VehicleAdapter):
         dt = (self.world.now - self._last_t) / 60
         self._last_t = self.world.now
         if self.rng.random() < 1 - math.exp(-rate * dt):
-            self.faulted = True
-            self._event("fault", reason="simulated mechanical fault")
+            self.inject_fault("simulated mechanical fault")
             return True
         return False
+
+    def inject_fault(self, reason: str) -> None:
+        """Break down now, wherever the vehicle is (drills and tests)."""
+        if self.faulted:
+            return
+        self.faulted = True
+        self._event("fault", reason=reason)
 
     def _next(self) -> None:
         if self.faulted or self.busy:
@@ -193,6 +199,8 @@ class SimulatorAdapter(VehicleAdapter):
         self.world.schedule(self.world.now + actual, lambda: self._arrive(stop, km))
 
     def _arrive(self, stop: Stop, km: float) -> None:
+        if self.faulted:
+            return
         self.loc = stop.location  # type: ignore[assignment]
         self.odometer += km
         self.run_km += km
@@ -208,6 +216,8 @@ class SimulatorAdapter(VehicleAdapter):
         self.world.schedule(start, lambda: self._serve(stop))
 
     def _serve(self, stop: Stop) -> None:
+        if self.faulted:
+            return
         if stop.type == StopType.pickup and self.rng.random() < self.params.no_show_rate:
             wait = self.params.no_show_wait_min
 
