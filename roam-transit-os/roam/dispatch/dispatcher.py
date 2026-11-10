@@ -5,7 +5,7 @@ Lifecycle:
    accepted trip already has a feasible slot (this is how capacity denials are avoided
    or, if unavoidable, detected and alerted at booking time).
 2. *Batch*: before the day starts the whole day is re-optimised with the batch solver
-   (OR-Tools when available); the tentative plan is kept if the batch result is worse.
+   (any ``Solver``); the tentative plan is kept if the batch result is worse.
 3. *Live*: runs are pushed to vehicle adapters; adapter events keep the plan in sync and
    real-time requests are inserted into what is left of each run.
 """

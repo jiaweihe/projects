@@ -1,5 +1,3 @@
-import pytest
-
 from roam.dispatch.core import Node, Task, Unit, evaluate, make_break
 from roam.dispatch.insertion import InsertionSolver
 from roam.geo import HaversineTravelModel
@@ -58,18 +56,6 @@ def test_odd_restriction_respected():
     t.allowed_units = {"u2"}
     ins = InsertionSolver().insert(units, t, TRAVEL)
     assert ins.unit.unit_id == "u2"
-
-
-def test_ortools_solver_if_available():
-    pytest.importorskip("ortools")
-    from roam.dispatch.ortools_solver import ORToolsSolver
-
-    units = [unit("u1"), unit("u2")]
-    tasks = [task(f"t{i}", 420 + 30 * i) for i in range(10)]
-    sol = ORToolsSolver(time_limit_s=2).solve(units, tasks, TRAVEL)
-    assert not sol.unassigned
-    for u in sol.units:
-        assert evaluate(u, u.route, TRAVEL, 1.10) is not None
 
 
 def _brute_force(units, t, travel, buffer):
@@ -131,3 +117,30 @@ def test_evaluate_at_reports_first_violation():
     assert evaluate_at(u, [Node.pickup_of(late), Node.dropoff_of(late)], TRAVEL) == (None, 0)
     short = unit(end=485)
     assert evaluate_at(short, [Node.pickup_of(t), Node.dropoff_of(t)], TRAVEL)[1] == 2  # return-to-depot violation
+
+
+def test_any_solver_object_can_be_plugged_in_for_batch_planning():
+    """Spec §7.3: the solver sits behind an interface (OR-Tools/VROOM can be dropped in)."""
+    from datetime import date
+
+    from roam.config.schema import config_from_dict
+    from roam.models import EligibilityStatus, Mode, Rider
+    from roam.platform import Platform
+
+    from .conftest import new_city_config
+
+    class Recording(InsertionSolver):
+        name = "recording"
+        calls = 0
+
+        def solve(self, units, tasks, travel):
+            Recording.calls += 1
+            return super().solve(units, tasks, travel)
+
+    p = Platform(today=date(2026, 11, 16), batch_solver=Recording())
+    p.provision(config_from_dict(new_city_config()))
+    p.clock.minute = 600
+    r = p.store.scope("testville").add(Rider(id="r1", tenant_id="testville", eligibility_status=EligibilityStatus.certified))
+    p.booking.request_trip("testville", r.id, Mode.paratransit, (-75.05, 40.06), (-75.0, 40.03), date(2026, 11, 17), 600)
+    info = p.start_day("testville", date(2026, 11, 17), p.build_adapters("testville"))
+    assert Recording.calls == 1 and info["solver"] in ("recording", "tentative")

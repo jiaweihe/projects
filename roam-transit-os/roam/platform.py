@@ -14,6 +14,7 @@ from .adapters.simulator import SimParams, SimulatorAdapter
 from .booking import BookingService
 from .config.schema import TenantConfig, load_config
 from .config.validate import ValidationReport, validate
+from .dispatch.core import Solver
 from .dispatch.dispatcher import Dispatcher
 from .dispatch.insertion import InsertionSolver
 from .models import AdapterKind, Event, Mode, StopType, TripRequest, TripStatus, new_id
@@ -36,23 +37,15 @@ class ProvisioningError(ValueError):
         self.report = report
 
 
-def make_solver(name: str):
-    if name == "ortools":
-        from .dispatch.ortools_solver import ORToolsSolver
-
-        return ORToolsSolver()
-    return InsertionSolver()
-
-
 class Platform:
-    def __init__(self, today: date | None = None, batch_solver: str = "insertion"):
+    def __init__(self, today: date | None = None, batch_solver: Solver | None = None):
         self.store = Store()
         self.ops = OpsCenter()
         self.notifier = LogNotifier()
         self.clock = Clock(today or date.today())
         self.booking = BookingService(self)
         self.solver = InsertionSolver()
-        self.batch_solver = make_solver(batch_solver)
+        self.batch_solver = batch_solver or self.solver  # any Solver (OR-Tools/VROOM wrappers plug in here)
         self.dispatchers: dict[tuple[str, date], Dispatcher] = {}
         self.adapters: dict[str, VehicleAdapter] = {}
         self.telemetry: dict[str, Telemetry] = {}  # last known position per vehicle

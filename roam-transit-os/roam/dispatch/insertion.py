@@ -1,8 +1,8 @@
 """Default solver: cheapest feasible insertion + relocate improvement.
 
 Dependency-free and fast enough for city-scale days (hundreds of trips). Used for
-real-time insertion in every configuration; used for batch planning unless OR-Tools
-is installed and selected.
+real-time insertion in every configuration and the default batch planner (pass any
+other ``Solver`` to ``Platform(batch_solver=...)``).
 """
 
 from __future__ import annotations

@@ -54,7 +54,7 @@ def cmd_simulate(a) -> int:
     from .sim.runner import simulate_day
 
     day = _next_weekday(date.fromisoformat(a.date) if a.date else date.today() + timedelta(days=1))
-    p = Platform(today=day - timedelta(days=1), batch_solver=a.solver)
+    p = Platform(today=day - timedelta(days=1))
     specs = {}
     for cfg in a.config:
         rt = p.provision(cfg)
@@ -140,7 +140,6 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--microtransit", type=int, default=40)
     s.add_argument("--av", type=int, default=15)
     s.add_argument("--seed", type=int, default=11)
-    s.add_argument("--solver", choices=["insertion", "ortools"], default="insertion")
     s.set_defaults(fn=cmd_simulate)
     s = sub.add_parser("propose", help="generate a three-phase proposal (JSON + one-page PDF)")
     g = s.add_mutually_exclusive_group(required=True)

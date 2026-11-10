@@ -2,10 +2,10 @@
 
 A multi-tenant operations layer that lets a city, county or community **own** its on-demand transit network: ADA paratransit, microtransit, and AV networks behind one vehicle-adapter interface. This is the v0.1 build of the spec dated 2026-11-10 (Roam Mobility, Inc.; not a CARTS project).
 
-Python 3.11+, FastAPI, pydantic. The core needs no database or routing server. OR-Tools and H3 are optional and used when installed.
+Python 3.11+, FastAPI, pydantic. The core needs no database or routing server. H3 is optional and used when installed. The batch solver is pluggable (`Platform(batch_solver=...)`), so an OR-Tools or VROOM wrapper can be dropped in.
 
 ```bash
-pip install -e ".[dev,routing,geo]"
+pip install -e ".[dev,geo]"
 pytest -q                                   # 51 tests, ~15 s, including the four v0.1 acceptance tests
 
 roam validate tenants/mercer_county_nj.yaml
@@ -22,7 +22,7 @@ roam serve    tenants/*.yaml                # API + ops console at http://127.0.
 |---|---|---|---|
 | 1 | Tenant config, zones, policies, multi-tenant data model | Done | `roam/config/`, `roam/models.py`, `roam/store.py`, `db/schema.sql` |
 | 2 | Simulator adapter + synthetic demand | Done | `roam/adapters/simulator.py`, `roam/sim/` |
-| 3 | Booking + batch and real-time dispatch | Done (insertion heuristic default; OR-Tools optional) | `roam/booking.py`, `roam/dispatch/` |
+| 3 | Booking + batch and real-time dispatch | Done (insertion + repair heuristic; any `Solver` can be plugged in) | `roam/booking.py`, `roam/dispatch/` |
 | 4 | Driver app (human_driver adapter) | Server side done: manifest, stop actions, securement checklist. No React Native app yet | `roam/adapters/human_driver.py`, `/driver/*` API |
 | 5 | Ops console, multi-tenant exceptions queue | Done: queue, seats, load metric, incidents, minimal web UI | `roam/ops/`, `roam/web/console.html` |
 | 6 | City dashboard: KPIs + invoices | API done (all §9 KPIs, invoice = platform + hours + performance). No React dashboard yet | `roam/kpi.py`, `roam/billing.py` |
@@ -63,7 +63,7 @@ Booking (app · web · IVR · agent) ── paratransit: next-day, ±60 min nego
         │                            microtransit: real-time, walk-to-stop, GTFS transfer
         ▼
 Dispatcher (per tenant per day) ── insert → repair (move one booked trip) → denial only if both fail (logged + alerted)
-        │  batch re-optimisation before the day (insertion+relocate, or OR-Tools), keeps the plan only if all promises hold
+        │  batch re-optimisation before the day (insertion+relocate, or a plugged-in Solver), keeps the plan only if all promises hold
         ▼
 VehicleAdapter ── human_driver (driver app) · av_partner (provider API, ODD-checked) · simulator
         │  events: en_route · arrival · boarding · no_show · dropoff · fault · remote_assist
@@ -86,7 +86,7 @@ roam/
   config/              tenant schema, validation, Roam guardrails, cost model
   tenancy.py store.py  tenant runtime, multi-tenant store
   booking.py           booking rules for every channel
-  dispatch/            Task/Unit/evaluate core, insertion solver, OR-Tools solver, dispatcher
+  dispatch/            Task/Unit/evaluate core, insertion solver, dispatcher
   adapters/            VehicleAdapter interface + human_driver, av_partner, simulator
   sim/                 discrete-event world, synthetic demand, day runner
   ops/                 exceptions queue, seats, load, incident workflow

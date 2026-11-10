@@ -46,3 +46,11 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) one `return None` in the evaluator wasn't converted to the tuple form → would crash on a rare path; fixed and added `test_evaluate_at_reports_first_violation` pinning each failure index; (b) the outer prune had an arbitrary `+60` slack — the prefix is unchanged so the exact bound is safe → tightened; (c) new annotation added a lint finding → modern `X | None`.
 **Metrics:** tests 55→57 pass; coverage 85%; ruff 121; mypy 25; **sim 2.03→0.57 s (−72%)**, **proposal 4.83→1.51 s (−69%)**, test suite 33→12.7 s. Plans identical (brute-force equality test; acceptance tests unchanged).
 **Next:** simplification — remove the optional OR-Tools solver.
+
+## Iteration 4 — remove the optional OR-Tools solver (simplification)
+**Audit (top 5):** (1) `ortools_solver.py` (≈190 LOC incl. a route-repair hack for ride-time semantics it doesn't share with our evaluator) was never the default and only won once in benchmarks — pure complexity for an MVP; (2) batch solver selected by a magic string (`"ortools"`) instead of an object; (3) 120 lint; (4) 25 mypy (4 of them in the OR-Tools file); (5) thin tests for KPIs/incidents.
+**Plan:** test that any `Solver` object passed to `Platform(batch_solver=...)` is the one used for batch planning; delete `ortools_solver.py`, `make_solver`, `--solver` flag and the `ortools` extra; update docs.
+**Decision (no human available):** the OR-Tools test was removed together with the feature it tested (not to make anything pass). The spec's requirement — "wrap behind a Solver interface so it can be swapped" — is now covered by the plug-in test instead. Re-adding OR-Tools later = one class implementing `Solver`.
+**Review of own diff:** (a) my regex left half of the deleted test behind (NameError) → removed cleanly; (b) docstrings in `insertion.py`/`dispatcher.py` and README still mentioned OR-Tools → updated; (c) real-time insertion still always uses the built-in heuristic — intentional (it must be fast); documented in the Platform comment.
+**Metrics:** tests 57 pass (−1 OR-Tools, +1 plug-in); coverage 85%; ruff 121→120; **mypy 25→21**; **LOC 4571→4426**; bench unchanged (sim 0.74 s, proposal 1.58 s); one fewer optional dependency.
+**Next:** mechanical lint cleanup.
