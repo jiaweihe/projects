@@ -29,6 +29,7 @@ class HumanDriverAdapter(VehicleAdapter):
         self.runs: dict[str, Run] = {}
         self.manifest_version = 0
         self.messages: list[dict[str, Any]] = []  # pushed to the driver app (SMS/push in production)
+        self.heading_to: set[str] = set()  # stops the driver has departed for (committed)
 
     def assign_run(self, run: Run) -> Ack:
         self.runs[run.id] = run
@@ -39,7 +40,9 @@ class HumanDriverAdapter(VehicleAdapter):
         run = self.runs.get(run_id)
         if run is None:
             return Ack(False, "unknown run")
-        done = [s for s in run.stops if s.status != StopStatus.planned]
+        # keep served stops and the stop the driver is already driving to; the dispatcher's
+        # patch only lists stops that are still open for re-planning
+        done = [s for s in run.stops if s.status != StopStatus.planned or s.id in self.heading_to]
         run.stops = done + [s for s in patch.add_stops if s.id not in {d.id for d in done}]
         self._bump("manifest_changed", run_id=run_id)
         return Ack(True)
@@ -49,6 +52,7 @@ class HumanDriverAdapter(VehicleAdapter):
             for s in run.stops:
                 if s.id == stop_id and s.status == StopStatus.planned:
                     s.status = StopStatus.cancelled
+                    self.heading_to.discard(stop_id)
                     self._bump("stop_cancelled", stop_id=stop_id, reason=reason)
                     return Ack(True)
         return Ack(False, "stop not found or already served")
@@ -85,6 +89,8 @@ class HumanDriverAdapter(VehicleAdapter):
     ) -> Ack:
         """Driver app posts: depart (toward stop), arrive, board, no_show, dropoff."""
         run, stop = self._find(stop_id)
+        if stop.status in (StopStatus.cancelled, StopStatus.done, StopStatus.no_show):
+            return Ack(False, f"stop is {stop.status.value}")
         if action == "board" and wheelchair:
             missing = [k for k in SECUREMENT_CHECKLIST if not (checklist or {}).get(k)]
             if missing:
@@ -94,10 +100,17 @@ class HumanDriverAdapter(VehicleAdapter):
             return Ack(False, f"unknown action {action}")
         if action == "no_show" and stop.type != StopType.pickup:
             return Ack(False, "no_show only valid at a pickup")
-        if action == "arrive":
+        if action == "dropoff":
+            pickup = next((s for r in self.runs.values() for s in r.stops if s.id == f"{stop.trip_request_id}:pu"), None)
+            if pickup is not None and pickup.status != StopStatus.done:
+                return Ack(False, "rider has not boarded")
+        if action == "depart":
+            self.heading_to.add(stop_id)
+        elif action == "arrive":
             stop.status, stop.actual = StopStatus.arrived, timestamp
         elif action in ("board", "dropoff"):
             stop.status = StopStatus.done
+            self.heading_to.discard(stop_id)
         elif action == "no_show":
             stop.status = StopStatus.no_show
         self._emit_event(

@@ -76,3 +76,37 @@ def test_remote_assist_lands_in_ops_queue(platform):
     av.request_remote_assist(AssistContext(av.vehicle_id, 600, (-97.74, 30.27), "construction zone"))
     q = platform.ops.queue(tenant_ids={"austin_tx"})
     assert q and q[0].type == "remote_assist" and q[0].severity == 2
+
+
+def test_manifest_update_keeps_the_stop_the_driver_is_heading_to():
+    a = HumanDriverAdapter("t:v1", CAPS)
+    run = _run()
+    a.assign_run(run)
+    assert a.driver_action("trip1:pu", "depart", 470).ok
+    # the dispatcher has committed the pickup and now pushes only the remaining stops
+    remaining = [s.model_copy() for s in run.stops if s.id == "trip1:do"]
+    from roam.adapters.base import RunPatch
+
+    a.update_run("run1", RunPatch(add_stops=remaining, stop_order=[s.id for s in remaining]))
+    assert [s["id"] for s in a.manifest()["stops"]] == ["trip1:pu", "trip1:do"]
+
+
+def test_driver_cannot_act_on_cancelled_or_finished_stops():
+    a = HumanDriverAdapter("t:v1", CAPS)
+    a.assign_run(_run())
+    a.cancel_stop("trip1:pu", "rider cancelled")
+    assert not a.driver_action("trip1:pu", "board", 480).ok
+    b = HumanDriverAdapter("t:v2", CAPS)
+    b.assign_run(_run())
+    assert b.driver_action("trip1:pu", "arrive", 480).ok and b.driver_action("trip1:pu", "board", 481).ok
+    assert not b.driver_action("trip1:pu", "board", 482).ok  # already boarded
+    assert not b.driver_action("trip1:pu", "no_show", 483).ok
+
+
+def test_dropoff_requires_boarding_and_cancel_clears_heading():
+    a = HumanDriverAdapter("t:v1", CAPS)
+    a.assign_run(_run())
+    assert not a.driver_action("trip1:do", "dropoff", 490).ok  # rider never boarded
+    a.driver_action("trip1:pu", "depart", 470)
+    assert a.cancel_stop("trip1:pu", "rider cancelled").ok
+    assert "trip1:pu" not in a.heading_to and [s["id"] for s in a.manifest()["stops"]] == ["trip1:do"]

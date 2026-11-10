@@ -149,3 +149,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) speech at the new step wasn't understood ("no keep it", "yes cancel it") → agent rules for `confirm_cancel` (keep/no → 2 checked before yes/cancel → 1); (b) if the ride was cancelled through another channel during the call, confirming raised `ValueError` → caught, caller told "can no longer be cancelled"; (c) the mypy gate caught an `Optional` narrowing issue in my new code → explicit `date | None` annotation.
 **Metrics:** tests 86→89 pass; **coverage 91→92%** (ivr 74→~85%); ruff 0; mypy 0; bench unchanged.
 **Next:** human-driver adapter paths (manifest updates/cancel while a driver is mid-run).
+
+## Iteration 17 — driver app manifest lost the current stop; impossible driver actions accepted (bugs)
+**Audit (top 5):** (1) after a driver tapped "depart", any re-plan pushed by the dispatcher (which only lists still-open stops) deleted the stop they were driving to from their manifest; (2) drivers could board a cancelled pickup, board twice, or no-show an already-boarded rider; (3) drop-off accepted for a rider who never boarded; (4) PINs unhashed (open); (5) `api.py` size.
+**Plan:** adapter tracks `heading_to` (departed-for stops) and keeps them across `update_run`; reject actions on cancelled/done/no-show stops. Tests fail first.
+**Review of own diff:** (a) drop-off-without-boarding (item 3) → rejected unless the trip's pickup on this vehicle is done (rescue transfers still work: the rescue vehicle has its own pickup stop); (b) cancelling the stop a driver is heading to left it in `heading_to` → discarded on cancel and on completion; (c) manifest still shows `arrived` stops (driver at the curb) — intentional.
+**Metrics:** tests 89→92 pass; coverage 92% (human_driver 71→~90%); ruff 0; mypy 0; bench unchanged.
+**Next:** audit again; remaining items are smaller — consider simplification of `api.py`.
