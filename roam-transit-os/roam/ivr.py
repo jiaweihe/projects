@@ -9,6 +9,7 @@ Pressing 0, saying "agent", or two failed attempts transfers to a human and rais
 
 from __future__ import annotations
 
+import hmac
 import re
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -137,7 +138,7 @@ class IVRSession:
         return "To book a ride press 1. To cancel your next ride press 2. To hear your ride status press 3. For an agent press 0."
 
     def handle(self, text: str) -> IVRResponse:
-        self.transcript.append(("caller", text))
+        self.transcript.append(("caller", "<PIN>" if self.state == "pin" else text))  # never log a PIN
         resp = self._handle(text.strip())
         self.transcript.append(("system", resp.say))
         return resp
@@ -154,9 +155,18 @@ class IVRSession:
 
         if self.state == "identify":
             rid = next((r for r in scope.list(Rider) if r.id.split("_")[-1].lstrip("0") == choice.lstrip("0")), None)
-            if rid is None:
-                return self._retry("Please enter your rider number followed by pound.")
-            self.rider, self.state, self.failures = rid, "menu", 0
+            # always ask for a PIN, even for unknown numbers or riders without one, so the
+            # prompts never reveal which rider numbers exist; a rider number alone is not identity
+            self.data["candidate"], self.state, self.failures = rid, "pin", 0
+            return IVRResponse("Please enter your four digit PIN followed by pound.")
+
+        if self.state == "pin":
+            cand: Rider | None = self.data["candidate"]
+            pin = cand.contact.get("pin", "") if cand else ""
+            if not pin or not hmac.compare_digest(choice.encode(), pin.encode()):
+                return self._retry("Please enter your PIN followed by pound.")
+            self.rider, self.state, self.failures = cand, "menu", 0
+            del self.data["candidate"]
             return IVRResponse(self._menu())
 
         if self.state == "menu":

@@ -135,3 +135,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) removed the hard-coded test count rather than updating it (it would drift again); (b) `main()` now returns `int(...)` so a handler returning `None` can't produce a confusing exit status; (c) the doc guard only checks syntax/flags, not behaviour — behaviour is covered by `test_cli.py`; noted as intentional.
 **Metrics:** tests 82→83 pass; coverage 91%; ruff 0; mypy 0; bench unchanged; stale README claims 3 → 0.
 **Next:** IVR coverage (cancel/status/date/retry branches) — phone is the primary paratransit channel.
+
+## Iteration 15 — phone impersonation by rider number (security)
+**Audit (top 5):** (1) IVR: a caller from an unknown number could type any rider number and then book/cancel that rider's trips — no second factor; (2) IVR "cancel next ride" (menu 2) cancels immediately with no confirmation — one mis-press cancels a dialysis ride; (3) IVR date entry `0229` after a leap day → `date(year+1, 2, 29)` raises → 500; (4) human-driver adapter coverage 71%; (5) `api.py` size.
+**Plan:** identification by rider number now requires a PIN (`rider.contact["pin"]`); constant-time comparison; two failures → human agent; no PIN on file → agent verifies.
+**Review of own diff:** (a) first version answered differently for unknown rider numbers vs known-without-PIN → enumeration oracle → now always prompts for a PIN and fails uniformly (test asserts identical prompts); (b) the PIN was written to the call transcript in plaintext → masked as `<PIN>` (tested); (c) PINs are stored unhashed in `rider.contact` → **open issue** (needs a credential store/hash; out of scope tonight; raw export already strips `contact` by default).
+**Metrics:** tests 83→86 pass; coverage 91%; ruff 0; mypy 0; bench unchanged; impersonation path closed.
+**Next:** IVR cancel confirmation + leap-day crash.
