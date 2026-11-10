@@ -33,6 +33,7 @@ def _client(platform):
 def test_provision_book_and_isolation(platform):
     c = _client(platform)
     rider = c.post("/tenants/testville/riders", json={"eligibility_status": "certified"}, headers=OPS).json()  # agency certifies
+    c.app.state.keys["rider-tv"].rider_id = rider["id"]  # the rider's app key is bound to that rider
     trip = c.post("/tenants/testville/trips", headers={"X-Api-Key": "rider-tv"}, json={"rider_id": rider["id"], **TRIP}).json()
     assert trip["status"] == "booked"
     # another city cannot see this tenant (404, not 403: no existence leak)

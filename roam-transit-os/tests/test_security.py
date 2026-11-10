@@ -139,3 +139,32 @@ def test_no_route_returns_5xx_on_garbage_input(platform):
                 if r.status_code >= 500:
                     failures.append((method, url, body, r.status_code))
     assert not failures, failures[:10]
+
+
+def test_rider_keys_only_act_for_their_own_rider(platform):
+    import yaml
+
+    from .conftest import SERVICE_DAY, new_city_config
+
+    keys = {"ops": Principal("ops", None, "s"), "me": Principal("rider", {"testville"}, rider_id="r_me")}
+    c = TestClient(create_app(platform, keys, realtime_clock=False))
+    c.post("/tenants", content=yaml.safe_dump(new_city_config()), headers={"X-Api-Key": "ops"})
+    platform.clock.minute = 600
+    from roam.models import EligibilityStatus, Rider
+
+    for rid in ("r_me", "r_other"):
+        platform.store.scope("testville").add(Rider(id=rid, tenant_id="testville", eligibility_status=EligibilityStatus.certified))
+    trip = {
+        "mode": "paratransit",
+        "origin": [-75.05, 40.06],
+        "destination": [-75.0, 40.03],
+        "service_date": SERVICE_DAY.isoformat(),
+        "time": "09:00",
+    }
+    other = c.post("/tenants/testville/trips", headers={"X-Api-Key": "ops"}, json={"rider_id": "r_other", **trip}).json()
+    assert c.post("/tenants/testville/trips", headers={"X-Api-Key": "me"}, json={"rider_id": "r_other", **trip}).status_code == 403
+    assert c.get(f"/tenants/testville/trips/{other['id']}", headers={"X-Api-Key": "me"}).status_code == 404
+    assert c.delete(f"/tenants/testville/trips/{other['id']}", headers={"X-Api-Key": "me"}).status_code == 404
+    mine = c.post("/tenants/testville/trips", headers={"X-Api-Key": "me"}, json={"rider_id": "r_me", **trip})
+    assert mine.status_code == 201
+    assert c.delete(f"/tenants/testville/trips/{mine.json()['id']}", headers={"X-Api-Key": "me"}).status_code == 200

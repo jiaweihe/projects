@@ -207,3 +207,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) a corrupt stored hash raised inside the call → fails closed (`False`), tested; (b) `RiderIn` gained `pin` (4–8 digits, 422 otherwise), and the create response would have echoed `pin_hash` → stripped from the response; (c) while there: a **rider** key could create a rider with `eligibility_status: certified`, i.e. self-certify for ADA paratransit → 403 unless ops/city/agent; the one test that relied on that now certifies via the ops key (the agency's job).
 **Metrics:** tests 111→115 pass; coverage 94%; ruff 0; mypy 0; bench unchanged; plaintext credentials at rest: 1 → 0.
 **Next:** final audit pass.
+
+## Iteration 25 — rider keys could act for any rider (security)
+**Audit (top 5):** (1) a rider app key could book, read and cancel trips for *any* rider in its tenant (no binding between key and rider); (2) cancelling an unknown trip returned 409 instead of 404; (3) `api.py` size (472→~560 lines; still one route per spec surface — accepted); (4) proposal demand rates are assumptions (product, not code); (5) nothing else found by audit or the garbage sweep.
+**Plan:** `Principal.rider_id`; rider keys may only book for that rider (403) and only see/cancel that rider's trips (uniform 404 via `_trip_for()`). Test fails first.
+**Review of own diff:** (a) an existing test booked through an unbound rider key → that is now refused by design (fail closed); the test binds its key to the rider it creates; (b) unknown trip on cancel → 404 (was a misleading 409); 409 kept for "trip already closed"; (c) `agent` (call-centre) keys can still book for any rider in the tenant — intentional, that is their job.
+**Metrics:** tests 115→116 pass; coverage 94%; ruff 0; mypy 0; bench unchanged.
+**Stop:** 25 iterations reached (hard limit).

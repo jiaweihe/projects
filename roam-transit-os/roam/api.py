@@ -43,6 +43,7 @@ class Principal:
     tenant_ids: set[str] | None  # None = all tenants (ops only)
     seat_id: str | None = None
     vehicle_ids: set[str] | None = None  # drivers: the vehicles they may operate (None = any in tenant)
+    rider_id: str | None = None  # riders: the only rider they may book/view/cancel for
 
 
 # ----------------------------------------------------------- request models
@@ -229,6 +230,8 @@ def create_app(
     @app.post("/tenants/{tenant_id}/trips", status_code=201)
     def book(tenant_id: str, body: TripIn, pr: Principal = Depends(principal)):
         tenant_access(tenant_id, pr, ("ops", "agent", "rider", "city"))
+        if pr.role == "rider" and body.rider_id != pr.rider_id:
+            raise HTTPException(403, "riders can only book for themselves")
         sync_clock(tenant_id)
         h, m = body.time.split(":")
         try:
@@ -251,20 +254,27 @@ def create_app(
 
     @app.get("/tenants/{tenant_id}/trips/{trip_id}")
     def get_trip(tenant_id: str, trip_id: str, pr: Principal = Depends(principal)):
-        tenant_access(tenant_id, pr, ("ops", "agent", "rider", "city"))
-        try:
-            return p.store.scope(tenant_id).get(TripRequest, trip_id).model_dump()
-        except KeyError:
-            raise HTTPException(404, "trip not found") from None
+        return _trip_for(tenant_id, trip_id, pr, ("ops", "agent", "rider", "city")).model_dump()
 
     @app.delete("/tenants/{tenant_id}/trips/{trip_id}")
     def cancel(tenant_id: str, trip_id: str, pr: Principal = Depends(principal)):
-        tenant_access(tenant_id, pr, ("ops", "agent", "rider"))
+        _trip_for(tenant_id, trip_id, pr, ("ops", "agent", "rider"))
         sync_clock(tenant_id)
         try:
             return p.booking.cancel_trip(tenant_id, trip_id).model_dump()
-        except (KeyError, ValueError) as e:
+        except ValueError as e:  # trip already closed
             raise HTTPException(409, str(e)) from e
+
+    def _trip_for(tenant_id: str, trip_id: str, pr: Principal, roles: tuple[str, ...]) -> TripRequest:
+        """The trip if this key may see it; a rider key only sees its own rider's trips (uniform 404)."""
+        tenant_access(tenant_id, pr, roles)
+        try:
+            trip = p.store.scope(tenant_id).get(TripRequest, trip_id)
+        except KeyError:
+            raise HTTPException(404, "trip not found") from None
+        if pr.role == "rider" and trip.rider_id != pr.rider_id:
+            raise HTTPException(404, "trip not found")
+        return trip
 
     @app.post("/tenants/{tenant_id}/days/{service_date}/start")
     def start_day(tenant_id: str, service_date: date, pr: Principal = Depends(principal)):
