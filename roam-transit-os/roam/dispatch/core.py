@@ -91,6 +91,12 @@ class Schedule:
 
 def evaluate(unit: Unit, nodes: list[Node], travel: TravelModel, buffer: float = 1.0) -> Optional[Schedule]:
     """Return the schedule for ``nodes`` on ``unit`` or None if any constraint is violated."""
+    return evaluate_at(unit, nodes, travel, buffer)[0]
+
+
+def evaluate_at(unit: Unit, nodes: list[Node], travel: TravelModel, buffer: float = 1.0) -> tuple[Schedule | None, int]:
+    """Like :func:`evaluate`, plus the index of the first violating node
+    (``len(nodes)`` when the violation is the return to depot / range)."""
     t = unit.start_time
     loc = unit.start_loc
     seats = sum(task.seats for task, _ in unit.onboard.values())
@@ -100,7 +106,7 @@ def evaluate(unit: Unit, nodes: list[Node], travel: TravelModel, buffer: float =
     drive = 0.0
     ride = 0.0
     times: list[float] = []
-    for n in nodes:
+    for idx, n in enumerate(nodes):
         if n.loc is not None and n.loc != loc:
             tt = travel.travel_min(loc, n.loc) * buffer
             km += travel.distance_km(loc, n.loc)
@@ -109,22 +115,22 @@ def evaluate(unit: Unit, nodes: list[Node], travel: TravelModel, buffer: float =
             loc = n.loc
         start = max(t, n.earliest)
         if start > n.latest + 1e-9:
-            return None
+            return None, idx
         if n.kind == "pickup":
             assert n.task is not None
             seats += n.task.seats
             wc += n.task.wc
             if seats > unit.seats or wc > unit.wc:
-                return None
+                return None, idx
             pu_time[n.task.trip_id] = start
         elif n.kind == "dropoff":
             assert n.task is not None
             p = pu_time.get(n.task.trip_id)
             if p is None:
-                return None  # dropoff before pickup
+                return None, idx  # dropoff before pickup
             r = start - p
             if r > n.task.max_ride + 1e-9:
-                return None
+                return None, idx
             ride += r
             seats -= n.task.seats
             wc -= n.task.wc
@@ -136,8 +142,8 @@ def evaluate(unit: Unit, nodes: list[Node], travel: TravelModel, buffer: float =
         drive += tt
         t += tt
     if t > unit.end_time + 1e-9 or km > unit.max_range_km + 1e-9:
-        return None
-    return Schedule(times, t, drive, km, ride)
+        return None, len(nodes)
+    return Schedule(times, t, drive, km, ride), -1
 
 
 @dataclass
@@ -167,13 +173,17 @@ def best_insertion(units: Iterable[Unit], task: Task, travel: TravelModel, buffe
         n = len(r)
         for i in range(n + 1):
             # cheap prune: nodes before i that must start after the pickup's latest time make i too late
-            if i > 0 and base.times[i - 1] > task.pu_latest + 60:
+            # the prefix before i is unchanged, so a pickup after node i-1 cannot start earlier than it
+            if i > 0 and base.times[i - 1] > task.pu_latest:
                 break
             for j in range(i, n + 1):
                 cand = r[:i] + [pu] + r[i:j] + [do] + r[j:]
-                s = evaluate(u, cand, travel, buffer)
+                s, fail = evaluate_at(u, cand, travel, buffer)
                 if s is None:
-                    # if the dropoff is already too late at position j, later j only gets worse
+                    if fail <= j + 1:
+                        # violation at or before the drop-off: every later drop-off position
+                        # shares that prefix (or a later drop-off), so it fails too
+                        break
                     continue
                 d = s.cost - base.cost
                 if best is None or d < best.delta:

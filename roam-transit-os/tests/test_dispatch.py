@@ -70,3 +70,64 @@ def test_ortools_solver_if_available():
     assert not sol.unassigned
     for u in sol.units:
         assert evaluate(u, u.route, TRAVEL, 1.10) is not None
+
+
+def _brute_force(units, t, travel, buffer):
+    best = None
+    for u in units:
+        base = evaluate(u, u.route, travel, buffer)
+        if base is None:
+            continue
+        for i in range(len(u.route) + 1):
+            for j in range(i, len(u.route) + 1):
+                cand = u.route[:i] + [Node.pickup_of(t)] + u.route[i:j] + [Node.dropoff_of(t)] + u.route[j:]
+                s = evaluate(u, cand, travel, buffer)
+                if s is not None and (best is None or s.cost - base.cost < best - 1e-9):
+                    best = s.cost - base.cost
+    return best
+
+
+def test_pruned_insertion_matches_brute_force_with_fewer_evaluations(monkeypatch):
+    import random
+
+    import roam.dispatch.core as core
+
+    rng = random.Random(3)
+    solver = InsertionSolver()
+    units = [unit("u1", seats=6), unit("u2", seats=6)]
+    pts = lambda: (-75.10 + rng.random() * 0.13, 40.0 + rng.random() * 0.1)  # noqa: E731
+    for k in range(18):
+        solver.insert(units, Task(f"b{k}", pts(), pts(), 400 + 25 * k, 430 + 25 * k, 60), TRAVEL)
+    calls = {"n": 0}
+    real = core.evaluate
+
+    def counting(*a, **kw):
+        calls["n"] += 1
+        return real(*a, **kw)
+
+    for k in range(15):
+        probe = Task(f"p{k}", pts(), pts(), 420 + 30 * k, 450 + 30 * k, 60)
+        expected = _brute_force(units, probe, TRAVEL, solver.buffer)
+        monkeypatch.setattr(core, "evaluate", counting)
+        ins = core.best_insertion(units, probe, TRAVEL, solver.buffer)
+        monkeypatch.setattr(core, "evaluate", real)
+        assert (ins is None) == (expected is None)
+        if ins is not None:
+            assert abs(ins.delta - expected) < 1e-6
+    n_nodes = sum(len(u.route) for u in units)
+    full = 15 * sum((len(u.route) + 1) * (len(u.route) + 2) // 2 + 1 for u in units)
+    assert calls["n"] < 0.5 * full, (calls["n"], full, n_nodes)
+
+
+def test_evaluate_at_reports_first_violation():
+    from roam.dispatch.core import evaluate_at
+
+    u = unit(end=900)
+    t = task("a", 480)
+    s, fail = evaluate_at(u, [Node.pickup_of(t), Node.dropoff_of(t)], TRAVEL)
+    assert s is not None and fail == -1
+    assert evaluate_at(u, [Node.dropoff_of(t), Node.pickup_of(t)], TRAVEL) == (None, 0)  # drop-off before pickup
+    late = task("b", 300, window=5)  # window closes before the shift starts
+    assert evaluate_at(u, [Node.pickup_of(late), Node.dropoff_of(late)], TRAVEL) == (None, 0)
+    short = unit(end=485)
+    assert evaluate_at(short, [Node.pickup_of(t), Node.dropoff_of(t)], TRAVEL)[1] == 2  # return-to-depot violation

@@ -39,3 +39,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) first version only fixed the status check — the en-route path was still broken → added the simulation test that caught it; (b) `SimulatorAdapter.cancel_stop` returned `Ack(False)` for an in-flight stop, misleading callers → now `Ack(True, "will be skipped")`; (c) defence in depth: platform drops any late event for a cancelled trip, so other adapters (human driver tapping "board" late) can't resurrect it either.
 **Metrics:** tests 53→55 pass; coverage 85%; ruff 121; mypy 25; bench unchanged.
 **Next:** speed up insertion search (proposal is the slowest path).
+
+## Iteration 3 — prune the insertion search (performance)
+**Audit (top 5):** (1) `best_insertion` evaluates every (i, j) pair even after a violation that dooms all later j (proposal 4.8 s, the slowest path); (2) OR-Tools solver complexity; (3) 121 lint findings; (4) 25 mypy errors; (5) KPI / incident / ops code under-tested.
+**Plan:** `evaluate_at` returns the index of the first violated node; break the drop-off loop when the violation is at or before the drop-off (prefix shared, drop-off only later); test equality with brute force + an evaluation budget.
+**Review of own diff:** (a) one `return None` in the evaluator wasn't converted to the tuple form → would crash on a rare path; fixed and added `test_evaluate_at_reports_first_violation` pinning each failure index; (b) the outer prune had an arbitrary `+60` slack — the prefix is unchanged so the exact bound is safe → tightened; (c) new annotation added a lint finding → modern `X | None`.
+**Metrics:** tests 55→57 pass; coverage 85%; ruff 121; mypy 25; **sim 2.03→0.57 s (−72%)**, **proposal 4.83→1.51 s (−69%)**, test suite 33→12.7 s. Plans identical (brute-force equality test; acceptance tests unchanged).
+**Next:** simplification — remove the optional OR-Tools solver.
