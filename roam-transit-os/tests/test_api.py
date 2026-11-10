@@ -158,3 +158,20 @@ def test_driver_positions_validated_and_duplicate_fault_alerts_once(platform):
     c.post("/driver/testville:TV01/fault", headers=OPS, json=body)
     c.post("/driver/testville:TV01/fault", headers=OPS, json=body)  # driver taps twice
     assert len([e for e in platform.ops.exceptions.values() if e.type == "vehicle_fault"]) == 1
+
+
+def test_booking_and_kpi_inputs_validated(platform):
+    c = _client(platform)
+    rider = c.post("/tenants/testville/riders", json={"eligibility_status": "certified"}, headers=OPS).json()
+    for patch in ({"time": "9am"}, {"time": "24:00"}, {"origin": [-75.05, 140.0]}, {"destination": [999, 40]}):
+        r = c.post("/tenants/testville/trips", headers=OPS, json={"rider_id": rider["id"], **TRIP, **patch})
+        assert r.status_code == 422, patch
+    r = c.get("/tenants/testville/kpis", params={"start": "2026-11-20", "end": "2026-11-01"}, headers=OPS)
+    assert r.status_code == 422
+
+
+def test_bad_proposal_boundary_is_422(platform):
+    c = _client(platform)
+    for boundary in ({"type": "Point", "coordinates": [0, 0]}, {"type": "Polygon"}, {}):
+        r = c.post("/proposals", headers=OPS, json={"name": "X", "state": "PA", "boundary": boundary})
+        assert r.status_code == 422, boundary

@@ -184,3 +184,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) coordinates weren't range-checked → `LonLatIn` type with lon/lat bounds (422); (b) a double-tapped fault raised two critical alerts → dispatcher ignores a fault for a vehicle already out of service; (c) `report_fault` picked an arbitrary run id it no longer needs (faults are per vehicle since iter 8) → removed.
 **Metrics:** tests 104→107 pass; coverage 93%; ruff 0; mypy 0; bench unchanged.
 **Next:** fresh audit; if nothing substantial, close out.
+
+## Iteration 22 — remaining HTTP 500s on bad input (booking time/coords, KPI range, proposal boundary)
+**Audit (top 5):** (1) `POST /trips` parsed `time` with `split(":")` → "9am" = 500; origin/destination unbounded; (2) `/kpis` start>end silently empty; (3) `/proposals` with non-polygon GeoJSON → 500; (4) PINs unhashed (open); (5) `api.py` size (now the largest file; acceptable — one route per spec surface).
+**Plan:** shared `HHMM` and `LonLatIn` pydantic types on request models; start>end → 422; tests fail first.
+**Review of own diff:** (a) driver routes had their own regex for the same format → switched to the `HHMM` type, `_driver_minute` shrank to two lines (one validation rule, one place); (b) first proposal fix was a broad `except (ValueError, KeyError, TypeError, IndexError)` that would disguise internal bugs as 422 → replaced by up-front `geo.validate_polygon()` (existing function, reused); (c) checked every request model: all times now `HHMM`, all coordinates `LonLatIn`.
+**Metrics:** tests 107→109 pass; coverage 93%; ruff 0; mypy 0; bench unchanged. Input-driven 500s found by audit tonight: 0 remaining that I could provoke.
+**Next:** fresh audit.

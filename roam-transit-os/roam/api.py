@@ -12,7 +12,6 @@ import base64
 import hashlib
 import hmac
 import io
-import re
 import tempfile
 import zipfile
 from dataclasses import dataclass
@@ -26,7 +25,7 @@ from fastapi import Depends, FastAPI, Form, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel, Field, ValidationError
 
-from . import billing, kpi
+from . import billing, geo, kpi
 from .adapters.human_driver import HumanDriverAdapter
 from .config.schema import config_from_dict
 from .config.validate import validate
@@ -47,6 +46,10 @@ class Principal:
 
 
 # ----------------------------------------------------------- request models
+LonLatIn = tuple[Annotated[float, Field(ge=-180, le=180)], Annotated[float, Field(ge=-90, le=90)]]
+HHMM = Annotated[str, Field(pattern=r"^([01]?\d|2[0-3]):[0-5]\d$")]
+
+
 class RiderIn(BaseModel):
     phone: str = ""
     accessibility_needs: list[AccessibilityNeed] = []
@@ -57,10 +60,10 @@ class RiderIn(BaseModel):
 class TripIn(BaseModel):
     rider_id: str
     mode: Mode
-    origin: tuple[float, float]
-    destination: tuple[float, float]
+    origin: LonLatIn
+    destination: LonLatIn
     service_date: date
-    time: str  # "HH:MM"
+    time: HHMM
     time_type: Literal["pickup", "appointment"] = "pickup"
     channel: Channel = Channel.app
     funding_source_id: str | None = None
@@ -70,25 +73,22 @@ class TripIn(BaseModel):
 class DriverAction(BaseModel):
     stop_id: str
     action: Literal["depart", "arrive", "board", "no_show", "dropoff"]
-    time: str | None = None
+    time: HHMM | None = None
     location: tuple[float, float] | None = None
     wheelchair: bool = False
     checklist: dict[str, bool] = {}
 
 
-LonLatIn = tuple[Annotated[float, Field(ge=-180, le=180)], Annotated[float, Field(ge=-90, le=90)]]
-
-
 class DriverPosition(BaseModel):
     location: LonLatIn
-    time: str | None = None
+    time: HHMM | None = None
     speed_kmh: float = 0.0
 
 
 class DriverFault(BaseModel):
     location: LonLatIn
     reason: str
-    time: str | None = None
+    time: HHMM | None = None
 
 
 class IncidentIn(BaseModel):
@@ -307,10 +307,8 @@ def create_app(
         sync_clock(vehicle_id.split(":")[0])
         if not hhmm:
             return p.clock.minute
-        m = re.fullmatch(r"([01]?\d|2[0-3]):([0-5]\d)", hhmm)
-        if m is None:
-            raise HTTPException(422, "time must be HH:MM (24h)")
-        return int(m.group(1)) * 60 + int(m.group(2))
+        hh, mm = hhmm.split(":")  # format already validated by the HHMM type
+        return int(hh) * 60 + int(mm)
 
     # ------------------------------------------------------------- ops console
     def _ops(pr: Principal) -> Principal:
@@ -385,6 +383,8 @@ def create_app(
     @app.get("/tenants/{tenant_id}/kpis")
     def kpis(tenant_id: str, start: date, end: date, pr: Principal = Depends(principal)):
         tenant_access(tenant_id, pr, ("ops", "city"))
+        if start > end:
+            raise HTTPException(422, "start must be on or before end")
         return kpi.compute_kpis(p, tenant_id, start, end)
 
     @app.post("/tenants/{tenant_id}/invoices/{period}")
@@ -486,6 +486,9 @@ def create_app(
     @app.post("/proposals")
     def proposal(body: ProposalIn, pdf: bool = False, pr: Principal = Depends(principal)):
         _ops(pr)
+        problems = geo.validate_polygon(body.boundary)  # reject bad GeoJSON up front, not via a 500
+        if problems:
+            raise HTTPException(422, {"boundary": problems})
         try:
             out = generate_proposal(
                 ProposalInput(
