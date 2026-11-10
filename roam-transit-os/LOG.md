@@ -121,3 +121,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) pydantic error details echo inputs, and YAML turns `2026-01-01` into a `date` that isn't JSON-serialisable → would 500 again → `include_input=False`, regression test added (it failed before the fix); (b) the duplicate guard lives in `Platform.provision` (core), not just the API, so CLI/library callers get it too; (c) error detail no longer includes pydantic doc URLs/context (smaller, no internals).
 **Metrics:** tests 78→81 pass; coverage 91%; ruff 0; mypy 0; bench unchanged; 500-class failures on bad input: 5 cases → 0.
 **Next:** README/docs drift + driver-id existence leak.
+
+## Iteration 13 — driver API leaked vehicle existence and allowed any driver to drive any van (security)
+**Audit (top 5):** (1) `/driver/{vehicle_id}/…` looked the vehicle up *before* authorising → different responses for real vs fake ids revealed other cities' fleets to any key holder; (2) any driver key of a tenant could read/act on every vehicle's manifest in that tenant; (3) README drift; (4) `api.py` size; (5) IVR 74% coverage.
+**Plan:** authorise first, then look up; test that real and fake vehicle ids give identical status+body for an other-tenant driver and a wrong-role key.
+**Review of own diff:** (a) item (2) above → optional `Principal.vehicle_ids` binding for drivers, tested (bound driver gets 200 on own van, 404 on another); (b) the binding failure reuses the exact same 404 body so it can't be used as an oracle either; (c) wrong-role keys still get 403 — but identically for real and fake ids (asserted), so no leak.
+**Metrics:** tests 81→82 pass (one test, three new assertions groups); coverage 91%; ruff 0; mypy 0; bench unchanged; existence-oracle endpoints 2 → 0.
+**Next:** docs drift (README still describes removed/changed behaviour).

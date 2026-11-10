@@ -42,6 +42,7 @@ class Principal:
     role: Literal["ops", "city", "driver", "rider", "agent"]
     tenant_ids: set[str] | None  # None = all tenants (ops only)
     seat_id: str | None = None
+    vehicle_ids: set[str] | None = None  # drivers: the vehicles they may operate (None = any in tenant)
 
 
 # ----------------------------------------------------------- request models
@@ -252,10 +253,13 @@ def create_app(
     # ----------------------------------------------------------- driver app
 
     def _driver_adapter(vehicle_id: str, pr: Principal) -> HumanDriverAdapter:
+        # authorise before looking the vehicle up, so responses never reveal which vehicles exist
+        tenant_access(vehicle_id.split(":")[0], pr, ("driver", "ops"))
+        if pr.vehicle_ids is not None and vehicle_id not in pr.vehicle_ids:
+            raise HTTPException(404, "tenant not found")  # same response as any other inaccessible vehicle
         a = p.adapters.get(vehicle_id)
         if not isinstance(a, HumanDriverAdapter):
             raise HTTPException(404, "no active driver manifest for this vehicle")
-        tenant_access(vehicle_id.split(":")[0], pr, ("driver", "ops"))
         return a
 
     @app.get("/driver/{vehicle_id}/manifest")

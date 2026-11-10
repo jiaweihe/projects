@@ -70,3 +70,30 @@ def test_abandoned_ivr_sessions_are_bounded(testville):
     for k in range(api.MAX_IVR_SESSIONS + 50):
         c.post("/ivr/testville/voice", data={"CallSid": f"CA{k}", "From": "+1"})
     assert len(c.app.state.ivr_sessions) == api.MAX_IVR_SESSIONS
+
+
+def test_driver_endpoints_do_not_reveal_other_tenants_vehicles(platform):
+    import yaml
+
+    from .conftest import SERVICE_DAY, new_city_config
+
+    keys = {
+        "ops": Principal("ops", None, "s"),
+        "drv-other": Principal("driver", {"othertown"}),
+        "city-tv": Principal("city", {"testville"}),
+        "drv-tv02": Principal("driver", {"testville"}, vehicle_ids={"testville:TV02"}),
+    }
+    c = TestClient(create_app(platform, keys, realtime_clock=False))
+    c.post("/tenants", content=yaml.safe_dump(new_city_config()), headers={"X-Api-Key": "ops"})
+    other = new_city_config(id="othertown", name="Othertown", region={"state": "PA", "jurisdiction": "Othertown"})
+    c.post("/tenants", content=yaml.safe_dump(other), headers={"X-Api-Key": "ops"})
+    c.post(f"/tenants/testville/days/{SERVICE_DAY}/start", headers={"X-Api-Key": "ops"})
+    real, fake = "testville:TV01", "testville:TV99"
+    for key in ("drv-other", "city-tv"):
+        a = c.get(f"/driver/{real}/manifest", headers={"X-Api-Key": key})
+        b = c.get(f"/driver/{fake}/manifest", headers={"X-Api-Key": key})
+        assert (a.status_code, a.json()) == (b.status_code, b.json()), key
+    assert c.get(f"/driver/{real}/manifest", headers={"X-Api-Key": "ops"}).status_code == 200
+    # a driver bound to TV02 cannot read or act on TV01's manifest
+    assert c.get("/driver/testville:TV02/manifest", headers={"X-Api-Key": "drv-tv02"}).status_code == 200
+    assert c.get(f"/driver/{real}/manifest", headers={"X-Api-Key": "drv-tv02"}).status_code == 404
