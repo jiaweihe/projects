@@ -6,7 +6,7 @@ Python 3.11+, FastAPI, pydantic. The core needs no database or routing server. H
 
 ```bash
 pip install -e ".[dev,geo]"
-pytest -q                                   # 51 tests, ~15 s, including the four v0.1 acceptance tests
+pytest -q                                   # full suite incl. the four v0.1 acceptance tests and ruff/mypy gates
 
 roam validate tenants/mercer_county_nj.yaml
 roam golive   tenants/austin_tx.yaml --simulation-only   # provision a city from one config file
@@ -76,6 +76,8 @@ Design choices worth knowing:
 - **No silent denials.** Paratransit booking tries insertion at the requested time and each negotiation offset, then a repair move, before it records a denial. A denial always writes an `ada_denial` event and an ops exception. It also forfeits the performance bonus on the invoice.
 - **Guardrails from spec §3 are code.** `roam/config/policy.yaml` hard-excludes Jersey City; validation, provisioning and the proposal generator all refuse it. Mercer County provisions for simulation but is **blocked from go-live** until MOVES ownership is resolved. AV fleets are go-live-blocked without a state AV authorization profile. Federal funds plus AV adds a Section 13(c) blocker.
 - **Pricing follows the spec.** The invoice is a platform fee per vehicle-month, plus an ops fee per revenue hour, plus a performance adjustment capped at ±10%. It is not a percentage of budget.
+- **Secure by default.** Tenant-scoped API keys; driver keys can be bound to specific vehicles; endpoints authorise before looking anything up, so responses never reveal which tenants or vehicles exist. The Twilio IVR webhook is closed unless request signatures can be checked. Bad input returns 422 and re-posting an existing tenant returns 409; neither can crash or overwrite a live tenant.
+- **Faults are handled by vehicle.** A breakdown (even between shifts) empties every shift of that vehicle, re-plans its pickups on other vehicles and sends a rescue for anyone onboard. The rider's original pickup time is kept for OTP.
 - **The city owns the data.** `exports/raw.py` dumps every table (CSV, plus Parquet if pyarrow is installed). Rider PII is excluded unless the city itself asks.
 
 ## Layout
@@ -96,7 +98,8 @@ roam/
   ivr.py api.py cli.py web/console.html
 tenants/               fixtures (Mercer, Austin, Miami-Dade), template, zone GeoJSON
 db/schema.sql          Postgres/PostGIS/H3 target schema with RLS
-tests/                 unit + API + acceptance tests
+tests/                 unit + API + security + CLI + acceptance tests; ruff and mypy run as tests
+scripts/metrics.sh     tests, coverage, lint, types, size and benchmark timings in one run
 ```
 
 ## Placeholders and items to verify

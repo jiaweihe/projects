@@ -128,3 +128,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) item (2) above → optional `Principal.vehicle_ids` binding for drivers, tested (bound driver gets 200 on own van, 404 on another); (b) the binding failure reuses the exact same 404 body so it can't be used as an oracle either; (c) wrong-role keys still get 403 — but identically for real and fake ids (asserted), so no leak.
 **Metrics:** tests 81→82 pass (one test, three new assertions groups); coverage 91%; ruff 0; mypy 0; bench unchanged; existence-oracle endpoints 2 → 0.
 **Next:** docs drift (README still describes removed/changed behaviour).
+
+## Iteration 14 — README drift + a guard against it (docs)
+**Audit (top 5):** (1) README hard-coded "51 tests, ~15 s" (now 83, ~8 s) and omitted the security/fault behaviour added tonight; nothing stops docs from going stale again; (2) `cli.main` builds the parser inline — untestable without running commands; (3) IVR 74% coverage; (4) human-driver adapter 71%; (5) `api.py` size.
+**Plan:** extract `cli.build_parser()`; test that every `roam …` command shown in README parses with the real parser (fails first: no `build_parser`); refresh README (no hard-coded counts; secure-by-default and fault handling bullets; quality gates; metrics script).
+**Review of own diff:** (a) removed the hard-coded test count rather than updating it (it would drift again); (b) `main()` now returns `int(...)` so a handler returning `None` can't produce a confusing exit status; (c) the doc guard only checks syntax/flags, not behaviour — behaviour is covered by `test_cli.py`; noted as intentional.
+**Metrics:** tests 82→83 pass; coverage 91%; ruff 0; mypy 0; bench unchanged; stale README claims 3 → 0.
+**Next:** IVR coverage (cancel/status/date/retry branches) — phone is the primary paratransit channel.

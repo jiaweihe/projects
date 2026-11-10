@@ -172,7 +172,7 @@ def cmd_serve(a) -> int:  # pragma: no cover - interactive
     return 0
 
 
-def main(argv: list[str] | None = None) -> int:
+def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="roam", description="Roam Transit OS (MVP v0.1)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("validate", help="validate a tenant config")
@@ -207,8 +207,12 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--host", default="127.0.0.1")
     s.add_argument("--port", type=int, default=8000)
     s.set_defaults(fn=cmd_serve)
-    a = ap.parse_args(argv)
-    return a.fn(a)
+    return ap
+
+
+def main(argv: list[str] | None = None) -> int:
+    a = build_parser().parse_args(argv)
+    return int(a.fn(a))
 
 
 if __name__ == "__main__":

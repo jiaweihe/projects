@@ -44,3 +44,19 @@ def test_propose_refuses_excluded_city_cleanly(tmp_path, capsys):
     assert main(["propose", "--boundary", str(b), "--name", "Jersey City", "--state", "NJ", "--out", str(tmp_path)]) == 2
     assert "does not propose in Jersey City" in capsys.readouterr().err
     assert not list(tmp_path.glob("*.pdf"))
+
+
+def test_every_roam_command_in_the_readme_parses():
+    """Docs drift guard: commands shown in README must exist with those flags."""
+    import shlex
+
+    from roam.cli import build_parser
+
+    from .conftest import ROOT
+
+    readme = (ROOT / "README.md").read_text()
+    cmds = [ln.split("#")[0].strip() for ln in readme.splitlines() if ln.strip().startswith("roam ")]
+    assert len(cmds) >= 5
+    parser = build_parser()
+    for cmd in cmds:
+        parser.parse_args(shlex.split(cmd)[1:])  # SystemExit on unknown command/flag fails the test
