@@ -76,6 +76,11 @@ class RuleBasedAgent:
                 if m.group(3) and m.group(3).startswith("p") and h < 12:
                     h += 12
                 return {"choice": f"{h:02d}{mi:02d}", "appointment": "appointment" in t or "be there" in t}
+        if state == "confirm_cancel":
+            if re.search(r"\b(no|keep|don'?t)\b", t):
+                return {"choice": "2"}
+            if re.search(r"\b(yes|yeah|cancel|confirm)\b", t):
+                return {"choice": "1"}
         if state == "confirm":
             if re.search(r"\b(yes|yeah|confirm|correct|keep)\b", t):
                 return {"choice": "1"}
@@ -83,6 +88,18 @@ class RuleBasedAgent:
                 return {"choice": "2"}
         digits = "".join(WORD_DIGITS.get(w, w) for w in re.findall(r"[a-z]+|\d", t) if w in WORD_DIGITS or w.isdigit())
         return {"choice": digits} if digits else {}
+
+
+def _next_occurrence(today: date, month: int, day: int) -> date | None:
+    """The next date (after today) with this month/day within a year, or None."""
+    for year in (today.year, today.year + 1):
+        try:
+            d = date(year, month, day)
+        except ValueError:
+            continue
+        if d > today:
+            return d
+    return None
 
 
 def _fmt(minutes: float) -> str:
@@ -180,9 +197,10 @@ class IVRSession:
                 if not upcoming:
                     return IVRResponse("You have no upcoming rides. " + self._menu())
                 t = upcoming[0]
-                self.platform.booking.cancel_trip(self.tenant_id, t.id, "cancelled by phone")
+                self.data["cancel_trip_id"], self.state, self.failures = t.id, "confirm_cancel", 0
                 return IVRResponse(
-                    f"Your ride on {t.service_date:%A} at {_fmt(t.negotiated_pickup or t.requested_time)} is cancelled. " + self._menu()
+                    f"Your next ride is {t.service_date:%A} at {_fmt(t.negotiated_pickup or t.requested_time)}. "
+                    "To cancel it press 1. To keep it press 2."
                 )
             if choice == "3":
                 upcoming = self._upcoming()
@@ -192,6 +210,19 @@ class IVRSession:
                 w = t.window or (t.requested_time, t.requested_time + 30)
                 return IVRResponse(f"Your next ride is {t.service_date:%A}, pickup between {_fmt(w[0])} and {_fmt(w[1])}. " + self._menu())
             return self._retry(self._menu())
+
+        if self.state == "confirm_cancel":
+            if choice not in ("1", "2"):
+                return self._retry("To cancel the ride press 1. To keep it press 2.")
+            trip_id = self.data.pop("cancel_trip_id")
+            self.state, self.failures = "menu", 0
+            if choice == "2":
+                return IVRResponse("Your ride is kept. " + self._menu())
+            try:
+                self.platform.booking.cancel_trip(self.tenant_id, trip_id, "cancelled by phone")
+            except ValueError:  # changed meanwhile (cancelled in the app, already served...)
+                return IVRResponse("That ride can no longer be cancelled. " + self._menu())
+            return IVRResponse("Your ride is cancelled. " + self._menu())
 
         if self.state in ("pickup", "destination"):
             places = self._places()
@@ -209,16 +240,13 @@ class IVRSession:
 
         if self.state == "date":
             today = self.platform.clock.today
+            d: date | None
             if choice == "1":
                 d = today + timedelta(days=1)
             elif re.fullmatch(r"\d{4}", choice):
-                m, dd = int(choice[:2]), int(choice[2:])
-                try:
-                    d = date(today.year, m, dd)
-                except ValueError:
+                d = _next_occurrence(today, int(choice[:2]), int(choice[2:]))
+                if d is None:  # impossible date, or Feb 29 with no leap year next
                     return self._retry("Enter the date as four digits, month then day.")
-                if d <= today:
-                    d = date(today.year + 1, m, dd)
             else:
                 return self._retry("For tomorrow press 1, or enter four digits for month and day.")
             self.data["date"], self.state, self.failures = d, "time", 0

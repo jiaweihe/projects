@@ -142,3 +142,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) first version answered differently for unknown rider numbers vs known-without-PIN → enumeration oracle → now always prompts for a PIN and fails uniformly (test asserts identical prompts); (b) the PIN was written to the call transcript in plaintext → masked as `<PIN>` (tested); (c) PINs are stored unhashed in `rider.contact` → **open issue** (needs a credential store/hash; out of scope tonight; raw export already strips `contact` by default).
 **Metrics:** tests 83→86 pass; coverage 91%; ruff 0; mypy 0; bench unchanged; impersonation path closed.
 **Next:** IVR cancel confirmation + leap-day crash.
+
+## Iteration 16 — phone cancel without confirmation; leap-day crash (bugs)
+**Audit (top 5):** (1) IVR menu 2 cancelled the next ride immediately — one mis-press cancels a medical ride; (2) entering `0229` after a leap day raised `ValueError` inside the call (→ 500 on the webhook); (3) human-driver adapter coverage 71%; (4) PINs stored unhashed (open, see iter 15); (5) `api.py` size.
+**Plan:** new `confirm_cancel` state ("press 1 to cancel, 2 to keep"); `_next_occurrence()` helper returns the next valid month/day within a year or `None` → retry prompt. Tests fail first for both.
+**Review of own diff:** (a) speech at the new step wasn't understood ("no keep it", "yes cancel it") → agent rules for `confirm_cancel` (keep/no → 2 checked before yes/cancel → 1); (b) if the ride was cancelled through another channel during the call, confirming raised `ValueError` → caught, caller told "can no longer be cancelled"; (c) the mypy gate caught an `Optional` narrowing issue in my new code → explicit `date | None` annotation.
+**Metrics:** tests 86→89 pass; **coverage 91→92%** (ivr 74→~85%); ruff 0; mypy 0; bench unchanged.
+**Next:** human-driver adapter paths (manifest updates/cancel while a driver is mid-run).

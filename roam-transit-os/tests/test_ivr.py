@@ -94,3 +94,54 @@ def test_rider_numbers_cannot_be_enumerated_and_pin_never_logged(testville):
     ok = IVRSession(p, "testville", "+1999")
     ok.start(), ok.handle("42#"), ok.handle("2468#")
     assert "2468" not in repr(ok.transcript)
+
+
+def _booked(p, r):
+    from .conftest import SERVICE_DAY
+
+    return p.booking.request_trip(
+        "testville",
+        r.id,
+        __import__("roam.models", fromlist=["Mode"]).Mode.paratransit,
+        r.saved_places["home"],
+        r.saved_places["clinic"],
+        SERVICE_DAY,
+        600,
+    )
+
+
+def test_phone_cancel_requires_confirmation(testville):
+    p, r = _setup(testville)
+    t = _booked(p, r)
+    s = IVRSession(p, "testville", "+15550001111")
+    s.start()
+    prompt = s.handle("2")
+    assert "press 1" in prompt.say.lower() and t.status == TripStatus.booked  # nothing cancelled yet
+    s.handle("2")  # "no, keep it"
+    assert t.status == TripStatus.booked
+    s.handle("2")
+    s.handle("1")  # confirm
+    assert t.status == TripStatus.cancelled
+
+
+def test_leap_day_date_entry_does_not_crash(testville):
+    from datetime import date
+
+    p, r = _setup(testville)
+    p.clock.today = date(2028, 3, 1)  # day after a leap day; next Feb 29 is in 2032
+    s = IVRSession(p, "testville", "+15550001111")
+    s.start(), s.handle("1"), s.handle("1"), s.handle("2")
+    resp = s.handle("0229")
+    assert not resp.done and "date" in resp.say.lower()
+
+
+def test_cancel_confirmation_by_speech_and_race_with_other_channel(testville):
+    p, r = _setup(testville)
+    t = _booked(p, r)
+    s = IVRSession(p, "testville", "+15550001111")
+    s.start(), s.handle("cancel my ride")
+    assert "Your ride is kept" in s.handle("no keep it").say and t.status == TripStatus.booked
+    s.handle("cancel my ride")
+    p.booking.cancel_trip("testville", t.id, "cancelled in the app meanwhile")
+    resp = s.handle("yes cancel it")
+    assert not resp.transfer and "no longer" in resp.say
