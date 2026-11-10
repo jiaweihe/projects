@@ -18,7 +18,7 @@ dependencies = [
 [project.optional-dependencies]
 routing = ["ortools>=9.8", "httpx>=0.27"]
 geo = ["h3>=4"]
-dev = ["pytest>=8", "httpx>=0.27"]
+dev = ["pytest>=8", "httpx>=0.27", "pytest-cov>=5", "ruff>=0.5", "mypy>=1.10"]
 
 [project.scripts]
 roam = "roam.cli:main"
