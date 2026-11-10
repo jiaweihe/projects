@@ -8,8 +8,9 @@ client internally.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Literal, Optional
+from typing import Any, Literal
 
 from ..models import AdapterKind, LonLat, Run, VehicleCapabilities
 
@@ -92,7 +93,7 @@ class VehicleAdapter(ABC):
     def on_event(self, cb: EventCb) -> None:
         self._event_cbs.append(cb)
 
-    def request_remote_assist(self, ctx: AssistContext) -> Optional[AssistTicket]:  # optional capability
+    def request_remote_assist(self, ctx: AssistContext) -> AssistTicket | None:  # optional capability
         return None
 
     # helpers for subclasses

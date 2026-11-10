@@ -27,7 +27,7 @@ def _days(start: date, end: date) -> list[date]:
     return [start + timedelta(days=i) for i in range((end - start).days + 1)]
 
 
-def compute_kpis(platform: "Platform", tenant_id: str, start: date, end: date, cost_model: dict | None = None) -> dict[str, Any]:
+def compute_kpis(platform: Platform, tenant_id: str, start: date, end: date, cost_model: dict | None = None) -> dict[str, Any]:
     rt = platform.tenant(tenant_id)
     scope = platform.store.scope(tenant_id)
     days = _days(start, end)
@@ -120,9 +120,9 @@ def compute_kpis(platform: "Platform", tenant_id: str, start: date, end: date, c
         "complaints_per_1k_trips": round(1000 * len(complaints) / len(completed), 2) if completed else 0.0,
         "incidents_per_100k_miles": round(1e5 * len(incidents) / miles, 2) if miles else 0.0,
         "ops_seats_covering": len(seats),
-        "vehicles_per_ops_seat": round(
-            sum(sum(platform.ops.vehicle_counts.get(t, 0) for t in s.tenant_ids) for s in seats) / len(seats), 1
-        ) if seats else 0.0,
+        "vehicles_per_ops_seat": round(sum(sum(platform.ops.vehicle_counts.get(t, 0) for t in s.tenant_ids) for s in seats) / len(seats), 1)
+        if seats
+        else 0.0,
         "tenants_per_ops_seat": round(sum(len(s.tenant_ids) for s in seats) / len(seats), 1) if seats else 0.0,
         "phase_readiness_odd_share": round(inside / total, 4) if total else 0.0,
     }

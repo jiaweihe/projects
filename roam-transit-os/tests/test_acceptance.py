@@ -62,8 +62,9 @@ def test_one_ops_seat_supervises_three_tenants():
 
     av = next(a for a in p.adapters.values() if isinstance(a, AVPartnerAdapter))
     av.request_remote_assist(AssistContext(av.vehicle_id, 12 * 60, (-97.74, 30.27), "double-parked truck"))
-    p.ops.raise_exception(type="vehicle_fault", severity=1, tenant_id="miami_dade_fl", at=13 * 60, service_date=SERVICE_DAY,
-                          message="injected fault")
+    p.ops.raise_exception(
+        type="vehicle_fault", severity=1, tenant_id="miami_dade_fl", at=13 * 60, service_date=SERVICE_DAY, message="injected fault"
+    )
     stats = p.ops.simulate_seat("seat-1", 4 * 60 + 45, 23 * 60 + 15, SERVICE_DAY)
     assert stats["tenants"] == 3 and stats["vehicles"] >= 30
     assert stats["utilization"] < 0.5, stats  # one person has headroom
@@ -84,8 +85,16 @@ def test_proposal_three_phase_comparison(name, tmp_path):
     zones = {z.mode.value: geoms[z.id] for z in cfg.zones}
     boundary = zones.get("paratransit") or zones["microtransit"]
     modes = tuple(m for m in ("paratransit", "microtransit") if m in zones)
-    inp = ProposalInput(name=cfg.name, state=cfg.region["state"], jurisdiction=cfg.region["jurisdiction"], boundary=boundary,
-                        modes=modes, microtransit_boundary=zones.get("microtransit"), depot=tuple(cfg.depot), sample_cap=40)
+    inp = ProposalInput(
+        name=cfg.name,
+        state=cfg.region["state"],
+        jurisdiction=cfg.region["jurisdiction"],
+        boundary=boundary,
+        modes=modes,
+        microtransit_boundary=zones.get("microtransit"),
+        depot=tuple(cfg.depot),
+        sample_cap=40,
+    )
     prop = generate_proposal(inp)
     for ph in ("phase_1", "phase_2", "phase_3"):
         c = prop["costs"][ph]

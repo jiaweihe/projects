@@ -54,3 +54,11 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) my regex left half of the deleted test behind (NameError) → removed cleanly; (b) docstrings in `insertion.py`/`dispatcher.py` and README still mentioned OR-Tools → updated; (c) real-time insertion still always uses the built-in heuristic — intentional (it must be fast); documented in the Platform comment.
 **Metrics:** tests 57 pass (−1 OR-Tools, +1 plug-in); coverage 85%; ruff 121→120; **mypy 25→21**; **LOC 4571→4426**; bench unchanged (sim 0.74 s, proposal 1.58 s); one fewer optional dependency.
 **Next:** mechanical lint cleanup.
+
+## Iteration 5 — lint gate to zero (quality)
+**Audit (top 5):** (1) 120 lint findings incl. real smells: `raise HTTPException` inside `except` without `from` (B904), `zip` without `strict` (B905), unused loop var; (2) no committed lint config — the rule set lived only in my head; (3) 21 mypy errors; (4) KPI/incident/ops tests thin; (5) `api.py` is a 400-line closure.
+**Plan:** commit `[tool.ruff]` config to `pyproject.toml`; add `tests/test_quality.py` that runs ruff (fails first); auto-fix safe rules, hand-fix the rest, `ruff format` for long lines.
+**Decisions:** ignore B008 (FastAPI `Depends()` idiom) and UP042 (StrEnum changes `str(enum)` output — behavioural risk). One-off `ruff format` across the package accepted (mechanical; makes future diffs smaller).
+**Review of own diff:** (a) the formatter inflated the line-count metric (4426→4759) while the code didn't grow → switched the size metric to **coverage statement count** (3385→3382), which formatting can't game; (b) `datetime.timezone.utc`→`datetime.UTC` needs Python ≥3.11 — matches `requires-python`; (c) the quality test skips (not fails) when ruff isn't installed so runtime-only installs still pass.
+**Metrics:** tests 57→58 pass; coverage 85%; **ruff 120→0**; mypy 21; statements 3385→3382; bench unchanged.
+**Next:** mypy to zero (same gate approach).

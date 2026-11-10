@@ -11,10 +11,16 @@ ODD = {"type": "Polygon", "coordinates": [[[-75.1, 40.0], [-75.0, 40.0], [-75.0,
 
 
 def _run(loc_a=(-75.05, 40.05), loc_b=(-75.02, 40.06)):
-    return Run(id="run1", tenant_id="t", shift_id="s", vehicle_id="v1", stops=[
-        Stop(id="trip1:pu", run_id="run1", trip_request_id="trip1", type=StopType.pickup, location=loc_a, earliest=480, latest=510),
-        Stop(id="trip1:do", run_id="run1", trip_request_id="trip1", type=StopType.dropoff, location=loc_b, earliest=0, latest=2000),
-    ])
+    return Run(
+        id="run1",
+        tenant_id="t",
+        shift_id="s",
+        vehicle_id="v1",
+        stops=[
+            Stop(id="trip1:pu", run_id="run1", trip_request_id="trip1", type=StopType.pickup, location=loc_a, earliest=480, latest=510),
+            Stop(id="trip1:do", run_id="run1", trip_request_id="trip1", type=StopType.dropoff, location=loc_b, earliest=0, latest=2000),
+        ],
+    )
 
 
 def test_human_driver_manifest_and_securement_checklist():
@@ -26,7 +32,9 @@ def test_human_driver_manifest_and_securement_checklist():
     assert a.driver_action("trip1:pu", "arrive", 482).ok
     refused = a.driver_action("trip1:pu", "board", 484, wheelchair=True, checklist={"four_point_tiedowns_attached": True})
     assert not refused.ok and "checklist" in refused.message
-    full = {k: True for k in ("four_point_tiedowns_attached", "lap_and_shoulder_belt_offered", "wheelchair_brakes_set", "ramp_or_lift_stowed")}
+    full = {
+        k: True for k in ("four_point_tiedowns_attached", "lap_and_shoulder_belt_offered", "wheelchair_brakes_set", "ramp_or_lift_stowed")
+    }
     assert a.driver_action("trip1:pu", "board", 486, wheelchair=True, checklist=full).ok
     assert a.driver_action("trip1:do", "no_show", 500).ok is False  # no-show only at a pickup
     assert [e.type for e in events] == ["arrival", "boarding"]

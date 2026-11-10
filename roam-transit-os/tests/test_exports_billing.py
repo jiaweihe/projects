@@ -23,7 +23,9 @@ def simulated(testville):
 def test_gtfs_flex_files(testville):
     p, rt = testville
     files = gtfs_flex.build_gtfs_flex(rt)
-    assert {"agency.txt", "routes.txt", "trips.txt", "stop_times.txt", "booking_rules.txt", "calendar.txt", "locations.geojson"} <= set(files)
+    assert {"agency.txt", "routes.txt", "trips.txt", "stop_times.txt", "booking_rules.txt", "calendar.txt", "locations.geojson"} <= set(
+        files
+    )
     st = list(csv.DictReader(io.StringIO(files["stop_times.txt"])))
     assert st and all(r["start_pickup_drop_off_window"] and r["location_id"] for r in st)
     br = {r["booking_rule_id"]: r for r in csv.DictReader(io.StringIO(files["booking_rules.txt"]))}

@@ -35,7 +35,7 @@ PLANNING_SLACK_MIN = 4.0  # plan to arrive this much inside the promised window 
 
 
 class BookingService:
-    def __init__(self, platform: "Platform"):
+    def __init__(self, platform: Platform):
         self.p = platform
 
     # --------------------------------------------------------------- helpers
@@ -310,8 +310,17 @@ class BookingService:
                 continue
             out.append(
                 self.request_trip(
-                    tenant_id, so.rider_id, Mode.paratransit, so.origin, so.destination, service_date,
-                    so.requested_time, Channel.agent, so.time_type, so.funding_source_id, standing_order_id=so.id,
+                    tenant_id,
+                    so.rider_id,
+                    Mode.paratransit,
+                    so.origin,
+                    so.destination,
+                    service_date,
+                    so.requested_time,
+                    Channel.agent,
+                    so.time_type,
+                    so.funding_source_id,
+                    standing_order_id=so.id,
                 )
             )
         return out

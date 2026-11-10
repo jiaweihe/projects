@@ -1,6 +1,6 @@
 import pytest
 
-from roam.models import Rider, TripRequest
+from roam.models import Rider
 from roam.store import TenantIsolationError
 
 from .conftest import TENANTS

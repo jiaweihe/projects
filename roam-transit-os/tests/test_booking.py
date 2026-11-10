@@ -47,7 +47,7 @@ def test_capacity_denial_is_logged_and_alerted(testville):
     p, rt = testville
     p.clock.minute = 600
     results = []
-    for i in range(30):
+    for _ in range(30):
         r = _rider(p, accessibility_needs=[AccessibilityNeed.wheelchair])
         results.append(p.booking.request_trip("testville", r.id, Mode.paratransit, A, B, SERVICE_DAY, 7 * 60))
     denied = [t for t in results if t.status == TripStatus.denied]
@@ -63,8 +63,11 @@ def test_standing_orders_expand_once(testville):
     p, rt = testville
     p.clock.minute = 600
     r = _rider(p)
-    p.booking.add_standing_order(StandingOrder(id="so1", tenant_id="testville", rider_id=r.id, weekdays=[1, 3], origin=A,
-                                               destination=B, requested_time=480, start=TODAY))
+    p.booking.add_standing_order(
+        StandingOrder(
+            id="so1", tenant_id="testville", rider_id=r.id, weekdays=[1, 3], origin=A, destination=B, requested_time=480, start=TODAY
+        )
+    )
     first = p.booking.expand_standing_orders("testville", SERVICE_DAY)  # Tuesday
     again = p.booking.expand_standing_orders("testville", SERVICE_DAY)
     assert len(first) == 1 and first[0].status == TripStatus.booked and again == []

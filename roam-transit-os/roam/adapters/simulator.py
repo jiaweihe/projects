@@ -187,7 +187,7 @@ class SimulatorAdapter(VehicleAdapter):
             self.world.schedule(start + stop.service_min, self._done)
             return
         planned = self.travel.travel_min(self.loc, stop.location)
-        actual = planned * math.exp(self.rng.gauss(-self.params.travel_noise_sd**2 / 2, self.params.travel_noise_sd))
+        actual = planned * math.exp(self.rng.gauss(-(self.params.travel_noise_sd**2) / 2, self.params.travel_noise_sd))
         self._event("en_route", stop, eta=self.world.now + planned)
         km = self.travel.distance_km(self.loc, stop.location)
         self.world.schedule(self.world.now + actual, lambda: self._arrive(stop, km))

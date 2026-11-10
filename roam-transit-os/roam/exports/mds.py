@@ -41,7 +41,7 @@ def _ms(rt, d: date, minute: float) -> int:
     return int((base + timedelta(minutes=minute)).timestamp() * 1000)
 
 
-def mds_vehicles(platform: "Platform", tenant_id: str) -> dict[str, Any]:
+def mds_vehicles(platform: Platform, tenant_id: str) -> dict[str, Any]:
     rt = platform.tenant(tenant_id)
     return {
         "version": MDS_VERSION,
@@ -61,7 +61,7 @@ def mds_vehicles(platform: "Platform", tenant_id: str) -> dict[str, Any]:
     }
 
 
-def mds_events(platform: "Platform", tenant_id: str, service_date: date) -> dict[str, Any]:
+def mds_events(platform: Platform, tenant_id: str, service_date: date) -> dict[str, Any]:
     rt = platform.tenant(tenant_id)
     out = []
     for e in platform.store.scope(tenant_id).list(Event, service_date=service_date):
@@ -84,7 +84,7 @@ def mds_events(platform: "Platform", tenant_id: str, service_date: date) -> dict
     return {"version": MDS_VERSION, "events": out}
 
 
-def mds_trips(platform: "Platform", tenant_id: str, service_date: date) -> dict[str, Any]:
+def mds_trips(platform: Platform, tenant_id: str, service_date: date) -> dict[str, Any]:
     """Completed passenger trips. Rider identity is never exported; locations are rounded."""
     rt = platform.tenant(tenant_id)
     out = []

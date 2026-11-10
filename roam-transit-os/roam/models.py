@@ -11,7 +11,7 @@ from __future__ import annotations
 import itertools
 from datetime import date
 from enum import Enum
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -156,7 +156,7 @@ class Rider(BaseModel):
     contact: dict[str, str] = Field(default_factory=dict)  # {"phone": ..., "sms_opt_in": "yes"}
     accessibility_needs: list[AccessibilityNeed] = Field(default_factory=list)
     eligibility_status: EligibilityStatus = EligibilityStatus.none
-    eligibility_expires: Optional[date] = None
+    eligibility_expires: date | None = None
     saved_places: dict[str, LonLat] = Field(default_factory=dict)
 
     @property

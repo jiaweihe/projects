@@ -61,7 +61,9 @@ def phase_cost(phase: int, ops: Operations, cm: dict | None = None, pricing: dic
         lines["field_technicians"] = av_hours * p3["field_tech_cost_per_vehicle_hour"]
         lines["cleaning"] = av * p3["cleaning_per_vehicle_day"] * ops.service_days
         lines["safety_attendants"] = av_hours * p2.get("safety_attendant_share", 0.0) * p1["driver_cost_per_hour"]
-        lines["accessibility_attendants"] = ops.wheelchair_trips * av_share * p3["wheelchair_attendant_share"] * p3["attendant_cost_per_trip"]
+        lines["accessibility_attendants"] = (
+            ops.wheelchair_trips * av_share * p3["wheelchair_attendant_share"] * p3["attendant_cost_per_trip"]
+        )
     lines.update(_roam_fees(ops, cm, pricing, av_share))
     total = sum(lines.values())
     roam = lines["roam_platform_fee"] + lines["roam_ops_fee"]

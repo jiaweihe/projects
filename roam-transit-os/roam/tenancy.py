@@ -53,10 +53,10 @@ class TenantRuntime:
         zone_geo = {z.id: z.geometry for z in self.zones}
         ok: set[str] = set()
         for v in self.vehicles:
-            if v.adapter_kind != AdapterKind.av_partner:
-                ok.add(v.id)
-            elif any(geo.point_in_geometry(a, zone_geo[z]) for z in v.odd_zone_ids) and any(
-                geo.point_in_geometry(b, zone_geo[z]) for z in v.odd_zone_ids
+            if (
+                v.adapter_kind != AdapterKind.av_partner
+                or any(geo.point_in_geometry(a, zone_geo[z]) for z in v.odd_zone_ids)
+                and any(geo.point_in_geometry(b, zone_geo[z]) for z in v.odd_zone_ids)
             ):
                 ok.add(v.id)
         return ok

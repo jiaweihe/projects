@@ -33,7 +33,7 @@ def performance_adjustment(kpis: dict, terms, ops_fee: float) -> tuple[float, di
     return round(ops_fee * total_pct / 100, 2), detail
 
 
-def build_invoice(platform: "Platform", tenant_id: str, period: str, start: date | None = None, end: date | None = None) -> Invoice:
+def build_invoice(platform: Platform, tenant_id: str, period: str, start: date | None = None, end: date | None = None) -> Invoice:
     """Invoice for a calendar month ``YYYY-MM`` (or an explicit date range within it)."""
     y, m = map(int, period.split("-"))
     days_in_month = monthrange(y, m)[1]

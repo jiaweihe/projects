@@ -76,5 +76,5 @@ def test_shift_assignment_never_overlaps_on_a_vehicle():
         by_vehicle.setdefault(s.vehicle_id, []).append((s.start, s.end))
     for spans in by_vehicle.values():
         spans.sort()
-        assert all(a[1] <= b[0] for a, b in zip(spans, spans[1:]))
+        assert all(a[1] <= b[0] for a, b in zip(spans, spans[1:], strict=False))
     assert all(s.driver_id is None for s in shifts if "MDCAV" in s.vehicle_id)

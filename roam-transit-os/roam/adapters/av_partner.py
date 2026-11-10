@@ -9,7 +9,8 @@ dispatch -> ODD enforcement -> remote-assist path can be exercised end to end.
 from __future__ import annotations
 
 import itertools
-from typing import Any, Callable, Protocol
+from collections.abc import Callable
+from typing import Any, Protocol
 
 from .. import geo
 from ..models import AdapterKind, Run, VehicleCapabilities
@@ -93,6 +94,13 @@ class AVPartnerAdapter(VehicleAdapter):
         t = AssistTicket(ticket_id=f"assist_{next(_ticket_ids):05d}", vehicle_id=self.vehicle_id)
         self.tickets[t.ticket_id] = t
         self.on_assist(ctx, t)  # lands in the ops console exceptions queue (severity high)
-        self._emit_event(VehicleEvent(self.vehicle_id, ctx.timestamp, "remote_assist", location=ctx.location,
-                                      payload={"ticket_id": t.ticket_id, "reason": ctx.reason}))
+        self._emit_event(
+            VehicleEvent(
+                self.vehicle_id,
+                ctx.timestamp,
+                "remote_assist",
+                location=ctx.location,
+                payload={"ticket_id": t.ticket_id, "reason": ctx.reason},
+            )
+        )
         return t

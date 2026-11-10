@@ -5,10 +5,15 @@ from roam.models import EligibilityStatus, Rider, TripRequest, TripStatus
 def _setup(testville):
     p, rt = testville
     p.clock.minute = 600
-    r = p.store.scope("testville").add(Rider(
-        id="rider_0042", tenant_id="testville", eligibility_status=EligibilityStatus.certified,
-        contact={"phone": "+15550001111"}, saved_places={"home": (-75.05, 40.06), "clinic": (-75.00, 40.03)},
-    ))
+    r = p.store.scope("testville").add(
+        Rider(
+            id="rider_0042",
+            tenant_id="testville",
+            eligibility_status=EligibilityStatus.certified,
+            contact={"phone": "+15550001111"},
+            saved_places={"home": (-75.05, 40.06), "clinic": (-75.00, 40.03)},
+        )
+    )
     return p, r
 
 

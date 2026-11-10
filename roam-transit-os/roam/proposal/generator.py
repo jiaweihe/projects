@@ -147,8 +147,14 @@ def generate_proposal(inp: ProposalInput, cost_model: dict | None = None) -> dic
         if n not in results:
             kk = _simulate(inp, n, spec)
             results[n] = kk
-            history.append({"vehicles": n, "ada_denials": kk["ada_denials"], "otp": kk["on_time_performance"],
-                            "micro_unserved": kk["microtransit_unserved"]})
+            history.append(
+                {
+                    "vehicles": n,
+                    "ada_denials": kk["ada_denials"],
+                    "otp": kk["on_time_performance"],
+                    "micro_unserved": kk["microtransit_unserved"],
+                }
+            )
         return results[n]
 
     lo, hi = 1, max(2, math.ceil(sample_trips / 20))
@@ -213,7 +219,8 @@ def generate_proposal(inp: ProposalInput, cost_model: dict | None = None) -> dic
             "fleet_size": fleet,
             "wheelchair_positions": fleet,
             "service_hours": "Mon-Fri 06:00-21:00, Sat 08:00-18:00",
-            "zones": ["paratransit: full boundary (ADA)"] * ("paratransit" in inp.modes) + ["microtransit: on-demand zone"] * ("microtransit" in inp.modes),
+            "zones": ["paratransit: full boundary (ADA)"] * ("paratransit" in inp.modes)
+            + ["microtransit: on-demand zone"] * ("microtransit" in inp.modes),
             "annual_vehicle_revenue_hours": round(ops.revenue_hours),
             "annual_trips": round(trips_year),
         },
@@ -250,7 +257,9 @@ def write_pdf(proposal: dict[str, Any], path: str | Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     ss = getSampleStyleSheet()
     small = ss["BodyText"].clone("small", fontSize=7.5, leading=9)
-    doc = SimpleDocTemplate(str(path), pagesize=letter, leftMargin=0.6 * inch, rightMargin=0.6 * inch, topMargin=0.5 * inch, bottomMargin=0.5 * inch)
+    doc = SimpleDocTemplate(
+        str(path), pagesize=letter, leftMargin=0.6 * inch, rightMargin=0.6 * inch, topMargin=0.5 * inch, bottomMargin=0.5 * inch
+    )
     sd, c, b = proposal["service_design"], proposal["costs"], proposal["benchmark"]
     money = lambda v: f"${v:,.0f}"  # noqa: E731
     millions = lambda v: f"${v / 1e6:,.2f}M"  # noqa: E731
@@ -267,49 +276,110 @@ def write_pdf(proposal: dict[str, Any], path: str | Path) -> Path:
     design = [
         ["Fleet (incl. 15% spares)", f"{sd['fleet_size']} accessible vehicles"],
         ["Service hours", sd["service_hours"]],
-        ["Weekday demand", f"{proposal['demand']['paratransit_trips_per_weekday']} paratransit + {proposal['demand']['microtransit_trips_per_weekday']} microtransit trips"],
+        [
+            "Weekday demand",
+            f"{proposal['demand']['paratransit_trips_per_weekday']} paratransit + "
+            f"{proposal['demand']['microtransit_trips_per_weekday']} microtransit trips",
+        ],
         ["Annual vehicle revenue hours", f"{sd['annual_vehicle_revenue_hours']:,}"],
         ["Annual trips", f"{sd['annual_trips']:,}"],
     ]
     t1 = Table(design, colWidths=[2.4 * inch, 4.6 * inch])
-    t1.setStyle(TableStyle([("FONTSIZE", (0, 0), (-1, -1), 9), ("GRID", (0, 0), (-1, -1), 0.25, colors.grey), ("BACKGROUND", (0, 0), (0, -1), colors.whitesmoke)]))
+    t1.setStyle(
+        TableStyle(
+            [
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+                ("BACKGROUND", (0, 0), (0, -1), colors.whitesmoke),
+            ]
+        )
+    )
     story += [Paragraph("Service design", ss["Heading3"]), t1, Spacer(1, 8)]
 
     rows = [["", "Turnkey (benchmark)", "Phase 1: human-driven", "Phase 2: hybrid AV", "Phase 3: driverless"]]
-    rows.append(["Annual program cost", f"{millions(b['turnkey_low'])}-{millions(b['turnkey_high'])}",
-                 millions(c["phase_1"]["total"]), millions(c["phase_2"]["total"]), millions(c["phase_3"]["total"])])
-    rows.append(["Cost per trip", f"{money(b['turnkey_cost_per_trip_low'])}-{money(b['turnkey_cost_per_trip_high'])}",
-                 money(c["phase_1"]["cost_per_trip"]), money(c["phase_2"]["cost_per_trip"]), money(c["phase_3"]["cost_per_trip"])])
-    rows.append(["Cost per revenue hour", "$65-$90",
-                 money(c["phase_1"]["cost_per_vrh"]), money(c["phase_2"]["cost_per_vrh"]), money(c["phase_3"]["cost_per_vrh"])])
+    rows.append(
+        [
+            "Annual program cost",
+            f"{millions(b['turnkey_low'])}-{millions(b['turnkey_high'])}",
+            millions(c["phase_1"]["total"]),
+            millions(c["phase_2"]["total"]),
+            millions(c["phase_3"]["total"]),
+        ]
+    )
+    rows.append(
+        [
+            "Cost per trip",
+            f"{money(b['turnkey_cost_per_trip_low'])}-{money(b['turnkey_cost_per_trip_high'])}",
+            money(c["phase_1"]["cost_per_trip"]),
+            money(c["phase_2"]["cost_per_trip"]),
+            money(c["phase_3"]["cost_per_trip"]),
+        ]
+    )
+    rows.append(
+        [
+            "Cost per revenue hour",
+            "$65-$90",
+            money(c["phase_1"]["cost_per_vrh"]),
+            money(c["phase_2"]["cost_per_vrh"]),
+            money(c["phase_3"]["cost_per_vrh"]),
+        ]
+    )
     rows.append(["City owns fleet & data", "No", "Yes", "Yes", "Yes"])
     t2 = Table(rows, colWidths=[1.6 * inch, 1.45 * inch, 1.35 * inch, 1.3 * inch, 1.3 * inch])
-    t2.setStyle(TableStyle([
-        ("FONTSIZE", (0, 0), (-1, -1), 8.5), ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f3b57")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("BACKGROUND", (0, 1), (0, -1), colors.whitesmoke),
-    ]))
+    t2.setStyle(
+        TableStyle(
+            [
+                ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+                ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f3b57")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("BACKGROUND", (0, 1), (0, -1), colors.whitesmoke),
+            ]
+        )
+    )
     story += [Paragraph("Three-phase cost comparison", ss["Heading3"]), t2, Spacer(1, 6)]
 
     p1 = c["phase_1"]
     lines = [k for k in ("drivers", "vehicle_leases", "insurance", "energy_maintenance", "roam_platform_fee", "roam_ops_fee") if k in p1]
-    story.append(Paragraph(
-        "Phase 1 cost lines: " + "; ".join(f"{k.replace('_', ' ')} {money(p1[k])}" for k in lines)
-        + f". Roam's share of program cost: {p1['roam_take_share'] * 100:.0f}%.", small))
+    story.append(
+        Paragraph(
+            "Phase 1 cost lines: "
+            + "; ".join(f"{k.replace('_', ' ')} {money(p1[k])}" for k in lines)
+            + f". Roam's share of program cost: {p1['roam_take_share'] * 100:.0f}%.",
+            small,
+        )
+    )
     p3 = c["phase_3"]
-    story.append(Paragraph(
-        "Phase 3 still budgets labor: " + "; ".join(
-            f"{k.replace('_', ' ')} {money(p3[k])}" for k in ("remote_supervision", "field_technicians", "cleaning", "av_software_licenses", "accessibility_attendants") if k in p3
-        ) + ".", small))
+    story.append(
+        Paragraph(
+            "Phase 3 still budgets labor: "
+            + "; ".join(
+                f"{k.replace('_', ' ')} {money(p3[k])}"
+                for k in ("remote_supervision", "field_technicians", "cleaning", "av_software_licenses", "accessibility_attendants")
+                if k in p3
+            )
+            + ".",
+            small,
+        )
+    )
     sens = proposal["sensitivity"]
-    story.append(Paragraph(
-        f"Sensitivity: driverless beats human-driven only if the AV software licence is below "
-        f"{money(sens['av_license_breakeven_per_vehicle_month'])} per vehicle-month (assumed {money(sens['av_license_assumed_per_vehicle_month'])}).",
-        small))
+    story.append(
+        Paragraph(
+            f"Sensitivity: driverless beats human-driven only if the AV software licence is below "
+            f"{money(sens['av_license_breakeven_per_vehicle_month'])} per vehicle-month "
+            f"(assumed {money(sens['av_license_assumed_per_vehicle_month'])}).",
+            small,
+        )
+    )
     if proposal.get("current"):
         cur = proposal["current"]
-        story.append(Paragraph(f"Current program: {money(cur['annual_cost'])} per year"
-                               + (f", {money(cur['cost_per_trip'])} per trip." if cur.get("cost_per_trip") else "."), small))
+        story.append(
+            Paragraph(
+                f"Current program: {money(cur['annual_cost'])} per year"
+                + (f", {money(cur['cost_per_trip'])} per trip." if cur.get("cost_per_trip") else "."),
+                small,
+            )
+        )
     story += [Spacer(1, 6), Paragraph("Assumptions and items to verify", ss["Heading4"])]
     for a in proposal["assumptions"]:
         story.append(Paragraph("&bull; " + a, small))

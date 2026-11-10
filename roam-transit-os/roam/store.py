@@ -11,7 +11,8 @@ The production target is PostgreSQL + PostGIS with row-level security on ``tenan
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Iterable, TypeVar
+from collections.abc import Iterable
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
@@ -35,12 +36,12 @@ class Store:
     def _all(self, cls: type[T]) -> Iterable[T]:
         return self._tables[cls.__name__].values()  # type: ignore[return-value]
 
-    def scope(self, tenant_id: str) -> "TenantScope":
+    def scope(self, tenant_id: str) -> TenantScope:
         if tenant_id not in self.tenants:
             raise KeyError(f"unknown tenant {tenant_id}")
         return TenantScope(self, tenant_id)
 
-    def ops_scope(self, tenant_ids: Iterable[str] | None = None) -> "OpsScope":
+    def ops_scope(self, tenant_ids: Iterable[str] | None = None) -> OpsScope:
         return OpsScope(self, set(tenant_ids) if tenant_ids is not None else None)
 
 

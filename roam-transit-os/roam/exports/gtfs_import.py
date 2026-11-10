@@ -20,5 +20,7 @@ def load_stops(path: str | Path) -> list[dict]:
     for row in csv.DictReader(io.StringIO(text)):
         if row.get("location_type", "0") not in ("", "0"):
             continue  # platforms/stations/entrances excluded
-        out.append({"stop_id": row["stop_id"], "stop_name": row.get("stop_name", ""), "lat": float(row["stop_lat"]), "lon": float(row["stop_lon"])})
+        out.append(
+            {"stop_id": row["stop_id"], "stop_name": row.get("stop_name", ""), "lat": float(row["stop_lat"]), "lon": float(row["stop_lon"])}
+        )
     return out

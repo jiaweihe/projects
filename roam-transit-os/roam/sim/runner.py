@@ -53,8 +53,7 @@ def simulate_day(
         for k, d in enumerate(advance):
             platform.clock.minute = 9 * 60 + (7.5 * 60) * k / max(1, len(advance))  # 09:00-16:30
             channel = rng.choices([Channel.ivr, Channel.app, Channel.web, Channel.agent], [0.45, 0.25, 0.15, 0.15])[0]
-            platform.booking.request_trip(tid, d.rider_id, d.mode, d.origin, d.destination, service_date, d.time,
-                                          channel, d.time_type)  # type: ignore[arg-type]
+            platform.booking.request_trip(tid, d.rider_id, d.mode, d.origin, d.destination, service_date, d.time, channel, d.time_type)  # type: ignore[arg-type]
 
     # ---------------------------------------------------- service day
     platform.clock.today = service_date
@@ -70,8 +69,7 @@ def simulate_day(
             def make(d=d, tid=tid):
                 def fire() -> None:
                     platform.clock.minute = world.now
-                    platform.booking.request_trip(tid, d.rider_id, d.mode, d.origin, d.destination, service_date,
-                                                  world.now, Channel.app)
+                    platform.booking.request_trip(tid, d.rider_id, d.mode, d.origin, d.destination, service_date, world.now, Channel.app)
 
                 return fire
 
@@ -86,7 +84,14 @@ def simulate_day(
             late = t.window and t.pickup_arrival and t.pickup_arrival > t.window[1]
             p = complaint_rate_late if late else 0.002
             if t.status in (TripStatus.completed, TripStatus.no_show) and rng.random() < p:
-                scope.add(Complaint(id=new_id("cmp"), tenant_id=tid, service_date=service_date, trip_request_id=t.id,
-                                    category="late" if late else "service"))
+                scope.add(
+                    Complaint(
+                        id=new_id("cmp"),
+                        tenant_id=tid,
+                        service_date=service_date,
+                        trip_request_id=t.id,
+                        category="late" if late else "service",
+                    )
+                )
         res.tenants[tid] = compute_kpis(platform, tid, service_date, service_date)
     return res

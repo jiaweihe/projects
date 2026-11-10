@@ -27,7 +27,7 @@ class ZoneConfig(BaseModel):
     geometry_file: str | None = None
 
     @model_validator(mode="after")
-    def _one_geometry(self) -> "ZoneConfig":
+    def _one_geometry(self) -> ZoneConfig:
         if (self.geometry is None) == (self.geometry_file is None):
             raise ValueError(f"zone {self.id}: give exactly one of geometry / geometry_file")
         return self

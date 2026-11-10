@@ -23,7 +23,7 @@ def _epoch(rt, service_date: date, minute: float) -> int:
     return int((base + timedelta(minutes=minute)).timestamp())
 
 
-def vehicle_positions(platform: "Platform", tenant_id: str, service_date: date) -> dict[str, Any]:
+def vehicle_positions(platform: Platform, tenant_id: str, service_date: date) -> dict[str, Any]:
     rt = platform.tenant(tenant_id)
     entities = []
     for v in rt.vehicles:
@@ -43,7 +43,7 @@ def vehicle_positions(platform: "Platform", tenant_id: str, service_date: date) 
     return {"header": {"gtfs_realtime_version": "2.0", "incrementality": "FULL_DATASET", "timestamp": int(time.time())}, "entity": entities}
 
 
-def trip_updates(platform: "Platform", tenant_id: str, service_date: date) -> dict[str, Any]:
+def trip_updates(platform: Platform, tenant_id: str, service_date: date) -> dict[str, Any]:
     """Demand-responsive trip updates: one entity per active rider trip, with pickup/drop-off ETAs."""
     rt = platform.tenant(tenant_id)
     d = platform.dispatchers.get((tenant_id, service_date))

@@ -41,14 +41,23 @@ def cmd_golive(a) -> int:
         return 1
     out = Path(a.out) / rt.id
     gtfs = write_gtfs_flex_zip(rt, out / "gtfs_flex.zip")
-    print(json.dumps({"tenant": rt.id, "zones": len(rt.zones), "vehicles": len(rt.vehicles),
-                      "validation": rt.validation.as_dict(), "gtfs_flex": str(gtfs),
-                      "seconds": round(time.perf_counter() - t0, 2)}, indent=2))
+    print(
+        json.dumps(
+            {
+                "tenant": rt.id,
+                "zones": len(rt.zones),
+                "vehicles": len(rt.vehicles),
+                "validation": rt.validation.as_dict(),
+                "gtfs_flex": str(gtfs),
+                "seconds": round(time.perf_counter() - t0, 2),
+            },
+            indent=2,
+        )
+    )
     return 0
 
 
 def cmd_simulate(a) -> int:
-    from .ops.console import OpsCenter
     from .platform import Platform
     from .sim.demand import DemandSpec
     from .sim.runner import simulate_day
@@ -63,8 +72,19 @@ def cmd_simulate(a) -> int:
     t0 = time.perf_counter()
     res = simulate_day(p, day, specs, seed=a.seed)
     seat = p.ops.simulate_seat("seat-1", 5 * 60, 23 * 60, day)
-    print(json.dumps({"service_date": day.isoformat(), "kpis": res.tenants, "batch": res.batch, "ops_seat": seat,
-                      "seconds": round(time.perf_counter() - t0, 1)}, indent=2, default=str))
+    print(
+        json.dumps(
+            {
+                "service_date": day.isoformat(),
+                "kpis": res.tenants,
+                "batch": res.batch,
+                "ops_seat": seat,
+                "seconds": round(time.perf_counter() - t0, 1),
+            },
+            indent=2,
+            default=str,
+        )
+    )
     return 0
 
 
@@ -77,10 +97,17 @@ def cmd_propose(a) -> int:
         zones = {z.mode.value: geoms[z.id] for z in cfg.zones}
         boundary = zones.get("paratransit") or zones.get("microtransit") or next(iter(geoms.values()))
         inp = ProposalInput(
-            name=cfg.name, state=cfg.region.get("state", ""), jurisdiction=cfg.region.get("jurisdiction"), boundary=boundary,
-            population=a.population, microtransit_boundary=zones.get("microtransit"), depot=tuple(cfg.depot), timezone=cfg.timezone,
+            name=cfg.name,
+            state=cfg.region.get("state", ""),
+            jurisdiction=cfg.region.get("jurisdiction"),
+            boundary=boundary,
+            population=a.population,
+            microtransit_boundary=zones.get("microtransit"),
+            depot=tuple(cfg.depot),
+            timezone=cfg.timezone,
             modes=tuple(m for m in ("paratransit", "microtransit") if m in zones) or ("microtransit",),
-            current_annual_cost=a.current_cost, current_annual_trips=a.current_trips,
+            current_annual_cost=a.current_cost,
+            current_annual_trips=a.current_trips,
         )
     else:
         g = json.loads(Path(a.boundary).read_text())
@@ -88,8 +115,14 @@ def cmd_propose(a) -> int:
             g = g["features"][0]["geometry"]
         elif g.get("type") == "Feature":
             g = g["geometry"]
-        inp = ProposalInput(name=a.name, state=a.state, boundary=g, population=a.population,
-                            current_annual_cost=a.current_cost, current_annual_trips=a.current_trips)
+        inp = ProposalInput(
+            name=a.name,
+            state=a.state,
+            boundary=g,
+            population=a.population,
+            current_annual_cost=a.current_cost,
+            current_annual_trips=a.current_trips,
+        )
     prop = generate_proposal(inp)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -97,8 +130,18 @@ def cmd_propose(a) -> int:
     (out / f"{stem}_proposal.json").write_text(json.dumps(prop, indent=2, default=str))
     pdf = write_pdf(prop, out / f"{stem}_proposal.pdf")
     summary = {ph: {k: prop["costs"][ph][k] for k in ("total", "cost_per_trip", "cost_per_vrh", "roam_take_share")} for ph in prop["costs"]}
-    print(json.dumps({"service_design": prop["service_design"], "costs": summary, "benchmark": prop["benchmark"],
-                      "sensitivity": prop["sensitivity"], "pdf": str(pdf)}, indent=2))
+    print(
+        json.dumps(
+            {
+                "service_design": prop["service_design"],
+                "costs": summary,
+                "benchmark": prop["benchmark"],
+                "sensitivity": prop["sensitivity"],
+                "pdf": str(pdf),
+            },
+            indent=2,
+        )
+    )
     return 0
 
 

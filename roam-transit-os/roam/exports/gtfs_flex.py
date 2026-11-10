@@ -46,12 +46,33 @@ def build_gtfs_flex(rt, start_date: str = "20260101", end_date: str = "20271231"
         cal.append([sid, *[1 if d in days else 0 for d in DAYS], start_date, end_date])
     files["calendar.txt"] = cal
 
-    br = [["booking_rule_id", "booking_type", "prior_notice_duration_min", "prior_notice_last_day", "prior_notice_last_time",
-           "message", "phone_number", "info_url"]]
+    br = [
+        [
+            "booking_rule_id",
+            "booking_type",
+            "prior_notice_duration_min",
+            "prior_notice_last_day",
+            "prior_notice_last_time",
+            "message",
+            "phone_number",
+            "info_url",
+        ]
+    ]
     routes = [["route_id", "agency_id", "route_short_name", "route_long_name", "route_type"]]
     trips = [["route_id", "service_id", "trip_id"]]
-    st = [["trip_id", "location_id", "stop_sequence", "start_pickup_drop_off_window", "end_pickup_drop_off_window",
-           "pickup_type", "drop_off_type", "pickup_booking_rule_id", "drop_off_booking_rule_id"]]
+    st = [
+        [
+            "trip_id",
+            "location_id",
+            "stop_sequence",
+            "start_pickup_drop_off_window",
+            "end_pickup_drop_off_window",
+            "pickup_type",
+            "drop_off_type",
+            "pickup_booking_rule_id",
+            "drop_off_booking_rule_id",
+        ]
+    ]
     for mode in cfg.modes:
         zones = rt.zones_for(mode)
         if not zones:
@@ -59,13 +80,35 @@ def build_gtfs_flex(rt, start_date: str = "20260101", end_date: str = "20271231"
         if mode == Mode.paratransit:
             r = cfg.booking_rules.paratransit
             # booking_type 2 = up to prior day(s)
-            br.append([f"br_{mode.value}", 2, "", r.min_advance_days, r.booking_cutoff + ":00",
-                       "ADA paratransit: certified riders, book by phone/app up to the day before", cfg.branding.phone_number, cfg.branding.info_url])
+            br.append(
+                [
+                    f"br_{mode.value}",
+                    2,
+                    "",
+                    r.min_advance_days,
+                    r.booking_cutoff + ":00",
+                    "ADA paratransit: certified riders, book by phone/app up to the day before",
+                    cfg.branding.phone_number,
+                    cfg.branding.info_url,
+                ]
+            )
         else:
-            br.append([f"br_{mode.value}", 0, "", "", "", "Book on demand in the app, on the web or by phone",
-                       cfg.branding.phone_number, cfg.branding.info_url])
+            br.append(
+                [
+                    f"br_{mode.value}",
+                    0,
+                    "",
+                    "",
+                    "",
+                    "Book on demand in the app, on the web or by phone",
+                    cfg.branding.phone_number,
+                    cfg.branding.info_url,
+                ]
+            )
         route_id = f"{cfg.id}_{mode.value}"
-        routes.append([route_id, cfg.id, mode.value.replace("_", " ").title(), f"{cfg.branding.display_name} {mode.value}", _ROUTE_TYPE_BUS])
+        routes.append(
+            [route_id, cfg.id, mode.value.replace("_", " ").title(), f"{cfg.branding.display_name} {mode.value}", _ROUTE_TYPE_BUS]
+        )
         for hrs, sid in svc_ids.items():
             from ..config.schema import hhmm_to_min
 

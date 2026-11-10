@@ -6,7 +6,13 @@ from roam.api import Principal, create_app
 from .conftest import SERVICE_DAY, new_city_config
 
 OPS = {"X-Api-Key": "ops"}
-TRIP = {"mode": "paratransit", "origin": [-75.05, 40.06], "destination": [-75.0, 40.03], "service_date": SERVICE_DAY.isoformat(), "time": "09:00"}
+TRIP = {
+    "mode": "paratransit",
+    "origin": [-75.05, 40.06],
+    "destination": [-75.0, 40.03],
+    "service_date": SERVICE_DAY.isoformat(),
+    "time": "09:00",
+}
 
 
 def _client(platform):
@@ -31,7 +37,10 @@ def test_provision_book_and_isolation(platform):
     assert trip["status"] == "booked"
     # another city cannot see this tenant (404, not 403: no existence leak)
     assert c.get(f"/tenants/testville/trips/{trip['id']}", headers={"X-Api-Key": "city-other"}).status_code == 404
-    assert c.get("/tenants/testville/kpis", params={"start": SERVICE_DAY, "end": SERVICE_DAY}, headers={"X-Api-Key": "city-tv"}).status_code == 200
+    assert (
+        c.get("/tenants/testville/kpis", params={"start": SERVICE_DAY, "end": SERVICE_DAY}, headers={"X-Api-Key": "city-tv"}).status_code
+        == 200
+    )
     assert c.get("/ops/queue", headers={"X-Api-Key": "city-tv"}).status_code == 403
     assert c.post("/tenants", content="id: x", headers={"X-Api-Key": "city-tv"}).status_code == 403
     assert c.get("/tenants/testville/exports/gtfs-flex.zip", headers={"X-Api-Key": "city-tv"}).headers["content-type"] == "application/zip"
@@ -55,8 +64,14 @@ def test_driver_app_flow(platform):
     unit = next(u for u in d.units if any(n.trip_id == trip["id"] for n in u.route))
     m = c.get(f"/driver/{unit.vehicle_id}/manifest", headers=OPS).json()
     pu, do = (s["id"] for s in m["stops"] if s["trip_request_id"] == trip["id"])
-    steps = [(pu, "depart", "08:45"), (pu, "arrive", "09:05"), (pu, "board", "09:07"),
-             (do, "depart", "09:08"), (do, "arrive", "09:20"), (do, "dropoff", "09:21")]
+    steps = [
+        (pu, "depart", "08:45"),
+        (pu, "arrive", "09:05"),
+        (pu, "board", "09:07"),
+        (do, "depart", "09:08"),
+        (do, "arrive", "09:20"),
+        (do, "dropoff", "09:21"),
+    ]
     for sid, act, t in steps:
         r = c.post(f"/driver/{unit.vehicle_id}/actions", headers=OPS, json={"stop_id": sid, "action": act, "time": t})
         assert r.status_code == 200, r.text

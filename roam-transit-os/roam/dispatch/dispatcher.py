@@ -13,12 +13,12 @@ Lifecycle:
 from __future__ import annotations
 
 import copy
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Callable, Optional
 
 from ..adapters.base import RunPatch, VehicleAdapter, VehicleEvent
-from ..models import Run, Shift, Stop, StopStatus, StopType
+from ..models import Run, Shift, Stop, StopType
 from .core import Insertion, Node, Solver, Task, Unit, best_insertion, evaluate, make_break
 
 ExceptionSink = Callable[..., None]
@@ -32,7 +32,7 @@ class UnitRuntime:
     revenue_km_start: float | None = None
     odometer: float = 0.0
     revenue_km: float = 0.0
-    committed: Optional[Node] = None
+    committed: Node | None = None
     trips_served: set[str] = field(default_factory=set)
 
 
@@ -79,8 +79,7 @@ class Dispatcher:
                 u.route.append(make_break(b0, b0 + 120, sh.break_duration_min))
             self.units.append(u)
             self.rt[u.unit_id] = UnitRuntime(
-                run=Run(id=f"run:{sh.id}", tenant_id=tenant_id, shift_id=sh.id, vehicle_id=v.id,
-                        shift_start=sh.start, shift_end=sh.end)
+                run=Run(id=f"run:{sh.id}", tenant_id=tenant_id, shift_id=sh.id, vehicle_id=v.id, shift_start=sh.start, shift_end=sh.end)
             )
 
     # ------------------------------------------------------------- planning
@@ -92,7 +91,7 @@ class Dispatcher:
             return None
         return {u.unit_id for u in self.units if u.vehicle_id in vehicle_ids}
 
-    def try_insert(self, task: Task, now: float | None = None) -> Optional[Insertion]:
+    def try_insert(self, task: Task, now: float | None = None) -> Insertion | None:
         if now is not None:
             for u in self.units:
                 u.start_time = max(u.start_time, now)
@@ -138,7 +137,7 @@ class Dispatcher:
             s = evaluate(u, u.route, self.travel, getattr(self.solver, "buffer", 1.0))
             if s is None:
                 continue
-            for n, t in zip(u.route, s.times):
+            for n, t in zip(u.route, s.times, strict=True):
                 if n.kind == "pickup" and n.trip_id == trip_id:
                     return t
         return None
@@ -256,8 +255,13 @@ class Dispatcher:
             late_by = max(eta, n.earliest) - n.latest
             if n.kind == "pickup" and late_by > 0:
                 self.on_exception(
-                    type="predicted_late_pickup", severity=3, tenant_id=self.tenant_id, vehicle_id=u.vehicle_id,
-                    trip_id=n.trip_id, at=e.timestamp, message=f"pickup predicted {late_by:.0f} min past planning window",
+                    type="predicted_late_pickup",
+                    severity=3,
+                    tenant_id=self.tenant_id,
+                    vehicle_id=u.vehicle_id,
+                    trip_id=n.trip_id,
+                    at=e.timestamp,
+                    message=f"pickup predicted {late_by:.0f} min past planning window",
                 )
         elif e.type in ("arrival", "boarding", "dropoff"):
             if r.first_revenue is None and e.type == "boarding":
@@ -288,8 +292,12 @@ class Dispatcher:
         pending = [n.task for n in u.route if n.kind == "pickup" and n.task is not None]
         u.route = []
         self.on_exception(
-            type="vehicle_fault", severity=1 if stranded else 2, tenant_id=self.tenant_id, vehicle_id=u.vehicle_id,
-            at=e.timestamp, message=f"vehicle fault; {len(stranded)} riders onboard, {len(pending)} pickups to reassign",
+            type="vehicle_fault",
+            severity=1 if stranded else 2,
+            tenant_id=self.tenant_id,
+            vehicle_id=u.vehicle_id,
+            at=e.timestamp,
+            message=f"vehicle fault; {len(stranded)} riders onboard, {len(pending)} pickups to reassign",
         )
         for t in pending:
             t2 = copy.copy(t)
@@ -297,8 +305,12 @@ class Dispatcher:
             t2.pu_latest = max(t2.pu_latest, e.timestamp + 45)
             if self.try_insert(t2, now=e.timestamp) is None:
                 self.on_exception(
-                    type="reassign_failed", severity=2, tenant_id=self.tenant_id, trip_id=t.trip_id,
-                    at=e.timestamp, message="could not reassign trip after vehicle fault; arrange backup",
+                    type="reassign_failed",
+                    severity=2,
+                    tenant_id=self.tenant_id,
+                    trip_id=t.trip_id,
+                    at=e.timestamp,
+                    message="could not reassign trip after vehicle fault; arrange backup",
                 )
         for tid in stranded:
             task, _ = u.onboard.pop(tid)
@@ -310,8 +322,12 @@ class Dispatcher:
             rescue.priority = 10
             if self.try_insert(rescue, now=e.timestamp) is None:
                 self.on_exception(
-                    type="rescue_failed", severity=1, tenant_id=self.tenant_id, trip_id=tid,
-                    at=e.timestamp, message="stranded rider: no rescue vehicle available",
+                    type="rescue_failed",
+                    severity=1,
+                    tenant_id=self.tenant_id,
+                    trip_id=tid,
+                    at=e.timestamp,
+                    message="stranded rider: no rescue vehicle available",
                 )
         for _u in [x for x in self.units if x.vehicle_id == u.vehicle_id]:
             _u.active = False

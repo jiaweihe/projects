@@ -5,7 +5,7 @@ from __future__ import annotations
 import heapq
 import itertools
 import random
-from typing import Callable
+from collections.abc import Callable
 
 
 class SimWorld:

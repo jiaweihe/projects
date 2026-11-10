@@ -100,8 +100,11 @@ def generate(rt, service_date: date, spec: DemandSpec, seed: int = 1) -> Demand:
             if not needs and rng.random() < 0.3:
                 needs = [AccessibilityNeed.ambulatory_assist]
             r = Rider(
-                id=new_id("rider"), tenant_id=rt.id, accessibility_needs=needs,
-                eligibility_status=EligibilityStatus.certified, contact={"phone": f"+1555{rng.randrange(10**6, 10**7)}"},
+                id=new_id("rider"),
+                tenant_id=rt.id,
+                accessibility_needs=needs,
+                eligibility_status=EligibilityStatus.certified,
+                contact={"phone": f"+1555{rng.randrange(10**6, 10**7)}"},
             )
             r.saved_places["home"] = sample()  # type: ignore[misc]
             riders.append(r)
@@ -113,7 +116,9 @@ def generate(rt, service_date: date, spec: DemandSpec, seed: int = 1) -> Demand:
             dest = pick_dest(home, sample)
             t_out = _sample_hour(PARATRANSIT_PROFILE, open_ + 20, close - 240, rng)
             appt = rng.random() < spec.appointment_share
-            out.items.append(DemandItem(Mode.paratransit, r.id, home, dest, t_out + (40 if appt else 0), "appointment" if appt else "pickup"))
+            out.items.append(
+                DemandItem(Mode.paratransit, r.id, home, dest, t_out + (40 if appt else 0), "appointment" if appt else "pickup")
+            )
             made += 1
             if made < spec.paratransit_trips:
                 t_back = min(close - 20, t_out + rng.uniform(120, 300))
@@ -126,8 +131,9 @@ def generate(rt, service_date: date, spec: DemandSpec, seed: int = 1) -> Demand:
             continue
         sample = zone_sampler(mode)
         for _ in range(n):
-            r = Rider(id=new_id("rider"), tenant_id=rt.id,
-                      accessibility_needs=[AccessibilityNeed.wheelchair] if rng.random() < 0.03 else [])
+            r = Rider(
+                id=new_id("rider"), tenant_id=rt.id, accessibility_needs=[AccessibilityNeed.wheelchair] if rng.random() < 0.03 else []
+            )
             out.riders.append(r)
             o = sample()  # type: ignore[misc]
             d = pick_dest(o, sample)

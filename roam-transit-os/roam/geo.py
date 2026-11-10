@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import math
 import random
-from typing import Any, Iterable, Protocol
+from collections.abc import Iterable
+from typing import Any, Protocol
 
 from .models import LonLat
 
@@ -55,10 +56,7 @@ def _point_in_ring(pt: LonLat, ring: list[list[float]]) -> bool:
 
 
 def point_in_geometry(pt: LonLat, geometry: dict[str, Any]) -> bool:
-    for poly in _rings(geometry):
-        if _point_in_ring(pt, poly[0]) and not any(_point_in_ring(pt, hole) for hole in poly[1:]):
-            return True
-    return False
+    return any(_point_in_ring(pt, poly[0]) and not any(_point_in_ring(pt, hole) for hole in poly[1:]) for poly in _rings(geometry))
 
 
 def bbox(geometry: dict[str, Any]) -> tuple[float, float, float, float]:

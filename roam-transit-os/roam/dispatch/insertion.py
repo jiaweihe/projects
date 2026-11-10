@@ -7,8 +7,6 @@ other ``Solver`` to ``Platform(batch_solver=...)``).
 
 from __future__ import annotations
 
-from typing import Optional
-
 from ..geo import TravelModel
 from .core import Insertion, Solution, Task, Unit, best_insertion, evaluate, remove_task
 
@@ -21,7 +19,7 @@ class InsertionSolver:
         self.buffer = buffer
         self.improve_passes = improve_passes
 
-    def insert(self, units: list[Unit], task: Task, travel: TravelModel) -> Optional[Insertion]:
+    def insert(self, units: list[Unit], task: Task, travel: TravelModel) -> Insertion | None:
         ins = best_insertion(units, task, travel, self.buffer)
         if ins is not None:
             ins.unit.route = ins.route

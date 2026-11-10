@@ -17,7 +17,7 @@ from .config.validate import ValidationReport, validate
 from .dispatch.core import Solver
 from .dispatch.dispatcher import Dispatcher
 from .dispatch.insertion import InsertionSolver
-from .models import AdapterKind, Event, Mode, StopType, TripRequest, TripStatus, new_id
+from .models import AdapterKind, Event, TripRequest, TripStatus, new_id
 from .ops.console import OpsCenter, ops_sink
 from .ops.incidents import LogNotifier
 from .sim.world import SimWorld
@@ -90,7 +90,9 @@ class Platform:
             self.dispatchers[key] = d
         return self.dispatchers[key]
 
-    def build_adapters(self, tenant_id: str, world: SimWorld | None = None, sim_params: SimParams | None = None) -> dict[str, VehicleAdapter]:
+    def build_adapters(
+        self, tenant_id: str, world: SimWorld | None = None, sim_params: SimParams | None = None
+    ) -> dict[str, VehicleAdapter]:
         """Create one adapter per vehicle. With a ``world`` every vehicle is simulated
         (human-driven vehicles run as simulator adapters; AVs via the simulated provider)."""
         rt = self.tenant(tenant_id)
@@ -99,11 +101,21 @@ class Platform:
         for v in rt.vehicles:
             caps = v.capabilities()
             if world is not None:
-                sim = SimulatorAdapter(v.id, caps, world, rt.travel, tuple(rt.config.depot), sim_params,
-                                       rng=__import__("random").Random(f"{v.id}:{world.rng.random()}"))
+                sim = SimulatorAdapter(
+                    v.id,
+                    caps,
+                    world,
+                    rt.travel,
+                    tuple(rt.config.depot),
+                    sim_params,
+                    rng=__import__("random").Random(f"{v.id}:{world.rng.random()}"),
+                )
                 if v.adapter_kind == AdapterKind.av_partner:
                     a: VehicleAdapter = AVPartnerAdapter(
-                        v.id, caps, SimulatedAVProvider({v.id: sim}), {z: zone_geo[z] for z in v.odd_zone_ids},
+                        v.id,
+                        caps,
+                        SimulatedAVProvider({v.id: sim}),
+                        {z: zone_geo[z] for z in v.odd_zone_ids},
                         on_assist=lambda ctx, t, tid=tenant_id: self._on_assist(tid, ctx, t),
                     )
                 else:
@@ -133,8 +145,14 @@ class Platform:
 
     def _on_assist(self, tenant_id: str, ctx: AssistContext, ticket: AssistTicket) -> None:
         self.ops.raise_exception(
-            type="remote_assist", severity=2, tenant_id=tenant_id, at=ctx.timestamp, vehicle_id=ctx.vehicle_id,
-            service_date=self.clock.today, message=f"AV remote assist: {ctx.reason}", ticket_id=ticket.ticket_id,
+            type="remote_assist",
+            severity=2,
+            tenant_id=tenant_id,
+            at=ctx.timestamp,
+            vehicle_id=ctx.vehicle_id,
+            service_date=self.clock.today,
+            message=f"AV remote assist: {ctx.reason}",
+            ticket_id=ticket.ticket_id,
         )
 
     def _on_vehicle_event(self, tenant_id: str, service_date: date, e: VehicleEvent) -> None:
@@ -142,8 +160,13 @@ class Platform:
         if e.type != "en_route":
             scope.add(
                 Event(
-                    id=new_id("evt"), tenant_id=tenant_id, vehicle_id=e.vehicle_id, type=e.type, timestamp=e.timestamp,
-                    service_date=service_date, location=e.location,
+                    id=new_id("evt"),
+                    tenant_id=tenant_id,
+                    vehicle_id=e.vehicle_id,
+                    type=e.type,
+                    timestamp=e.timestamp,
+                    service_date=service_date,
+                    location=e.location,
                     payload={k: v for k, v in e.payload.items() if k != "eta"} | {"trip_id": e.trip_id, "stop_id": e.stop_id},
                 )
             )
@@ -162,8 +185,13 @@ class Platform:
             trip.pickup_arrival = e.timestamp
             if trip.window and max(e.timestamp, trip.window[0]) > trip.window[1]:
                 self.ops.raise_exception(
-                    type="late_pickup", severity=3, tenant_id=tenant_id, at=e.timestamp, vehicle_id=e.vehicle_id,
-                    trip_id=trip.id, service_date=service_date,
+                    type="late_pickup",
+                    severity=3,
+                    tenant_id=tenant_id,
+                    at=e.timestamp,
+                    vehicle_id=e.vehicle_id,
+                    trip_id=trip.id,
+                    service_date=service_date,
                     message=f"pickup {e.timestamp - trip.window[1]:.0f} min outside window",
                 )
         elif e.type == "boarding":
@@ -173,6 +201,12 @@ class Platform:
         elif e.type == "no_show":
             trip.status = TripStatus.no_show
             self.ops.raise_exception(
-                type="no_show", severity=4, tenant_id=tenant_id, at=e.timestamp, vehicle_id=e.vehicle_id,
-                trip_id=trip.id, service_date=service_date, message="rider no-show",
+                type="no_show",
+                severity=4,
+                tenant_id=tenant_id,
+                at=e.timestamp,
+                vehicle_id=e.vehicle_id,
+                trip_id=trip.id,
+                service_date=service_date,
+                message="rider no-show",
             )

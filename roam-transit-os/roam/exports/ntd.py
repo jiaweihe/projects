@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from ..platform import Platform
 
 
-def ntd_monthly(platform: "Platform", tenant_id: str, start: date, end: date) -> dict[str, float | str]:
+def ntd_monthly(platform: Platform, tenant_id: str, start: date, end: date) -> dict[str, float | str]:
     rt = platform.tenant(tenant_id)
     k = compute_kpis(platform, tenant_id, start, end)
     trips = [t for t in platform.store.scope(tenant_id).list(TripRequest, status=TripStatus.completed) if start <= t.service_date <= end]

@@ -8,8 +8,9 @@ meal break, vehicle range, and AV operational design domain (via ``allowed_units
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Iterable, Literal, Optional, Protocol
+from typing import Literal, Protocol
 
 from ..geo import TravelModel
 from ..models import LonLat
@@ -30,15 +31,15 @@ class Task:
     pu_service: float = 2.0
     do_service: float = 2.0
     do_latest: float = INF
-    allowed_units: Optional[set[str]] = None  # None = any unit
+    allowed_units: set[str] | None = None  # None = any unit
     priority: int = 0  # higher = route first (e.g., ADA paratransit)
 
 
 @dataclass
 class Node:
     kind: Literal["pickup", "dropoff", "break"]
-    task: Optional[Task]
-    loc: Optional[LonLat]
+    task: Task | None
+    loc: LonLat | None
     earliest: float
     latest: float
     service: float
@@ -48,11 +49,11 @@ class Node:
         return self.task.trip_id if self.task else None
 
     @staticmethod
-    def pickup_of(t: Task) -> "Node":
+    def pickup_of(t: Task) -> Node:
         return Node("pickup", t, t.pickup, t.pu_earliest, t.pu_latest, t.pu_service)
 
     @staticmethod
-    def dropoff_of(t: Task) -> "Node":
+    def dropoff_of(t: Task) -> Node:
         return Node("dropoff", t, t.dropoff, -INF, t.do_latest, t.do_service)
 
 
@@ -89,7 +90,7 @@ class Schedule:
         return self.drive_min + 0.15 * self.ride_min
 
 
-def evaluate(unit: Unit, nodes: list[Node], travel: TravelModel, buffer: float = 1.0) -> Optional[Schedule]:
+def evaluate(unit: Unit, nodes: list[Node], travel: TravelModel, buffer: float = 1.0) -> Schedule | None:
     """Return the schedule for ``nodes`` on ``unit`` or None if any constraint is violated."""
     return evaluate_at(unit, nodes, travel, buffer)[0]
 
@@ -156,8 +157,8 @@ class Insertion:
     route: list[Node]
 
 
-def best_insertion(units: Iterable[Unit], task: Task, travel: TravelModel, buffer: float = 1.0) -> Optional[Insertion]:
-    best: Optional[Insertion] = None
+def best_insertion(units: Iterable[Unit], task: Task, travel: TravelModel, buffer: float = 1.0) -> Insertion | None:
+    best: Insertion | None = None
     pu, do = Node.pickup_of(task), Node.dropoff_of(task)
     for u in units:
         if not u.active or (task.allowed_units is not None and u.unit_id not in task.allowed_units):
@@ -214,7 +215,7 @@ class Solver(Protocol):
 
     def solve(self, units: list[Unit], tasks: list[Task], travel: TravelModel) -> Solution: ...
 
-    def insert(self, units: list[Unit], task: Task, travel: TravelModel) -> Optional[Insertion]: ...
+    def insert(self, units: list[Unit], task: Task, travel: TravelModel) -> Insertion | None: ...
 
 
 def make_break(earliest: float, latest: float, duration: float) -> Node:

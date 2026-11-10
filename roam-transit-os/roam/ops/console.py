@@ -11,7 +11,7 @@ import itertools
 import math
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Any, Optional
+from typing import Any
 
 from ..models import Severity
 
@@ -156,7 +156,11 @@ class OpsCenter:
         """
         seat = self.seats[seat_id]
         arrivals = sorted(
-            (e for e in self.exceptions.values() if e.tenant_id in seat.tenant_ids and (service_date is None or e.service_date == service_date)),
+            (
+                e
+                for e in self.exceptions.values()
+                if e.tenant_id in seat.tenant_ids and (service_date is None or e.service_date == service_date)
+            ),
             key=lambda e: e.at,
         )
         t = start
@@ -195,7 +199,7 @@ class OpsCenter:
 def ops_sink(ops: OpsCenter, service_date: date | None):
     """Adapter from dispatcher ``on_exception(**kw)`` callbacks to the ops center."""
 
-    def sink(**kw: Any) -> Optional[OpsException]:
+    def sink(**kw: Any) -> OpsException | None:
         kw.setdefault("service_date", service_date)
         return ops.raise_exception(**kw)
 

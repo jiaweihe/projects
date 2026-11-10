@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import csv
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -19,16 +19,27 @@ if TYPE_CHECKING:
     from ..platform import Platform
 
 TABLES = [
-    M.Tenant, M.ServiceZone, M.ServicePolicy, M.Rider, M.FundingSource, M.StandingOrder, M.TripRequest, M.Vehicle,
-    M.Driver, M.Event, M.Incident, M.Complaint, M.Invoice,
+    M.Tenant,
+    M.ServiceZone,
+    M.ServicePolicy,
+    M.Rider,
+    M.FundingSource,
+    M.StandingOrder,
+    M.TripRequest,
+    M.Vehicle,
+    M.Driver,
+    M.Event,
+    M.Incident,
+    M.Complaint,
+    M.Invoice,
 ]
 
 
-def export_tenant(platform: "Platform", tenant_id: str, out_dir: str | Path, include_pii: bool = False) -> dict:
+def export_tenant(platform: Platform, tenant_id: str, out_dir: str | Path, include_pii: bool = False) -> dict:
     out = Path(out_dir) / tenant_id
     out.mkdir(parents=True, exist_ok=True)
     scope = platform.store.scope(tenant_id)
-    manifest = {"tenant_id": tenant_id, "exported_at": datetime.now(timezone.utc).isoformat(), "tables": {}}
+    manifest = {"tenant_id": tenant_id, "exported_at": datetime.now(UTC).isoformat(), "tables": {}}
     for cls in TABLES:
         rows = [r.model_dump(mode="json") for r in scope.list(cls)]
         if cls is M.Rider and not include_pii:
@@ -48,8 +59,10 @@ def export_tenant(platform: "Platform", tenant_id: str, out_dir: str | Path, inc
             import pyarrow.parquet as pq
 
             if rows:
-                pq.write_table(pa.Table.from_pylist([{k: json.dumps(v) if isinstance(v, (dict, list)) else v for k, v in r.items()} for r in rows]),
-                               out / f"{cls.__name__.lower()}.parquet")
+                pq.write_table(
+                    pa.Table.from_pylist([{k: json.dumps(v) if isinstance(v, (dict, list)) else v for k, v in r.items()} for r in rows]),
+                    out / f"{cls.__name__.lower()}.parquet",
+                )
         except ImportError:
             pass
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2))

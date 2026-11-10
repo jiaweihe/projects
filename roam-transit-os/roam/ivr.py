@@ -33,8 +33,19 @@ class BookingAgent(Protocol):
     def interpret(self, state: str, text: str, ctx: dict[str, Any]) -> dict[str, Any]: ...
 
 
-WORD_DIGITS = {"zero": "0", "oh": "0", "one": "1", "two": "2", "three": "3", "four": "4", "five": "5",
-               "six": "6", "seven": "7", "eight": "8", "nine": "9"}
+WORD_DIGITS = {
+    "zero": "0",
+    "oh": "0",
+    "one": "1",
+    "two": "2",
+    "three": "3",
+    "four": "4",
+    "five": "5",
+    "six": "6",
+    "seven": "7",
+    "eight": "8",
+    "nine": "9",
+}
 
 
 class RuleBasedAgent:
@@ -55,9 +66,8 @@ class RuleBasedAgent:
             for i, name in enumerate(ctx.get("places", []), start=1):
                 if name.lower() in t:
                     return {"choice": str(i)}
-        if state == "date":
-            if "tomorrow" in t:
-                return {"choice": "1"}
+        if state == "date" and "tomorrow" in t:
+            return {"choice": "1"}
         if state == "time":
             m = re.search(r"(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?", t)
             if m:
@@ -81,7 +91,7 @@ def _fmt(minutes: float) -> str:
 
 @dataclass
 class IVRSession:
-    platform: "Platform"
+    platform: Platform
     tenant_id: str
     caller: str
     agent: BookingAgent = field(default_factory=RuleBasedAgent)
@@ -97,8 +107,12 @@ class IVRSession:
     def _transfer(self, reason: str) -> IVRResponse:
         self.state = "transfer"
         self.platform.ops.raise_exception(
-            type="ivr_human_fallback", severity=3, tenant_id=self.tenant_id, at=self.platform.clock.minute,
-            service_date=self.platform.clock.today, message=f"caller {self.caller[-4:]}: {reason}",
+            type="ivr_human_fallback",
+            severity=3,
+            tenant_id=self.tenant_id,
+            at=self.platform.clock.minute,
+            service_date=self.platform.clock.today,
+            message=f"caller {self.caller[-4:]}: {reason}",
         )
         return IVRResponse("Please hold while I connect you to a reservation agent.", gather="", done=True, transfer=True)
 
@@ -157,7 +171,9 @@ class IVRSession:
                     return IVRResponse("You have no upcoming rides. " + self._menu())
                 t = upcoming[0]
                 self.platform.booking.cancel_trip(self.tenant_id, t.id, "cancelled by phone")
-                return IVRResponse(f"Your ride on {t.service_date:%A} at {_fmt(t.negotiated_pickup or t.requested_time)} is cancelled. " + self._menu())
+                return IVRResponse(
+                    f"Your ride on {t.service_date:%A} at {_fmt(t.negotiated_pickup or t.requested_time)} is cancelled. " + self._menu()
+                )
             if choice == "3":
                 upcoming = self._upcoming()
                 if not upcoming:
@@ -196,8 +212,10 @@ class IVRSession:
             else:
                 return self._retry("For tomorrow press 1, or enter four digits for month and day.")
             self.data["date"], self.state, self.failures = d, "time", 0
-            return IVRResponse("Enter your pickup time as four digits in 24-hour time, for example 0 9 3 0. "
-                               "If this is an appointment time, say 'appointment' and the time.")
+            return IVRResponse(
+                "Enter your pickup time as four digits in 24-hour time, for example 0 9 3 0. "
+                "If this is an appointment time, say 'appointment' and the time."
+            )
 
         if self.state == "time":
             if not re.fullmatch(r"\d{3,4}", choice):
@@ -211,15 +229,25 @@ class IVRSession:
             rider = self.rider
             assert rider is not None
             trip = self.platform.booking.request_trip(
-                self.tenant_id, rider.id, Mode.paratransit if rider.eligibility_status.value in ("certified", "conditional", "temporary")
-                and Mode.paratransit in self.platform.tenant(self.tenant_id).config.modes else Mode.microtransit,
-                rider.saved_places[self.data["pickup"]], rider.saved_places[self.data["destination"]],
-                self.data["date"], self.data["time"], Channel.ivr, self.data["time_type"],
+                self.tenant_id,
+                rider.id,
+                Mode.paratransit
+                if rider.eligibility_status.value in ("certified", "conditional", "temporary")
+                and Mode.paratransit in self.platform.tenant(self.tenant_id).config.modes
+                else Mode.microtransit,
+                rider.saved_places[self.data["pickup"]],
+                rider.saved_places[self.data["destination"]],
+                self.data["date"],
+                self.data["time"],
+                Channel.ivr,
+                self.data["time_type"],
             )
             self.data["trip_id"] = trip.id
             if trip.status != TripStatus.booked:
                 self.state = "menu"
-                return IVRResponse(f"Sorry, I couldn't book that ride: {trip.status_reason}. Press 0 for an agent, or " + self._menu().lower())
+                return IVRResponse(
+                    f"Sorry, I couldn't book that ride: {trip.status_reason}. Press 0 for an agent, or " + self._menu().lower()
+                )
             w = trip.window or (trip.negotiated_pickup, trip.negotiated_pickup)
             self.state, self.failures = "confirm", 0
             return IVRResponse(
@@ -246,7 +274,8 @@ class IVRSession:
         assert self.rider is not None
         today = self.platform.clock.today
         trips = [
-            t for t in self.platform.store.scope(self.tenant_id).list(TripRequest, rider_id=self.rider.id)
+            t
+            for t in self.platform.store.scope(self.tenant_id).list(TripRequest, rider_id=self.rider.id)
             if t.status in (TripStatus.booked, TripStatus.scheduled) and t.service_date >= today
         ]
         return sorted(trips, key=lambda t: (t.service_date, t.negotiated_pickup or t.requested_time))

@@ -14,7 +14,7 @@ import zipfile
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
 import yaml
@@ -58,15 +58,15 @@ class TripIn(BaseModel):
     time: str  # "HH:MM"
     time_type: Literal["pickup", "appointment"] = "pickup"
     channel: Channel = Channel.app
-    funding_source_id: Optional[str] = None
+    funding_source_id: str | None = None
     companions: int = 0
 
 
 class DriverAction(BaseModel):
     stop_id: str
     action: Literal["depart", "arrive", "board", "no_show", "dropoff"]
-    time: Optional[str] = None
-    location: Optional[tuple[float, float]] = None
+    time: str | None = None
+    location: tuple[float, float] | None = None
     wheelchair: bool = False
     checklist: dict[str, bool] = {}
 
@@ -83,10 +83,10 @@ class ProposalIn(BaseModel):
     name: str
     state: str
     boundary: dict[str, Any]
-    jurisdiction: Optional[str] = None
-    population: Optional[int] = None
-    current_annual_cost: Optional[float] = None
-    current_annual_trips: Optional[float] = None
+    jurisdiction: str | None = None
+    population: int | None = None
+    current_annual_cost: float | None = None
+    current_annual_trips: float | None = None
     modes: list[str] = ["paratransit", "microtransit"]
 
 
@@ -133,24 +133,34 @@ def create_app(platform: Platform | None = None, api_keys: dict[str, Principal] 
         try:
             rt = p.provision(config_from_dict(body))
         except ProvisioningError as e:
-            raise HTTPException(422, e.report.as_dict())
+            raise HTTPException(422, e.report.as_dict()) from e
         return {"tenant_id": rt.id, "validation": rt.validation.as_dict(), "vehicles": len(rt.vehicles), "zones": len(rt.zones)}
 
     @app.get("/tenants/{tenant_id}")
     def get_tenant(tenant_id: str, pr: Principal = Depends(principal)):
         tenant_access(tenant_id, pr, ("ops", "city", "agent"))
         rt = p.tenant(tenant_id)
-        return {"tenant": rt.tenant.model_dump(), "validation": rt.validation.as_dict(), "modes": rt.config.modes,
-                "vehicles": [v.model_dump() for v in rt.vehicles], "policy": rt.policy.model_dump()}
+        return {
+            "tenant": rt.tenant.model_dump(),
+            "validation": rt.validation.as_dict(),
+            "modes": rt.config.modes,
+            "vehicles": [v.model_dump() for v in rt.vehicles],
+            "policy": rt.policy.model_dump(),
+        }
 
     # ------------------------------------------------------------ riders
 
     @app.post("/tenants/{tenant_id}/riders", status_code=201)
     def create_rider(tenant_id: str, body: RiderIn, pr: Principal = Depends(principal)):
         tenant_access(tenant_id, pr, ("ops", "city", "agent", "rider"))
-        r = Rider(id=new_id("rider"), tenant_id=tenant_id, contact={"phone": body.phone} if body.phone else {},
-                  accessibility_needs=body.accessibility_needs, eligibility_status=body.eligibility_status,
-                  saved_places=body.saved_places)
+        r = Rider(
+            id=new_id("rider"),
+            tenant_id=tenant_id,
+            contact={"phone": body.phone} if body.phone else {},
+            accessibility_needs=body.accessibility_needs,
+            eligibility_status=body.eligibility_status,
+            saved_places=body.saved_places,
+        )
         return p.store.scope(tenant_id).add(r).model_dump()
 
     # ------------------------------------------------------------ booking
@@ -161,10 +171,21 @@ def create_app(platform: Platform | None = None, api_keys: dict[str, Principal] 
         sync_clock(tenant_id)
         h, m = body.time.split(":")
         try:
-            trip = p.booking.request_trip(tenant_id, body.rider_id, body.mode, body.origin, body.destination, body.service_date,
-                                          int(h) * 60 + int(m), body.channel, body.time_type, body.funding_source_id, body.companions)
+            trip = p.booking.request_trip(
+                tenant_id,
+                body.rider_id,
+                body.mode,
+                body.origin,
+                body.destination,
+                body.service_date,
+                int(h) * 60 + int(m),
+                body.channel,
+                body.time_type,
+                body.funding_source_id,
+                body.companions,
+            )
         except KeyError as e:
-            raise HTTPException(404, str(e))
+            raise HTTPException(404, str(e)) from e
         return trip.model_dump()
 
     @app.get("/tenants/{tenant_id}/trips/{trip_id}")
@@ -173,7 +194,7 @@ def create_app(platform: Platform | None = None, api_keys: dict[str, Principal] 
         try:
             return p.store.scope(tenant_id).get(TripRequest, trip_id).model_dump()
         except KeyError:
-            raise HTTPException(404, "trip not found")
+            raise HTTPException(404, "trip not found") from None
 
     @app.delete("/tenants/{tenant_id}/trips/{trip_id}")
     def cancel(tenant_id: str, trip_id: str, pr: Principal = Depends(principal)):
@@ -182,7 +203,7 @@ def create_app(platform: Platform | None = None, api_keys: dict[str, Principal] 
         try:
             return p.booking.cancel_trip(tenant_id, trip_id).model_dump()
         except (KeyError, ValueError) as e:
-            raise HTTPException(409, str(e))
+            raise HTTPException(409, str(e)) from e
 
     @app.post("/tenants/{tenant_id}/days/{service_date}/start")
     def start_day(tenant_id: str, service_date: date, pr: Principal = Depends(principal)):
@@ -258,12 +279,19 @@ def create_app(platform: Platform | None = None, api_keys: dict[str, Principal] 
         _ops(pr)
         return {sid: p.ops.seat_load(sid, window_min) for sid in p.ops.seats}
 
-
     @app.post("/tenants/{tenant_id}/incidents", status_code=201)
     def incident(tenant_id: str, body: IncidentIn, pr: Principal = Depends(principal)):
         tenant_access(tenant_id, pr, ("ops",))
-        inc = open_incident(p.store.scope(tenant_id), p.tenant(tenant_id).config.contacts, p.notifier, severity=body.severity,
-                            summary=body.summary, event_ids=body.event_ids, parties=body.parties, injuries=body.injuries)
+        inc = open_incident(
+            p.store.scope(tenant_id),
+            p.tenant(tenant_id).config.contacts,
+            p.notifier,
+            severity=body.severity,
+            summary=body.summary,
+            event_ids=body.event_ids,
+            parties=body.parties,
+            injuries=body.injuries,
+        )
         return inc.model_dump()
 
     @app.post("/tenants/{tenant_id}/incidents/{incident_id}/close")
@@ -293,13 +321,17 @@ def create_app(platform: Platform | None = None, api_keys: dict[str, Principal] 
         return Response(buf.getvalue(), media_type="application/zip")
 
     @app.get("/tenants/{tenant_id}/exports/gtfs-rt/{feed}")
-    def export_gtfs_rt(tenant_id: str, feed: Literal["vehicle-positions", "trip-updates"], service_date: date, pr: Principal = Depends(principal)):
+    def export_gtfs_rt(
+        tenant_id: str, feed: Literal["vehicle-positions", "trip-updates"], service_date: date, pr: Principal = Depends(principal)
+    ):
         tenant_access(tenant_id, pr, ("ops", "city"))
         fn = gtfs_realtime.vehicle_positions if feed == "vehicle-positions" else gtfs_realtime.trip_updates
         return fn(p, tenant_id, service_date)
 
     @app.get("/tenants/{tenant_id}/exports/mds/{feed}")
-    def export_mds(tenant_id: str, feed: Literal["vehicles", "events", "trips"], service_date: Optional[date] = None, pr: Principal = Depends(principal)):
+    def export_mds(
+        tenant_id: str, feed: Literal["vehicles", "events", "trips"], service_date: date | None = None, pr: Principal = Depends(principal)
+    ):
         tenant_access(tenant_id, pr, ("ops", "city"))
         if feed == "vehicles":
             return mds.mds_vehicles(p, tenant_id)
@@ -321,8 +353,14 @@ def create_app(platform: Platform | None = None, api_keys: dict[str, Principal] 
 
     # -------------------------------------------------------------------- IVR
     @app.post("/ivr/{tenant_id}/voice")
-    def ivr_voice(tenant_id: str, request: Request, CallSid: str = Form(...), From: str = Form(""),
-                  Digits: str = Form(""), SpeechResult: str = Form("")):
+    def ivr_voice(
+        tenant_id: str,
+        request: Request,
+        CallSid: str = Form(...),
+        From: str = Form(""),
+        Digits: str = Form(""),
+        SpeechResult: str = Form(""),
+    ):
         # VERIFY: validate the X-Twilio-Signature header before production use
         if tenant_id not in p.store.tenants:
             raise HTTPException(404, "tenant not found")
@@ -344,16 +382,26 @@ def create_app(platform: Platform | None = None, api_keys: dict[str, Principal] 
     def proposal(body: ProposalIn, pdf: bool = False, pr: Principal = Depends(principal)):
         _ops(pr)
         try:
-            out = generate_proposal(ProposalInput(name=body.name, state=body.state, boundary=body.boundary, jurisdiction=body.jurisdiction,
-                                                  population=body.population, modes=tuple(body.modes),
-                                                  current_annual_cost=body.current_annual_cost, current_annual_trips=body.current_annual_trips))
+            out = generate_proposal(
+                ProposalInput(
+                    name=body.name,
+                    state=body.state,
+                    boundary=body.boundary,
+                    jurisdiction=body.jurisdiction,
+                    population=body.population,
+                    modes=tuple(body.modes),
+                    current_annual_cost=body.current_annual_cost,
+                    current_annual_trips=body.current_annual_trips,
+                )
+            )
         except PermissionError as e:
-            raise HTTPException(403, str(e))
+            raise HTTPException(403, str(e)) from e
         if pdf:
             with tempfile.TemporaryDirectory() as tmp:  # nothing persists on the API host
                 pdf_bytes = write_pdf(out, Path(tmp) / f"{slug(body.name)}.pdf").read_bytes()
-            return Response(pdf_bytes, media_type="application/pdf",
-                            headers={"Content-Disposition": f'attachment; filename="{slug(body.name)}.pdf"'})
+            return Response(
+                pdf_bytes, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{slug(body.name)}.pdf"'}
+            )
         return JSONResponse(out)
 
     # ------------------------------------------------------------ console UI
