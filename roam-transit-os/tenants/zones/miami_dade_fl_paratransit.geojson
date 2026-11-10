@@ -1,0 +1,51 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Miami-Dade paratransit area (approx., urbanized core)",
+    "note": "PLACEHOLDER outline for simulation only; replace with the official boundary before go-live"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -80.42,
+       25.62
+      ],
+      [
+       -80.42,
+       25.88
+      ],
+      [
+       -80.3,
+       25.95
+      ],
+      [
+       -80.13,
+       25.95
+      ],
+      [
+       -80.12,
+       25.76
+      ],
+      [
+       -80.2,
+       25.66
+      ],
+      [
+       -80.3,
+       25.6
+      ],
+      [
+       -80.42,
+       25.62
+      ]
+     ]
+    ]
+   }
+  }
+ ]
+}

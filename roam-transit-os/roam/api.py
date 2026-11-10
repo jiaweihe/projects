@@ -1,0 +1,361 @@
+"""HTTP API (FastAPI) for every MVP surface: rider booking, driver app, ops console,
+city dashboard, exports, IVR webhook and the proposal generator.
+
+Auth (MVP): ``X-Api-Key`` maps to a principal with a role and a tenant set. Tenant
+isolation is enforced on every tenant-scoped route; only ``ops`` principals may span
+tenants. Production: OIDC + Postgres row-level security (db/schema.sql).
+"""
+
+from __future__ import annotations
+
+import io
+import zipfile
+from dataclasses import dataclass
+from datetime import date, datetime
+from pathlib import Path
+from typing import Any, Literal, Optional
+from zoneinfo import ZoneInfo
+
+import yaml
+from fastapi import Depends, FastAPI, Form, Header, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from pydantic import BaseModel
+
+from . import billing, kpi
+from .adapters.human_driver import HumanDriverAdapter
+from .config.schema import config_from_dict
+from .config.validate import validate
+from .exports import gtfs_flex, gtfs_realtime, mds, ntd, raw
+from .ivr import IVRSession, twiml
+from .models import AccessibilityNeed, Channel, EligibilityStatus, Mode, Rider, Severity, TripRequest, new_id
+from .ops.incidents import close_incident, open_incident
+from .platform import Platform, ProvisioningError
+from .proposal.generator import ProposalInput, generate_proposal, write_pdf
+
+
+@dataclass
+class Principal:
+    role: Literal["ops", "city", "driver", "rider", "agent"]
+    tenant_ids: set[str] | None  # None = all tenants (ops only)
+    seat_id: str | None = None
+
+
+# ----------------------------------------------------------- request models
+class RiderIn(BaseModel):
+    phone: str = ""
+    accessibility_needs: list[AccessibilityNeed] = []
+    eligibility_status: EligibilityStatus = EligibilityStatus.none
+    saved_places: dict[str, tuple[float, float]] = {}
+
+
+class TripIn(BaseModel):
+    rider_id: str
+    mode: Mode
+    origin: tuple[float, float]
+    destination: tuple[float, float]
+    service_date: date
+    time: str  # "HH:MM"
+    time_type: Literal["pickup", "appointment"] = "pickup"
+    channel: Channel = Channel.app
+    funding_source_id: Optional[str] = None
+    companions: int = 0
+
+
+class DriverAction(BaseModel):
+    stop_id: str
+    action: Literal["depart", "arrive", "board", "no_show", "dropoff"]
+    time: Optional[str] = None
+    location: Optional[tuple[float, float]] = None
+    wheelchair: bool = False
+    checklist: dict[str, bool] = {}
+
+
+class IncidentIn(BaseModel):
+    summary: str
+    severity: Severity = Severity.high
+    injuries: bool = False
+    parties: list[str] = []
+    event_ids: list[str] = []
+
+
+class ProposalIn(BaseModel):
+    name: str
+    state: str
+    boundary: dict[str, Any]
+    jurisdiction: Optional[str] = None
+    population: Optional[int] = None
+    current_annual_cost: Optional[float] = None
+    current_annual_trips: Optional[float] = None
+    modes: list[str] = ["paratransit", "microtransit"]
+
+
+def create_app(platform: Platform | None = None, api_keys: dict[str, Principal] | None = None, realtime_clock: bool = True) -> FastAPI:
+    p = platform or Platform()
+    keys = api_keys if api_keys is not None else {}
+    app = FastAPI(title="Roam Transit OS", version="0.1.0")
+    app.state.platform = p
+    app.state.keys = keys
+    ivr_sessions: dict[str, IVRSession] = {}
+
+    # ------------------------------------------------------------ auth
+    def principal(x_api_key: str = Header(default="")) -> Principal:
+        pr = keys.get(x_api_key)
+        if pr is None:
+            raise HTTPException(401, "invalid API key")
+        return pr
+
+    def tenant_access(tenant_id: str, pr: Principal, roles: tuple[str, ...]) -> None:
+        if pr.role not in roles:
+            raise HTTPException(403, f"role {pr.role} not allowed")
+        if tenant_id not in p.store.tenants:
+            raise HTTPException(404, "tenant not found")
+        if pr.tenant_ids is not None and tenant_id not in pr.tenant_ids:
+            raise HTTPException(404, "tenant not found")  # do not leak other tenants' existence
+
+    def sync_clock(tenant_id: str) -> None:
+        if realtime_clock:
+            now = datetime.now(ZoneInfo(p.tenant(tenant_id).config.timezone))
+            p.clock.today, p.clock.minute = now.date(), now.hour * 60 + now.minute + now.second / 60
+
+    # ----------------------------------------------------------- tenants
+    @app.post("/tenants/validate")
+    def validate_config(body: dict[str, Any], pr: Principal = Depends(principal)):
+        cfg, geoms = config_from_dict(body)
+        return validate(cfg, geoms).as_dict()
+
+    @app.post("/tenants", status_code=201)
+    async def provision(request: Request, pr: Principal = Depends(principal)):
+        if pr.role != "ops":
+            raise HTTPException(403, "only Roam ops can provision tenants")
+        text = (await request.body()).decode()
+        body = yaml.safe_load(text)
+        try:
+            rt = p.provision(config_from_dict(body))
+        except ProvisioningError as e:
+            raise HTTPException(422, e.report.as_dict())
+        return {"tenant_id": rt.id, "validation": rt.validation.as_dict(), "vehicles": len(rt.vehicles), "zones": len(rt.zones)}
+
+    @app.get("/tenants/{tenant_id}")
+    def get_tenant(tenant_id: str, pr: Principal = Depends(principal)):
+        tenant_access(tenant_id, pr, ("ops", "city", "agent"))
+        rt = p.tenant(tenant_id)
+        return {"tenant": rt.tenant.model_dump(), "validation": rt.validation.as_dict(), "modes": rt.config.modes,
+                "vehicles": [v.model_dump() for v in rt.vehicles], "policy": rt.policy.model_dump()}
+
+    # ------------------------------------------------------------ riders
+
+    @app.post("/tenants/{tenant_id}/riders", status_code=201)
+    def create_rider(tenant_id: str, body: RiderIn, pr: Principal = Depends(principal)):
+        tenant_access(tenant_id, pr, ("ops", "city", "agent", "rider"))
+        r = Rider(id=new_id("rider"), tenant_id=tenant_id, contact={"phone": body.phone} if body.phone else {},
+                  accessibility_needs=body.accessibility_needs, eligibility_status=body.eligibility_status,
+                  saved_places=body.saved_places)
+        return p.store.scope(tenant_id).add(r).model_dump()
+
+    # ------------------------------------------------------------ booking
+
+    @app.post("/tenants/{tenant_id}/trips", status_code=201)
+    def book(tenant_id: str, body: TripIn, pr: Principal = Depends(principal)):
+        tenant_access(tenant_id, pr, ("ops", "agent", "rider", "city"))
+        sync_clock(tenant_id)
+        h, m = body.time.split(":")
+        try:
+            trip = p.booking.request_trip(tenant_id, body.rider_id, body.mode, body.origin, body.destination, body.service_date,
+                                          int(h) * 60 + int(m), body.channel, body.time_type, body.funding_source_id, body.companions)
+        except KeyError as e:
+            raise HTTPException(404, str(e))
+        return trip.model_dump()
+
+    @app.get("/tenants/{tenant_id}/trips/{trip_id}")
+    def get_trip(tenant_id: str, trip_id: str, pr: Principal = Depends(principal)):
+        tenant_access(tenant_id, pr, ("ops", "agent", "rider", "city"))
+        try:
+            return p.store.scope(tenant_id).get(TripRequest, trip_id).model_dump()
+        except KeyError:
+            raise HTTPException(404, "trip not found")
+
+    @app.delete("/tenants/{tenant_id}/trips/{trip_id}")
+    def cancel(tenant_id: str, trip_id: str, pr: Principal = Depends(principal)):
+        tenant_access(tenant_id, pr, ("ops", "agent", "rider"))
+        sync_clock(tenant_id)
+        try:
+            return p.booking.cancel_trip(tenant_id, trip_id).model_dump()
+        except (KeyError, ValueError) as e:
+            raise HTTPException(409, str(e))
+
+    @app.post("/tenants/{tenant_id}/days/{service_date}/start")
+    def start_day(tenant_id: str, service_date: date, pr: Principal = Depends(principal)):
+        """Batch-optimise the day and push runs to the driver app (human_driver adapters)."""
+        tenant_access(tenant_id, pr, ("ops",))
+        adapters = p.build_adapters(tenant_id)
+        info = p.start_day(tenant_id, service_date, adapters)
+        return {"batch": info, "runs": {u.unit_id: len(u.route) for u in p.dispatcher(tenant_id, service_date).units}}
+
+    # ----------------------------------------------------------- driver app
+
+    def _driver_adapter(vehicle_id: str, pr: Principal) -> HumanDriverAdapter:
+        a = p.adapters.get(vehicle_id)
+        if not isinstance(a, HumanDriverAdapter):
+            raise HTTPException(404, "no active driver manifest for this vehicle")
+        tenant_access(vehicle_id.split(":")[0], pr, ("driver", "ops"))
+        return a
+
+    @app.get("/driver/{vehicle_id}/manifest")
+    def manifest(vehicle_id: str, pr: Principal = Depends(principal)):
+        return _driver_adapter(vehicle_id, pr).manifest()
+
+    @app.post("/driver/{vehicle_id}/actions")
+    def driver_action(vehicle_id: str, body: DriverAction, pr: Principal = Depends(principal)):
+        a = _driver_adapter(vehicle_id, pr)
+        tid = vehicle_id.split(":")[0]
+        sync_clock(tid)
+        t = p.clock.minute
+        if body.time:
+            hh, mm = body.time.split(":")
+            t = int(hh) * 60 + int(mm)
+        ack = a.driver_action(body.stop_id, body.action, t, body.location, body.checklist, body.wheelchair)
+        if not ack.ok:
+            raise HTTPException(409, ack.message)
+        return {"ok": True}
+
+    # ------------------------------------------------------------- ops console
+    def _ops(pr: Principal) -> Principal:
+        if pr.role != "ops":
+            raise HTTPException(403, "ops only")
+        return pr
+
+    @app.get("/ops/queue")
+    def ops_queue(pr: Principal = Depends(principal), include_closed: bool = False):
+        _ops(pr)
+        items = p.ops.queue(seat_id=pr.seat_id, tenant_ids=pr.tenant_ids if pr.seat_id is None else None, include_closed=include_closed)
+        return [vars(e) | {"severity_name": Severity(e.severity).name} for e in items[:500]]
+
+    @app.post("/ops/exceptions/{exc_id}/ack")
+    def ops_ack(exc_id: str, pr: Principal = Depends(principal)):
+        _ops(pr)
+        if not pr.seat_id:
+            raise HTTPException(400, "principal has no ops seat")
+        return vars(p.ops.acknowledge(exc_id, pr.seat_id, p.clock.minute))
+
+    @app.post("/ops/exceptions/{exc_id}/resolve")
+    def ops_resolve(exc_id: str, note: str = "", pr: Principal = Depends(principal)):
+        _ops(pr)
+        return vars(p.ops.resolve(exc_id, p.clock.minute, note))
+
+    @app.get("/ops/map")
+    def ops_map(pr: Principal = Depends(principal)):
+        _ops(pr)
+        out = []
+        for vid, t in p.telemetry.items():
+            tid = vid.split(":")[0]
+            if pr.tenant_ids is None or tid in pr.tenant_ids:
+                out.append({"tenant_id": tid, "vehicle_id": vid, "lon": t.location[0], "lat": t.location[1], "t": t.timestamp})
+        return out
+
+    @app.get("/ops/load")
+    def ops_load(pr: Principal = Depends(principal), window_min: float = 960):
+        _ops(pr)
+        return {sid: p.ops.seat_load(sid, window_min) for sid in p.ops.seats}
+
+
+    @app.post("/tenants/{tenant_id}/incidents", status_code=201)
+    def incident(tenant_id: str, body: IncidentIn, pr: Principal = Depends(principal)):
+        tenant_access(tenant_id, pr, ("ops",))
+        inc = open_incident(p.store.scope(tenant_id), p.tenant(tenant_id).config.contacts, p.notifier, severity=body.severity,
+                            summary=body.summary, event_ids=body.event_ids, parties=body.parties, injuries=body.injuries)
+        return inc.model_dump()
+
+    @app.post("/tenants/{tenant_id}/incidents/{incident_id}/close")
+    def incident_close(tenant_id: str, incident_id: str, root_cause: str, corrective_action: str, pr: Principal = Depends(principal)):
+        tenant_access(tenant_id, pr, ("ops",))
+        return close_incident(p.store.scope(tenant_id), incident_id, root_cause, corrective_action).model_dump()
+
+    # ---------------------------------------------------------- city dashboard
+    @app.get("/tenants/{tenant_id}/kpis")
+    def kpis(tenant_id: str, start: date, end: date, pr: Principal = Depends(principal)):
+        tenant_access(tenant_id, pr, ("ops", "city"))
+        return kpi.compute_kpis(p, tenant_id, start, end)
+
+    @app.post("/tenants/{tenant_id}/invoices/{period}")
+    def invoice(tenant_id: str, period: str, pr: Principal = Depends(principal)):
+        tenant_access(tenant_id, pr, ("ops", "city"))
+        return billing.build_invoice(p, tenant_id, period).model_dump()
+
+    # ----------------------------------------------------------------- exports
+    @app.get("/tenants/{tenant_id}/exports/gtfs-flex.zip")
+    def export_gtfs_flex(tenant_id: str, pr: Principal = Depends(principal)):
+        tenant_access(tenant_id, pr, ("ops", "city"))
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+            for name, content in gtfs_flex.build_gtfs_flex(p.tenant(tenant_id)).items():
+                z.writestr(name, content)
+        return Response(buf.getvalue(), media_type="application/zip")
+
+    @app.get("/tenants/{tenant_id}/exports/gtfs-rt/{feed}")
+    def export_gtfs_rt(tenant_id: str, feed: Literal["vehicle-positions", "trip-updates"], service_date: date, pr: Principal = Depends(principal)):
+        tenant_access(tenant_id, pr, ("ops", "city"))
+        fn = gtfs_realtime.vehicle_positions if feed == "vehicle-positions" else gtfs_realtime.trip_updates
+        return fn(p, tenant_id, service_date)
+
+    @app.get("/tenants/{tenant_id}/exports/mds/{feed}")
+    def export_mds(tenant_id: str, feed: Literal["vehicles", "events", "trips"], service_date: Optional[date] = None, pr: Principal = Depends(principal)):
+        tenant_access(tenant_id, pr, ("ops", "city"))
+        if feed == "vehicles":
+            return mds.mds_vehicles(p, tenant_id)
+        if service_date is None:
+            raise HTTPException(400, "service_date required")
+        return (mds.mds_events if feed == "events" else mds.mds_trips)(p, tenant_id, service_date)
+
+    @app.get("/tenants/{tenant_id}/exports/ntd")
+    def export_ntd(tenant_id: str, start: date, end: date, pr: Principal = Depends(principal)):
+        tenant_access(tenant_id, pr, ("ops", "city"))
+        return ntd.ntd_monthly(p, tenant_id, start, end)
+
+    @app.post("/tenants/{tenant_id}/exports/raw")
+    def export_raw(tenant_id: str, include_pii: bool = False, pr: Principal = Depends(principal)):
+        tenant_access(tenant_id, pr, ("ops", "city"))
+        if include_pii and pr.role != "city":
+            raise HTTPException(403, "only the city may export rider PII")
+        return raw.export_tenant(p, tenant_id, Path("out/exports"), include_pii)
+
+    # -------------------------------------------------------------------- IVR
+    @app.post("/ivr/{tenant_id}/voice")
+    def ivr_voice(tenant_id: str, request: Request, CallSid: str = Form(...), From: str = Form(""),
+                  Digits: str = Form(""), SpeechResult: str = Form("")):
+        # VERIFY: validate the X-Twilio-Signature header before production use
+        if tenant_id not in p.store.tenants:
+            raise HTTPException(404, "tenant not found")
+        sync_clock(tenant_id)
+        s = ivr_sessions.get(CallSid)
+        if s is None:
+            s = ivr_sessions[CallSid] = IVRSession(p, tenant_id, From)
+            resp = s.start()
+        else:
+            resp = s.handle(Digits or SpeechResult)
+        if resp.done:
+            ivr_sessions.pop(CallSid, None)
+        transfer = p.tenant(tenant_id).config.contacts.get("reservations_phone")
+        return Response(twiml(resp, str(request.url), transfer), media_type="application/xml")
+
+    # --------------------------------------------------------------- proposals
+
+    @app.post("/proposals")
+    def proposal(body: ProposalIn, pdf: bool = False, pr: Principal = Depends(principal)):
+        _ops(pr)
+        try:
+            out = generate_proposal(ProposalInput(name=body.name, state=body.state, boundary=body.boundary, jurisdiction=body.jurisdiction,
+                                                  population=body.population, modes=tuple(body.modes),
+                                                  current_annual_cost=body.current_annual_cost, current_annual_trips=body.current_annual_trips))
+        except PermissionError as e:
+            raise HTTPException(403, str(e))
+        if pdf:
+            path = write_pdf(out, Path("out/proposals") / f"{body.name.replace(' ', '_').replace(',', '')}.pdf")
+            return Response(path.read_bytes(), media_type="application/pdf")
+        return JSONResponse(out)
+
+    # ------------------------------------------------------------ console UI
+    @app.get("/", response_class=HTMLResponse)
+    def console():
+        return (Path(__file__).parent / "web" / "console.html").read_text()
+
+    return app

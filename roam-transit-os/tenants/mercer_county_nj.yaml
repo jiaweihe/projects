@@ -1,0 +1,62 @@
+# Pilot fixture (spec §11). Phase 1, human-driven.
+# GO-LIVE BLOCKED until MOVES ownership (CARTS vs Roam) is resolved - see roam/config/policy.yaml.
+id: mercer_county_nj
+name: Mercer County, NJ
+type: county
+region: {country: US, state: NJ, jurisdiction: Mercer County}
+timezone: America/New_York
+phase: 1
+modes: [paratransit, microtransit]
+zones:
+  - {id: mercer_para, name: Mercer County paratransit area, mode: paratransit, geometry_file: zones/mercer_county_nj_paratransit.geojson}
+  - {id: mercer_micro, name: Trenton-Hamilton microtransit, mode: microtransit, geometry_file: zones/mercer_county_nj_trenton_hamilton.geojson}
+service_hours:
+  mon: ["06:00", "21:00"]
+  tue: ["06:00", "21:00"]
+  wed: ["06:00", "21:00"]
+  thu: ["06:00", "21:00"]
+  fri: ["06:00", "21:00"]
+  sat: ["08:00", "18:00"]
+  sun: null
+fares:
+  paratransit: {base: 3.00}          # VERIFY against county fare policy
+  microtransit: {base: 2.50, reduced: 1.25}
+eligibility:
+  paratransit_requires_certification: true
+booking_rules:
+  paratransit:
+    min_advance_days: 1
+    max_advance_days: 7
+    booking_cutoff: "17:00"
+    negotiation_window_min: 60
+    pickup_window_min: 30
+  microtransit:
+    realtime: true
+    max_wait_min: 30
+    walk_to_stop_m: 400
+ada_rules:
+  denials_allowed: 0
+  fixed_route_fare: 1.80             # VERIFY current NJ TRANSIT local bus fare
+fleet:
+  # placeholder per spec fixture: 8 vehicles, 1 wheelchair position each
+  - {adapter: human_driver, count: 8, seats: 8, wheelchair_positions: 1, max_range_km: 450, prefix: MCR, lease_ref: "LEASE-TBD"}
+shifts:
+  # PLACEHOLDER staggered plan: 6 vehicles for the AM peak, 8 midday, 6 PM, 4 evening
+  - {start: "05:30", end: "14:00", count: 6}
+  - {start: "09:15", end: "17:45", count: 2}
+  - {start: "14:00", end: "22:00", count: 4}
+depot: [-74.72, 40.22]
+funding_sources:
+  - {id: mercer_general, type: county, name: Mercer County general fund}
+  - {id: mercer_hospital, type: institution, name: "Anchor institution (placeholder)", rules: {monthly_cap_usd: 20000}}
+branding: {display_name: Mercer Roam (working name), primary_color: "#0b5cad"}
+pricing:
+  platform_fee_per_vehicle_month: 1000   # PLACEHOLDER contract terms
+  ops_fee_per_vrh: 8.0
+compliance: {federal_funds: false, hipaa: true, title_vi: true}
+contacts:
+  city_program_manager: program-manager@mercer.example.gov
+  insurer: claims@insurance-pool.example.com
+  police_fire: mercer-911-dispatch
+notes:
+  - "MOVES/NJDOT context: resolve CARTS vs Roam ownership of MOVES before use (spec §3, §11)."

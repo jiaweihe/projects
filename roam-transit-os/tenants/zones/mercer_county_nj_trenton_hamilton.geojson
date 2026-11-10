@@ -1,0 +1,51 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Trenton-Hamilton microtransit zone (approx.)",
+    "note": "PLACEHOLDER outline for simulation only; replace with the official boundary before go-live"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -74.8,
+       40.2
+      ],
+      [
+       -74.78,
+       40.25
+      ],
+      [
+       -74.72,
+       40.26
+      ],
+      [
+       -74.65,
+       40.24
+      ],
+      [
+       -74.64,
+       40.19
+      ],
+      [
+       -74.7,
+       40.17
+      ],
+      [
+       -74.76,
+       40.18
+      ],
+      [
+       -74.8,
+       40.2
+      ]
+     ]
+    ]
+   }
+  }
+ ]
+}

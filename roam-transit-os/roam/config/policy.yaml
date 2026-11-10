@@ -1,0 +1,11 @@
+# Roam corporate guardrails applied to every tenant config (spec §3).
+# Roam does not operate where CARTS holds an oversight contract.
+excluded_jurisdictions:
+  - state: NJ
+    jurisdiction: Jersey City
+    reason: "CARTS oversight contract: Roam operations excluded (spec §3, §11)"
+
+# Tenants that may not go live until an open governance question is resolved.
+blocked_pending_decision:
+  - tenant_id: mercer_county_nj
+    question: "MOVES ownership (CARTS vs Roam) unresolved; any CARTS-Roam dealing needs CARTS board approval"

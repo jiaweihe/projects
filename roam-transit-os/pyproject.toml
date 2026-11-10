@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "roam-transit-os"
+version = "0.1.0"
+description = "Roam Transit OS: multi-tenant operating layer for city-owned paratransit, microtransit and AV networks (MVP v0.1)"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2.6",
+  "PyYAML>=6",
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+  "reportlab>=4",
+]
+
+[project.optional-dependencies]
+routing = ["ortools>=9.8", "httpx>=0.27"]
+geo = ["h3>=4"]
+dev = ["pytest>=8", "httpx>=0.27"]
+
+[project.scripts]
+roam = "roam.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["roam*"]
+
+[tool.setuptools.package-data]
+roam = ["web/*.html", "config/*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

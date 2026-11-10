@@ -1,0 +1,59 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Mercer County (approx.)",
+    "note": "PLACEHOLDER outline for simulation only; replace with the official boundary before go-live"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -74.94,
+       40.24
+      ],
+      [
+       -74.86,
+       40.3
+      ],
+      [
+       -74.78,
+       40.42
+      ],
+      [
+       -74.62,
+       40.43
+      ],
+      [
+       -74.54,
+       40.35
+      ],
+      [
+       -74.47,
+       40.25
+      ],
+      [
+       -74.59,
+       40.16
+      ],
+      [
+       -74.72,
+       40.15
+      ],
+      [
+       -74.8,
+       40.18
+      ],
+      [
+       -74.94,
+       40.24
+      ]
+     ]
+    ]
+   }
+  }
+ ]
+}

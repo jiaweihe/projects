@@ -1,0 +1,22 @@
+# New tenant template. Copy, fill in, upload a zone GeoJSON, then:
+#   roam validate tenants/<id>.yaml   &&   roam golive tenants/<id>.yaml
+id: your_city_xx
+name: Your City, XX
+type: city                  # city | county | transit_agency | community_org
+region: {country: US, state: XX, jurisdiction: Your City}
+timezone: America/New_York
+phase: 1                    # 1 human-driven | 2 supervised AV / hybrid | 3 driverless
+modes: [microtransit]       # paratransit | microtransit | av_network
+zones:
+  - {id: main, name: Main zone, mode: microtransit, geometry_file: zones/your_city.geojson}
+service_hours: {mon: ["06:00","20:00"], tue: ["06:00","20:00"], wed: ["06:00","20:00"], thu: ["06:00","20:00"], fri: ["06:00","20:00"], sat: null, sun: null}
+fares: {microtransit: {base: 2.00}}
+booking_rules:
+  microtransit: {realtime: true, max_wait_min: 25}
+fleet:
+  - {adapter: human_driver, count: 4, seats: 8, wheelchair_positions: 1, prefix: VAN}
+depot: [0.0, 0.0]
+funding_sources:
+  - {id: general, type: city, name: General fund}
+branding: {display_name: Your City Roam}
+contacts: {city_program_manager: pm@example.gov, insurer: claims@example.com, police_fire: 911-dispatch}

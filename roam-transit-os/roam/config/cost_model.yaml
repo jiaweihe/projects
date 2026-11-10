@@ -1,0 +1,43 @@
+# Program cost model used by KPIs (cost per trip), invoices and the proposal generator.
+# Every value marked PLACEHOLDER must be replaced with city-specific quotes before a
+# proposal is sent. Benchmarks carry their source (spec §2.3, retrieved 2026-11-10).
+
+phase1:
+  driver_cost_per_hour: 32.0            # PLACEHOLDER fully loaded contract-operator driver
+  paid_hours_per_revenue_hour: 1.25     # PLACEHOLDER pull-out/pull-in, breaks, deadhead
+  vehicle_lease_per_month: 2200.0       # PLACEHOLDER accessible cutaway/van lease
+  insurance_per_vehicle_month: 650.0    # PLACEHOLDER municipal JIF / Roam pool
+  energy_maintenance_per_km: 0.25       # PLACEHOLDER fuel + maintenance
+  km_per_revenue_hour: 22.0             # used only when no simulated km are available
+
+phase2:
+  av_share_of_fleet: 0.30               # PLACEHOLDER share of vehicles driverless
+  safety_attendant_share: 0.0           # share of AV hours still staffed (0 = none)
+
+phase3:
+  av_vehicle_lease_per_month: 3500.0    # PLACEHOLDER
+  av_software_license_per_vehicle_month: 4000.0   # PLACEHOLDER / VERIFY with AV providers
+  insurance_per_vehicle_month: 900.0    # PLACEHOLDER
+  vehicles_per_remote_supervisor: 12    # PLACEHOLDER (regulator + provider dependent)
+  remote_supervisor_cost_per_hour: 45.0 # PLACEHOLDER
+  field_tech_cost_per_vehicle_hour: 3.0 # PLACEHOLDER
+  cleaning_per_vehicle_day: 25.0        # PLACEHOLDER
+  charging_per_km: 0.08                 # PLACEHOLDER electricity
+  maintenance_per_km: 0.10              # PLACEHOLDER
+  wheelchair_attendant_share: 0.25      # PLACEHOLDER share of paratransit trips needing an on-board/curb attendant
+  attendant_cost_per_trip: 12.0         # PLACEHOLDER
+
+roam_fees:
+  # Roam take; tenant contract terms override (TenantConfig.pricing).
+  platform_fee_per_vehicle_month: 1000.0  # PLACEHOLDER
+  ops_fee_per_vrh: 8.0                  # PLACEHOLDER
+  ops_fee_per_vrh_driverless: 12.0      # PLACEHOLDER; remote operations replace driver supervision (spec §2.2)
+
+benchmarks:
+  turnkey_vrh_low: 65.0
+  turnkey_vrh_high: 90.0
+  turnkey_vrh_source: "BRITE Microtransit Feasibility Study (2025): https://www.britebus.org/wp-content/uploads/2025/10/20251001_BRITE-Microtransit-Feasibility-Study_Final-Report.pdf"
+  via_quote_vrh: 89.0
+  via_quote_source: "CKTC minutes 2024-02-29: https://ckrider.com/wp-content/uploads/2024.02.29-CKTC-Minutes.pdf"
+  paratransit_cost_per_ride_example: 85.0
+  paratransit_example_source: "Beverly Hills Dial-A-Ride: https://civiciq.com/public-contract/511a794b-00c7-4d13-ae2b-fd4fe68e1c8b"

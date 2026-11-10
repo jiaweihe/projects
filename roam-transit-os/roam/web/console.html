@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roam Ops Console</title>
+<style>
+  :root { --bg:#f6f7f9; --fg:#1b1f24; --muted:#5b6470; --card:#fff; --line:#dde1e6; --crit:#b42318; --high:#c4320a; --med:#b54708; --low:#475467; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0f1216; --fg:#e6e8eb; --muted:#9aa4b1; --card:#171b21; --line:#2a3039; } }
+  body { margin:0; font:14px/1.4 system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+  header { display:flex; gap:12px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0 12px 0 0; }
+  main { display:grid; grid-template-columns: 2fr 1fr; gap:16px; padding:16px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  section { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px; min-width:0; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0 0 8px; }
+  table { width:100%; border-collapse:collapse; } td, th { text-align:left; padding:6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .sev { font-weight:600; } .s1 { color:var(--crit) } .s2 { color:var(--high) } .s3 { color:var(--med) } .s4 { color:var(--low) }
+  button { font:inherit; padding:2px 8px; } input { font:inherit; padding:4px 6px; }
+  svg { width:100%; height:260px; background:var(--bg); border-radius:6px; }
+  .muted { color:var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Roam Ops Console</h1>
+  <label>API key <input id="key" type="password" size="18"></label>
+  <button id="go">Connect</button>
+  <span id="status" class="muted"></span>
+</header>
+<main>
+  <section>
+    <h2>Exceptions queue (all assigned tenants, by severity)</h2>
+    <table><thead><tr><th>Sev</th><th>Tenant</th><th>Type</th><th>Message</th><th>Min</th><th></th></tr></thead><tbody id="queue"></tbody></table>
+  </section>
+  <div>
+    <section><h2>Live vehicles</h2><svg id="map" viewBox="0 0 100 100" preserveAspectRatio="none"></svg><div id="legend" class="muted"></div></section>
+    <section style="margin-top:16px"><h2>Seat load</h2><table id="load"></table></section>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let key = ""; try { key = localStorage.getItem("roamKey") || ""; } catch (e) {}
+$("key").value = key;
+const api = (path, opts = {}) => fetch(path, { ...opts, headers: { "X-Api-Key": key } }).then(r => r.ok ? r.json() : Promise.reject(r.status));
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(Math.floor(m % 60)).padStart(2, "0")}`;
+const colors = ["#2e90fa", "#12b76a", "#f79009", "#9e77ed", "#f04438", "#0ba5ec"];
+
+async function refresh() {
+  try {
+    const [q, vehicles, load] = await Promise.all([api("/ops/queue"), api("/ops/map"), api("/ops/load")]);
+    $("queue").innerHTML = q.slice(0, 100).map(e => `<tr>
+      <td class="sev s${e.severity}">${esc(e.severity_name)}</td><td>${esc(e.tenant_id)}</td><td>${esc(e.type)}</td>
+      <td>${esc(e.message)}</td><td>${fmt(e.at)}</td>
+      <td>${e.status === "open" ? `<button data-ack="${e.id}">Ack</button>` : ""} <button data-res="${e.id}">Resolve</button></td></tr>`).join("")
+      || `<tr><td colspan="6" class="muted">No open exceptions</td></tr>`;
+    const tenants = [...new Set(vehicles.map(v => v.tenant_id))];
+    const svg = $("map"); svg.innerHTML = "";
+    tenants.forEach((t, i) => {
+      const vs = vehicles.filter(v => v.tenant_id === t);
+      const xs = vs.map(v => v.lon), ys = vs.map(v => v.lat);
+      const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+      const cellW = 100 / Math.max(1, tenants.length);
+      vs.forEach(v => {
+        const cx = i * cellW + 4 + (cellW - 8) * ((v.lon - x0) / ((x1 - x0) || 1));
+        const cy = 96 - 92 * ((v.lat - y0) / ((y1 - y0) || 1));
+        svg.insertAdjacentHTML("beforeend", `<circle cx="${cx}" cy="${cy}" r="1.2" fill="${colors[i % colors.length]}"><title>${esc(v.vehicle_id)}</title></circle>`);
+      });
+    });
+    $("legend").innerHTML = tenants.map((t, i) => `<span style="color:${colors[i % colors.length]}">&#9679;</span> ${esc(t)}`).join(" &nbsp; ");
+    $("load").innerHTML = "<tr><th>Seat</th><th>Tenants</th><th>Vehicles</th><th>Exc/h</th><th>Util.</th></tr>" +
+      Object.entries(load).map(([s, l]) => `<tr><td>${esc(s)}</td><td>${l.tenants}</td><td>${l.vehicles}</td><td>${l.exceptions_per_hour.toFixed(1)}</td><td>${(100 * l.utilization).toFixed(0)}%</td></tr>`).join("");
+    $("status").textContent = `updated ${new Date().toLocaleTimeString()}`;
+  } catch (e) { $("status").textContent = `error ${e}`; }
+}
+document.addEventListener("click", async (ev) => {
+  const a = ev.target.dataset.ack, r = ev.target.dataset.res;
+  if (a) await api(`/ops/exceptions/${a}/ack`, { method: "POST" }).catch(() => {});
+  if (r) await api(`/ops/exceptions/${r}/resolve`, { method: "POST" }).catch(() => {});
+  if (a || r) refresh();
+});
+$("go").onclick = () => { key = $("key").value; try { localStorage.setItem("roamKey", key); } catch (e) {} refresh(); };
+if (key) refresh();
+setInterval(() => key && refresh(), 5000);
+</script>
+</body>
+</html>

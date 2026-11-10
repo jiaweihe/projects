@@ -1,0 +1,39 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "name": "Downtown AV ODD (approx.)",
+    "note": "PLACEHOLDER outline for simulation only; replace with the official boundary before go-live"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -97.752,
+       30.258
+      ],
+      [
+       -97.752,
+       30.28
+      ],
+      [
+       -97.732,
+       30.282
+      ],
+      [
+       -97.728,
+       30.262
+      ],
+      [
+       -97.752,
+       30.258
+      ]
+     ]
+    ]
+   }
+  }
+ ]
+}

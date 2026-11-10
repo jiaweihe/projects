@@ -1,0 +1,43 @@
+# Pilot fixture (spec §11). Microtransit + AV network, phase 1 -> 3.
+# Texas preempts local AV regulation; state AV authorization required (VERIFY current requirement).
+id: austin_tx
+name: Austin, TX
+type: city
+region: {country: US, state: TX, jurisdiction: Austin}
+timezone: America/Chicago
+phase: 2
+modes: [microtransit, av_network]
+zones:
+  - {id: atx_east, name: East Austin, mode: microtransit, geometry_file: zones/austin_tx_east.geojson}
+  - {id: atx_dt_odd, name: Downtown AV ODD, mode: av_network, geometry_file: zones/austin_tx_downtown_odd.geojson}
+service_hours:
+  mon: ["06:00", "22:00"]
+  tue: ["06:00", "22:00"]
+  wed: ["06:00", "22:00"]
+  thu: ["06:00", "22:00"]
+  fri: ["06:00", "23:00"]
+  sat: ["08:00", "23:00"]
+  sun: ["08:00", "20:00"]
+fares:
+  microtransit: {base: 1.25, reduced: 0.60}
+  av_network: {base: 1.25, reduced: 0.60}
+booking_rules:
+  microtransit: {realtime: true, max_wait_min: 20, walk_to_stop_m: 300}
+  av_network: {realtime: true, max_wait_min: 15, walk_to_stop_m: 200}
+fleet:
+  - {adapter: human_driver, count: 6, seats: 10, wheelchair_positions: 1, prefix: ATX}
+  - {adapter: av_partner, count: 2, seats: 4, wheelchair_positions: 0, prefix: ATXAV, odd_zone_ids: [atx_dt_odd], max_range_km: 300}
+shifts:
+  - {start: "05:45", end: "14:00", count: 6}
+  - {start: "14:00", end: "23:15", count: 5}
+  - {start: "07:00", end: "21:00", count: 2, fleet_prefix: ATXAV}
+depot: [-97.715, 30.265]
+funding_sources:
+  - {id: atx_general, type: city, name: City of Austin general fund}
+  - {id: atx_university, type: institution, name: "University account (placeholder)"}
+branding: {display_name: Austin Roam (working name), primary_color: "#d35400"}
+compliance: {federal_funds: false, hipaa: false, title_vi: true, state_av_profile: null}
+contacts:
+  city_program_manager: mobility@austin.example.gov
+  insurer: claims@insurance-pool.example.com
+  police_fire: atx-911-dispatch
