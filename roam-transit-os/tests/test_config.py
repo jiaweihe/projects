@@ -78,3 +78,11 @@ def test_shift_assignment_never_overlaps_on_a_vehicle():
         spans.sort()
         assert all(a[1] <= b[0] for a, b in zip(spans, spans[1:], strict=False))
     assert all(s.driver_id is None for s in shifts if "MDCAV" in s.vehicle_id)
+
+
+@pytest.mark.parametrize("bad", ["../evil", "Jersey City", "a/b", 'x"y', "", "A" * 80])
+def test_tenant_id_is_a_safe_slug(bad):
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        config_from_dict(new_city_config(id=bad))

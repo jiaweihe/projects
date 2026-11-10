@@ -156,3 +156,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) drop-off-without-boarding (item 3) → rejected unless the trip's pickup on this vehicle is done (rescue transfers still work: the rescue vehicle has its own pickup stop); (b) cancelling the stop a driver is heading to left it in `heading_to` → discarded on cancel and on completion; (c) manifest still shows `arrived` stops (driver at the curb) — intentional.
 **Metrics:** tests 89→92 pass; coverage 92% (human_driver 71→~90%); ruff 0; mypy 0; bench unchanged.
 **Next:** audit again; remaining items are smaller — consider simplification of `api.py`.
+
+## Iteration 18 — "city owns the data" export didn't deliver data; tenant ids unvalidated (bug + security)
+**Audit (top 5):** (1) `POST /exports/raw` wrote CSVs (incl. rider PII on request) to the API host's working directory and returned only a manifest — the city could not download anything, and PII lingered on disk; (2) tenant `id` was free text but is used as a directory name, header value and vehicle-id prefix; (3) `POST /invoices/{period}` with a malformed period → 500; (4) PINs unhashed (open); (5) `api.py` size.
+**Plan:** build the export in a temp dir and stream it as a zip download (`Content-Disposition`); test PII present only for the city key, absent for ops, and nothing left on disk.
+**Review of own diff:** (a) item (2): `../evil` as tenant id would traverse directories in the export → `TenantConfig.id` constrained to `^[a-z0-9][a-z0-9_]{1,62}$`, six bad ids tested; (b) a test used id `"d"` and would now fail on the id instead of the date it meant to test → renamed so it still tests the date path; (c) export is built in memory — fine at MVP volumes; streaming noted for later.
+**Metrics:** tests 92→99 pass; coverage 92%; ruff 0; mypy 0; bench unchanged.
+**Next:** malformed invoice period → 422.

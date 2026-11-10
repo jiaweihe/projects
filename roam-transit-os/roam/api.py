@@ -399,7 +399,17 @@ def create_app(
         tenant_access(tenant_id, pr, ("ops", "city"))
         if include_pii and pr.role != "city":
             raise HTTPException(403, "only the city may export rider PII")
-        return raw.export_tenant(p, tenant_id, Path("out/exports"), include_pii)
+        buf = io.BytesIO()
+        with tempfile.TemporaryDirectory() as tmp:  # nothing (least of all PII) persists on the API host
+            raw.export_tenant(p, tenant_id, Path(tmp), include_pii)
+            with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+                for f in sorted((Path(tmp) / tenant_id).iterdir()):
+                    z.write(f, f.name)
+        return Response(
+            buf.getvalue(),
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="{tenant_id}_export.zip"'},
+        )
 
     # -------------------------------------------------------------------- IVR
     @app.post("/ivr/{tenant_id}/voice")

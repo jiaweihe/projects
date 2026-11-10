@@ -99,6 +99,27 @@ def test_reprovisioning_an_existing_tenant_is_refused(platform):
 def test_schema_error_with_yaml_date_still_returns_422(platform):
     c = _client(platform)
     r = c.post(
-        "/tenants", content=yaml.safe_dump(new_city_config(id="d", phase="2026-01-01")).replace("'2026-01-01'", "2026-01-01"), headers=OPS
+        "/tenants",
+        content=yaml.safe_dump(new_city_config(id="dated", phase="2026-01-01")).replace("'2026-01-01'", "2026-01-01"),
+        headers=OPS,
     )
     assert r.status_code == 422
+
+
+def test_raw_export_downloads_a_zip_and_leaves_nothing_on_the_server(platform, tmp_path, monkeypatch):
+    import io
+    import zipfile
+
+    monkeypatch.chdir(tmp_path)
+    c = _client(platform)
+    rider = c.post("/tenants/testville/riders", json={"eligibility_status": "certified", "phone": "+15550009999"}, headers=OPS).json()
+    c.post("/tenants/testville/trips", headers=OPS, json={"rider_id": rider["id"], **TRIP})
+    r = c.post("/tenants/testville/exports/raw", headers={"X-Api-Key": "city-tv"}, params={"include_pii": True})
+    assert r.status_code == 200 and r.headers["content-type"] == "application/zip"
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+    names = set(z.namelist())
+    assert {"manifest.json", "triprequest.csv", "rider.csv"} <= names
+    assert "+15550009999" in z.read("rider.csv").decode()  # the city asked for PII and gets it
+    assert not any(tmp_path.rglob("*.csv"))  # ...but none of it is left on the API host
+    ops = c.post("/tenants/testville/exports/raw", headers=OPS)
+    assert "+15550009999" not in zipfile.ZipFile(io.BytesIO(ops.content)).read("rider.csv").decode()

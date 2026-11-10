@@ -144,7 +144,7 @@ class Branding(BaseModel):
 
 
 class TenantConfig(BaseModel):
-    id: str
+    id: str = Field(pattern=r"^[a-z0-9][a-z0-9_]{1,62}$")  # used in URLs, file names and vehicle ids
     name: str
     type: TenantType
     region: dict[str, str]
