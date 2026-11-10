@@ -160,6 +160,8 @@ class Platform:
             trip = scope.get(TripRequest, e.trip_id)
         except KeyError:
             return
+        if trip.status == TripStatus.cancelled:
+            return  # late vehicle events never resurrect a cancelled trip
         is_pickup = (e.stop_id or "").endswith(":pu")
         if e.type == "en_route" and is_pickup:
             trip.status, trip.vehicle_id = TripStatus.en_route, e.vehicle_id

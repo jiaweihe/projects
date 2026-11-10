@@ -96,3 +96,44 @@ def test_microtransit_realtime_and_walk_to_stop(platform):
     assert t.status == TripStatus.booked
     assert t.origin == (-75.0505, 40.0605)  # snapped to the virtual stop within walking distance
     assert 600 <= t.negotiated_pickup <= 630
+
+
+def test_closed_trips_cannot_be_cancelled_so_denials_stay_on_record(testville):
+    """Cancelling a denied trip would erase an ADA denial from the KPIs; closed trips are final."""
+    import pytest
+
+    p, rt = testville
+    p.clock.minute = 600
+    r = _rider(p)
+    rejected = p.booking.request_trip("testville", r.id, Mode.paratransit, A, OUTSIDE, SERVICE_DAY, 600)
+    booked = p.booking.request_trip("testville", r.id, Mode.paratransit, A, B, SERVICE_DAY, 600)
+    p.booking.cancel_trip("testville", booked.id)
+    denied = rejected.model_copy(update={"id": "trip_denied_x", "status": TripStatus.denied})
+    p.store.scope("testville").add(denied)
+    for t in (rejected, booked, denied):
+        with pytest.raises(ValueError):
+            p.booking.cancel_trip("testville", t.id)
+    assert p.store.scope("testville").get(type(denied), denied.id).status == TripStatus.denied
+
+
+def test_cancel_while_vehicle_en_route_stays_cancelled_and_frees_capacity(testville):
+    from roam.sim.world import SimWorld
+
+    p, rt = testville
+    p.clock.minute = 600
+    r = _rider(p)
+    t = p.booking.request_trip("testville", r.id, Mode.paratransit, A, B, SERVICE_DAY, 600)
+    p.clock.today = SERVICE_DAY
+    w = SimWorld(seed=1)
+    adapters = p.build_adapters("testville", w)
+    for a in adapters.values():
+        a.params.no_show_rate = 0.0
+    p.start_day("testville", SERVICE_DAY, adapters)
+    while t.status != TripStatus.en_route:
+        w.run_until(w.now + 1)
+    p.clock.minute = w.now
+    p.booking.cancel_trip("testville", t.id)
+    w.run_until(26 * 60)
+    assert t.status == TripStatus.cancelled and t.actual_pickup is None
+    d = p.dispatcher("testville", SERVICE_DAY)
+    assert all(t.id not in u.onboard for u in d.units)

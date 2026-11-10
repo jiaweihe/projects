@@ -144,11 +144,16 @@ class Dispatcher:
         return None
 
     def remove_trip(self, trip_id: str) -> bool:
+        """Drop a trip from the plan, including one the vehicle is already driving to."""
         self.tasks.pop(trip_id, None)
         for u in self.units:
-            if any(n.trip_id == trip_id for n in u.route):
+            if trip_id in u.onboard or any(n.trip_id == trip_id for n in u.route):
+                u.onboard.pop(trip_id, None)
                 u.route = [n for n in u.route if n.trip_id != trip_id]
                 if self.live:
+                    adapter = self.adapters[u.vehicle_id]
+                    for sid in (f"{trip_id}:pu", f"{trip_id}:do"):
+                        adapter.cancel_stop(sid, "trip cancelled")
                     self._push(u)
                 return True
         return False

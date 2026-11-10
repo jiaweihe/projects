@@ -32,3 +32,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) first fix still left every PDF on the server's disk and same-named proposals overwrote each other → now a TemporaryDirectory; (b) CLI had its own ad-hoc slug → reuses `slug()` (one implementation); (c) Content-Disposition header could carry user text → it only ever contains the slug (`[a-z0-9_]`).
 **Metrics:** tests 51→53 (all pass); coverage 84→85%; ruff 121; mypy 25; LOC 4544→4551; bench sim 1.96 s, proposal 4.88 s (noise).
 **Next:** IVR window crash.
+
+## Iteration 2 — cancellation could erase ADA denials and leak capacity (bug)
+**Audit (top 5):** (1) `cancel_trip` accepted denied/rejected/cancelled trips → an ADA denial could be "cancelled" and vanish from the denial KPI; (2) cancelling an en-route trip left it in `unit.onboard` (permanent seat leak) and later vehicle events flipped it to onboard/completed; (3) O(n³) insertion search; (4) OR-Tools complexity; (5) 121 lint / 25 mypy findings. (IVR window "crash" from iteration 1 re-checked: unreachable, every booked trip has a window → type-only issue, deprioritised.)
+**Plan:** allow-list `CANCELLABLE` statuses; `Dispatcher.remove_trip` clears onboard + tells the adapter to cancel both stops; simulator skips a cancelled in-flight stop; platform ignores events for cancelled trips.
+**Review of own diff:** (a) first version only fixed the status check — the en-route path was still broken → added the simulation test that caught it; (b) `SimulatorAdapter.cancel_stop` returned `Ack(False)` for an in-flight stop, misleading callers → now `Ack(True, "will be skipped")`; (c) defence in depth: platform drops any late event for a cancelled trip, so other adapters (human driver tapping "board" late) can't resurrect it either.
+**Metrics:** tests 53→55 pass; coverage 85%; ruff 121; mypy 25; bench unchanged.
+**Next:** speed up insertion search (proposal is the slowest path).

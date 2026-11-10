@@ -29,6 +29,7 @@ from .models import (
 if TYPE_CHECKING:
     from .platform import Platform
 
+CANCELLABLE = {TripStatus.requested, TripStatus.booked, TripStatus.scheduled, TripStatus.en_route}
 ELIGIBLE = {EligibilityStatus.certified, EligibilityStatus.conditional, EligibilityStatus.temporary}
 PLANNING_SLACK_MIN = 4.0  # plan to arrive this much inside the promised window (absorbs variance)
 
@@ -281,7 +282,7 @@ class BookingService:
     def cancel_trip(self, tenant_id: str, trip_id: str, reason: str = "rider request") -> TripRequest:
         scope = self.p.store.scope(tenant_id)
         trip = scope.get(TripRequest, trip_id)
-        if trip.status in (TripStatus.completed, TripStatus.onboard, TripStatus.no_show):
+        if trip.status not in CANCELLABLE:  # closed trips (incl. ADA denials) are final records
             raise ValueError(f"cannot cancel a trip in status {trip.status.value}")
         d = self.p.dispatchers.get((tenant_id, trip.service_date))
         if d is not None:

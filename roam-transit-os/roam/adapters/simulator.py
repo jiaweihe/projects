@@ -48,6 +48,7 @@ class SimulatorAdapter(VehicleAdapter):
         self.home: LonLat = start_loc
         self.runs: list[Run] = []
         self._finished: dict[str, Run] = {}
+        self._cancelled: set[str] = set()
         self.current: Run | None = None
         self.pending: list[Stop] = []
         self.busy = False  # en route or serving a stop
@@ -91,9 +92,10 @@ class SimulatorAdapter(VehicleAdapter):
         return Ack(False, f"unknown run {run_id}")
 
     def cancel_stop(self, stop_id: str, reason: str) -> Ack:
+        self._cancelled.add(stop_id)  # also covers the stop the vehicle is currently driving to
         before = len(self.pending)
         self.pending = [s for s in self.pending if s.id != stop_id]
-        return Ack(len(self.pending) < before)
+        return Ack(True, "" if len(self.pending) < before else "stop in progress; will be skipped")
 
     # ------------------------------------------------------------ dynamics
     def _event(self, type_: str, stop: Stop | None = None, **payload) -> None:
@@ -194,6 +196,10 @@ class SimulatorAdapter(VehicleAdapter):
         self.loc = stop.location  # type: ignore[assignment]
         self.odometer += km
         self.run_km += km
+        if stop.id in self._cancelled:  # cancelled while en route: drive on
+            stop.status = StopStatus.cancelled
+            self._done()
+            return
         stop.status = StopStatus.arrived
         stop.actual = self.world.now
         self._event("arrival", stop)
