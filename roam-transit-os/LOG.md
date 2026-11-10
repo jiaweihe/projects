@@ -89,3 +89,13 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) bug 3 above; (b) reassigned pickups get a widened planning window — the rider's *promised* window (`trip.window`) is unchanged, so OTP still counts the lateness honestly (documented, intentional); (c) removed the per-unit `allowed_units` exclusion that only excluded one of the broken vehicle's shifts — inactive units are already skipped.
 **Metrics:** tests 64→66 pass; **coverage 86→87%**; ruff 0; mypy 0; bench unchanged.
 **Next:** CLI smoke tests (0% coverage, user-facing entry point).
+
+## Iteration 9 — CLI smoke tests; clean refusals; honest go-live report (coverage + UX bugs)
+**Audit (top 5):** (1) `cli.py` 0% coverage — the main human entry point; (2) GTFS import 0%; (3) GTFS-RT trip updates untested; (4) API error paths (409/422) partly untested; (5) `api.py` closure still large.
+**Plan:** smoke-test every subcommand (`validate`, `golive` blocked/allowed, `simulate` incl. weekend roll-forward, `propose` from a boundary file).
+**Honest note:** the happy-path smoke tests passed first time (coverage only). Review then found two UX bugs, each fixed test-first:
+1. `roam propose` for an excluded jurisdiction crashed with a traceback → prints `refused: …` to stderr and exits 2.
+2. A go-live refusal relabelled go-live *blockers* as validation *errors* in the printed/returned report (`ValidationReport(errors=blockers)`) → the full report is now passed through unchanged (also simpler: one constructor path).
+**Review of own diff:** (a) the go-live test parsed accumulated stdout from the previous command → clear capture between commands; (b) new test line broke the 140-char rule → ruff gate caught it; (c) `ProvisioningError` message now falls back to blockers so `str(e)` is never empty.
+**Metrics:** tests 66→71 pass; **coverage 87→90%** (cli 0→~90%); ruff 0; mypy 0; bench unchanged.
+**Next:** GTFS import + GTFS-RT trip updates tests (remaining 0%/low export code).

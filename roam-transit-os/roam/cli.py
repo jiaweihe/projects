@@ -123,7 +123,11 @@ def cmd_propose(a) -> int:
             current_annual_cost=a.current_cost,
             current_annual_trips=a.current_trips,
         )
-    prop = generate_proposal(inp)
+    try:
+        prop = generate_proposal(inp)
+    except PermissionError as e:  # corporate guardrail (e.g. excluded jurisdiction)
+        print(f"refused: {e}", file=sys.stderr)
+        return 2
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     stem = slug(inp.name)

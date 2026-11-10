@@ -34,7 +34,7 @@ class Clock:
 
 class ProvisioningError(ValueError):
     def __init__(self, report: ValidationReport):
-        super().__init__("; ".join(report.errors))
+        super().__init__("; ".join(report.errors or report.golive_blockers))
         self.report = report
 
 
@@ -56,7 +56,7 @@ class Platform:
         cfg, geoms = load_config(source) if not isinstance(source, tuple) else source
         report = validate(cfg, geoms)
         if not report.ok or (require_go_live and not report.can_go_live):
-            raise ProvisioningError(report if report.errors else ValidationReport(errors=report.golive_blockers))
+            raise ProvisioningError(report)
         rt = build_runtime(cfg, geoms, report)
         if cfg.gtfs_feed and not isinstance(source, tuple):
             from .exports.gtfs_import import load_stops
