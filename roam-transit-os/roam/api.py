@@ -8,6 +8,9 @@ tenants. Production: OIDC + Postgres row-level security (db/schema.sql).
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 import io
 import tempfile
 import zipfile
@@ -90,13 +93,33 @@ class ProposalIn(BaseModel):
     modes: list[str] = ["paratransit", "microtransit"]
 
 
-def create_app(platform: Platform | None = None, api_keys: dict[str, Principal] | None = None, realtime_clock: bool = True) -> FastAPI:
+MAX_IVR_SESSIONS = 1000
+
+
+def twilio_signature_ok(auth_token: str, url: str, params: dict[str, str], signature: str) -> bool:
+    """Twilio request validation: base64(HMAC-SHA1(token, url + sorted key/value pairs))."""
+    data = url + "".join(k + params[k] for k in sorted(params))
+    expected = base64.b64encode(hmac.new(auth_token.encode(), data.encode(), hashlib.sha1).digest()).decode()
+    return hmac.compare_digest(expected, signature)
+
+
+def create_app(
+    platform: Platform | None = None,
+    api_keys: dict[str, Principal] | None = None,
+    realtime_clock: bool = True,
+    twilio_auth_token: str | None = None,
+    allow_unsigned_ivr: bool = False,
+    public_base_url: str | None = None,
+) -> FastAPI:
+    """``twilio_auth_token`` enables the IVR webhook; without it the webhook refuses every
+    request unless ``allow_unsigned_ivr`` is set explicitly (local development only)."""
     p = platform or Platform()
     keys = api_keys if api_keys is not None else {}
     app = FastAPI(title="Roam Transit OS", version="0.1.0")
     app.state.platform = p
     app.state.keys = keys
     ivr_sessions: dict[str, IVRSession] = {}
+    app.state.ivr_sessions = ivr_sessions
 
     # ------------------------------------------------------------ auth
     def principal(x_api_key: str = Header(default="")) -> Principal:
@@ -363,7 +386,7 @@ def create_app(platform: Platform | None = None, api_keys: dict[str, Principal] 
 
     # -------------------------------------------------------------------- IVR
     @app.post("/ivr/{tenant_id}/voice")
-    def ivr_voice(
+    async def ivr_voice(
         tenant_id: str,
         request: Request,
         CallSid: str = Form(...),
@@ -371,12 +394,22 @@ def create_app(platform: Platform | None = None, api_keys: dict[str, Principal] 
         Digits: str = Form(""),
         SpeechResult: str = Form(""),
     ):
-        # VERIFY: validate the X-Twilio-Signature header before production use
+        if not allow_unsigned_ivr:
+            form = {k: str(v) for k, v in (await request.form()).items()}
+            sig = request.headers.get("X-Twilio-Signature", "")
+            # behind a TLS proxy, Twilio signs the public URL, not the one this process sees
+            url = public_base_url.rstrip("/") + request.url.path if public_base_url else str(request.url)
+            if request.url.query and public_base_url:
+                url += "?" + request.url.query
+            if not twilio_auth_token or not twilio_signature_ok(twilio_auth_token, url, form, sig):
+                raise HTTPException(403, "invalid or missing Twilio signature")
         if tenant_id not in p.store.tenants:
             raise HTTPException(404, "tenant not found")
         sync_clock(tenant_id)
         s = ivr_sessions.get(CallSid)
         if s is None:
+            if len(ivr_sessions) >= MAX_IVR_SESSIONS:  # abandoned calls never send a final request
+                ivr_sessions.pop(next(iter(ivr_sessions)))
             s = ivr_sessions[CallSid] = IVRSession(p, tenant_id, From)
             resp = s.start()
         else:

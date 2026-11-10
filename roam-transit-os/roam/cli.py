@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from datetime import date, timedelta
@@ -165,7 +166,9 @@ def cmd_serve(a) -> int:  # pragma: no cover - interactive
     p.ops.add_seat("seat-1", "Ops seat 1", set(tenants))
     for k, pr in keys.items():
         print(f"API key {k}: role={pr.role} tenants={sorted(pr.tenant_ids) if pr.tenant_ids else 'ALL'}")
-    uvicorn.run(create_app(p, keys), host=a.host, port=a.port)
+    # IVR webhook stays closed unless TWILIO_AUTH_TOKEN is set (ROAM_PUBLIC_URL when behind a proxy)
+    app = create_app(p, keys, twilio_auth_token=os.environ.get("TWILIO_AUTH_TOKEN"), public_base_url=os.environ.get("ROAM_PUBLIC_URL"))
+    uvicorn.run(app, host=a.host, port=a.port)
     return 0
 
 

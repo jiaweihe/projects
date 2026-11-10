@@ -107,3 +107,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) the null-vehicle defect; (b) removed a meaningless `assert TODAY < SERVICE_DAY` I had written; (c) transfer has no maximum distance to the rider's final destination — acceptable for MVP since only in-zone stops are candidates; logged as an open issue.
 **Metrics:** tests 71→74 pass; **coverage 90→91%**; ruff 0; mypy 0; bench unchanged.
 **Next:** API error-path tests / simplify `api.py`.
+
+## Iteration 11 — IVR webhook was unauthenticated (security)
+**Audit (top 5):** (1) `POST /ivr/{tenant}/voice` accepted any caller: a forged `From` number lets anyone book/cancel rides as a rider (and fill memory with sessions); (2) malformed tenant config → HTTP 500 instead of 422; (3) driver endpoint reveals whether a vehicle id exists (different 404 messages); (4) README drift; (5) `api.py` size.
+**Plan:** implement Twilio request validation with stdlib `hmac`/`hashlib`/`base64` (no new dependency); webhook refuses everything unless `twilio_auth_token` is configured (or `allow_unsigned_ivr=True` for local dev); tests for unsigned/forged/valid.
+**Review of own diff:** (a) behind a TLS-terminating proxy the process sees `http://…` while Twilio signs `https://public…` → `public_base_url` option (env `ROAM_PUBLIC_URL`), tested; (b) `roam serve` had no way to pass the token → reads `TWILIO_AUTH_TOKEN`; (c) abandoned calls never hit `done`, so `ivr_sessions` grew without bound → capped at `MAX_IVR_SESSIONS` (oldest evicted), tested. Signature comparison uses `hmac.compare_digest`.
+**Metrics:** tests 74→78 pass; coverage 91%; ruff 0; mypy 0; bench unchanged; one unauthenticated write endpoint → 0.
+**Next:** malformed config → 422.

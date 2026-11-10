@@ -106,7 +106,7 @@ tests/                 unit + API + acceptance tests
 - **Fares**: NJ TRANSIT, CapMetro and Metrobus fixed-route fares are marked VERIFY. The ADA 2× fare cap is enforced against them.
 - **Fleet sizes and shifts** in the fixtures are placeholders. Mercer's 8 vans serve about 60 paratransit trips/day with zero denials in simulation. Above roughly 70, the morning peak needs more vehicles.
 - **Field names**: MDS (`passenger-services` mode, event names, `trip_type` vocabulary), the GTFS-Flex fields and the NTD demand-response form fields are all marked VERIFY in code.
-- **IVR**: Twilio signature validation is a TODO. The AI booking agent is a rule-based stand-in behind the `BookingAgent` protocol.
+- **IVR**: the webhook validates `X-Twilio-Signature` (set `TWILIO_AUTH_TOKEN`, and `ROAM_PUBLIC_URL` behind a proxy) and refuses all requests otherwise. The AI booking agent is a rule-based stand-in behind the `BookingAgent` protocol.
 - **Demand rates** per capita in the proposal generator are planning assumptions. When population is not given, it is estimated from area × density.
 - **Open spec questions** (§14) are unchanged: open-core licence, MOVES ownership, AV provider APIs and fees, insurance pool structure, cooperative purchasing.
 
