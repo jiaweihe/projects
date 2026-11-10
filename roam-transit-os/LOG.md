@@ -191,3 +191,12 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) driver routes had their own regex for the same format → switched to the `HHMM` type, `_driver_minute` shrank to two lines (one validation rule, one place); (b) first proposal fix was a broad `except (ValueError, KeyError, TypeError, IndexError)` that would disguise internal bugs as 422 → replaced by up-front `geo.validate_polygon()` (existing function, reused); (c) checked every request model: all times now `HHMM`, all coordinates `LonLatIn`.
 **Metrics:** tests 107→109 pass; coverage 93%; ruff 0; mypy 0; bench unchanged. Input-driven 500s found by audit tonight: 0 remaining that I could provoke.
 **Next:** fresh audit.
+
+## Iteration 23 — API garbage-input sweep; ops exceptions were not tenant-scoped (bugs + security)
+**Audit (top 5):** finding 500s one at a time is slow → (1) add a sweep test that hits every route with garbage path params and bodies; (2) whatever it finds; (3) PINs unhashed (open); (4) `api.py` size; (5) nothing else of note.
+**Found by the sweep (test failed first):** `/ops/queue` crashed (KeyError) for an ops key whose seat isn't registered; `/ops/exceptions/{id}/ack` and `/resolve` crashed on unknown ids.
+**Found in review:** `resolve` never checked tenant scope — any ops key could close another city's alert (`ack` checked only when a seat existed).
+**Fix:** `_ops_tenants()` (registered seat's tenants, else the key's own scope) and `_visible_exception()` (uniform 404 for unknown *or* out-of-scope ids) used by queue/ack/resolve. Test covers both keys.
+**Review of own diff:** (a) the scope hole above; (b) my first ack fix duplicated the state transition from `OpsCenter.acknowledge` → routed back through it (seat check now optional for unregistered seats); (c) the sweep runs with `raise_server_exceptions=False` so a crash is reported as a 500 instead of aborting the loop.
+**Metrics:** tests 109→111 pass; **coverage 93→94%**; ruff 0; mypy 0; bench unchanged; routes returning 5xx under garbage input: 3 → 0 (sweep-enforced from now on).
+**Next:** fresh audit.

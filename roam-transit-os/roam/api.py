@@ -318,21 +318,31 @@ def create_app(
 
     @app.get("/ops/queue")
     def ops_queue(pr: Principal = Depends(principal), include_closed: bool = False):
-        _ops(pr)
-        items = p.ops.queue(seat_id=pr.seat_id, tenant_ids=pr.tenant_ids if pr.seat_id is None else None, include_closed=include_closed)
+        items = p.ops.queue(tenant_ids=_ops_tenants(pr), include_closed=include_closed)
         return [vars(e) | {"severity_name": Severity(e.severity).name} for e in items[:500]]
 
     @app.post("/ops/exceptions/{exc_id}/ack")
     def ops_ack(exc_id: str, pr: Principal = Depends(principal)):
-        _ops(pr)
-        if not pr.seat_id:
-            raise HTTPException(400, "principal has no ops seat")
+        _visible_exception(exc_id, pr)
         return vars(p.ops.acknowledge(exc_id, pr.seat_id, p.clock.minute))
 
     @app.post("/ops/exceptions/{exc_id}/resolve")
     def ops_resolve(exc_id: str, note: str = "", pr: Principal = Depends(principal)):
-        _ops(pr)
+        _visible_exception(exc_id, pr)
         return vars(p.ops.resolve(exc_id, p.clock.minute, note))
+
+    def _ops_tenants(pr: Principal) -> set[str] | None:
+        """Tenants an ops key may supervise: its registered seat's tenants, else the key's own scope."""
+        _ops(pr)
+        seat = p.ops.seats.get(pr.seat_id or "")
+        return seat.tenant_ids if seat else pr.tenant_ids
+
+    def _visible_exception(exc_id: str, pr: Principal):
+        allowed = _ops_tenants(pr)
+        e = p.ops.exceptions.get(exc_id)
+        if e is None or (allowed is not None and e.tenant_id not in allowed):
+            raise HTTPException(404, "exception not found")
+        return e
 
     @app.get("/ops/map")
     def ops_map(pr: Principal = Depends(principal)):

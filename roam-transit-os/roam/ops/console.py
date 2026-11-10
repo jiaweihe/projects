@@ -120,9 +120,10 @@ class OpsCenter:
         ]
         return sorted(items, key=OpsException.sort_key)
 
-    def acknowledge(self, exc_id: str, seat_id: str, at: float) -> OpsException:
+    def acknowledge(self, exc_id: str, seat_id: str | None, at: float) -> OpsException:
         e = self.exceptions[exc_id]
-        if e.tenant_id not in self.seats[seat_id].tenant_ids:
+        seat = self.seats.get(seat_id or "")
+        if seat is not None and e.tenant_id not in seat.tenant_ids:
             raise PermissionError("seat not assigned to this tenant")
         e.status, e.assigned_to, e.acked_at = "acknowledged", seat_id, at
         return e

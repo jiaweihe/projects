@@ -76,3 +76,17 @@ def test_seat_simulation_serves_critical_first():
     stats = ops.simulate_seat("s", 0, 120)
     # the fault arrives while the seat is busy, but jumps the low-severity no-show
     assert stats["max_response_min_critical"] == 18 and stats["max_response_min_low"] == 31
+
+
+def test_ops_keys_only_touch_exceptions_of_their_tenants(testville):
+    p, rt = testville
+    p.ops.add_seat("seat-tv", "TV seat", {"testville"})
+    keys = {"tv": Principal("ops", {"testville"}, "seat-tv"), "other": Principal("ops", {"othertown"}, "seat-x")}
+    c = TestClient(create_app(p, keys, realtime_clock=False))
+    e = p.ops.raise_exception(type="no_show", severity=4, tenant_id="testville", at=600)
+    assert c.get("/ops/queue", headers={"X-Api-Key": "other"}).json() == []  # unregistered seat: falls back to key's tenants
+    assert c.post(f"/ops/exceptions/{e.id}/resolve", headers={"X-Api-Key": "other"}).status_code == 404
+    assert c.post(f"/ops/exceptions/{e.id}/ack", headers={"X-Api-Key": "other"}).status_code == 404
+    assert c.post("/ops/exceptions/nope/resolve", headers={"X-Api-Key": "tv"}).status_code == 404
+    assert c.post(f"/ops/exceptions/{e.id}/ack", headers={"X-Api-Key": "tv"}).json()["status"] == "acknowledged"
+    assert c.post(f"/ops/exceptions/{e.id}/resolve", headers={"X-Api-Key": "tv"}).json()["status"] == "resolved"
