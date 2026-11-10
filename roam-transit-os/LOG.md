@@ -170,3 +170,10 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) the validation lives in `billing.py`, not only the API, so CLI/library callers can't produce wrong invoices either; (b) re-issuing an invoice for the same period replaces the stored one (same id) — deterministic and idempotent, intentional; (c) `/kpis` start>end left as an open minor issue (returns empty KPIs, not wrong money).
 **Metrics:** tests 99→104 pass; coverage 92%; ruff 0; mypy 0; bench unchanged; 500s on bad invoice input: 4 cases → 0.
 **Next:** fresh audit.
+
+## Iteration 20 — dead code removal (simplification)
+**Audit (top 5):** (1) unreferenced code: `booking.next_service_day`, `ntd.ntd_csv`, `Solution.unit_of`, `RunPatch.stop_order`/`eta_updates` (set but never read by any adapter), `OpsCenter.listeners` hook; (2) driver app's `report_fault`/`driver_telemetry` exist but no API route reaches them (missing feature, not dead code); (3) `/kpis` start>end; (4) PINs unhashed; (5) `api.py` size.
+**Plan:** find unreferenced definitions with a name-reference scan (no new tool); delete them; full suite is the guard (a deletion has no failing-test-first form — recorded honestly).
+**Review of own diff:** (a) one test still built `RunPatch(stop_order=…)` → updated; (b) kept `KPISnapshot` although unused in code — it's in the spec's data model and `db/schema.sql`; (c) `RunPatch` is now a single-field dataclass; kept (rather than passing a bare list) because it is the spec's adapter interface type and leaves room for ETAs later.
+**Metrics:** tests 104 pass; **coverage 92→93%**; ruff 0; mypy 0; **statements 3501→3481**; bench unchanged.
+**Next:** expose driver fault/telemetry in the API (the driver app can't report a breakdown today).

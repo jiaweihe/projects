@@ -23,9 +23,7 @@ class Ack:
 
 @dataclass
 class RunPatch:
-    add_stops: list[Any] = field(default_factory=list)  # Stop records, in final order positions
-    stop_order: list[str] | None = None  # full new order of stop ids
-    eta_updates: dict[str, float] = field(default_factory=dict)
+    add_stops: list[Any] = field(default_factory=list)  # the run's open stops, in their new order
 
 
 @dataclass

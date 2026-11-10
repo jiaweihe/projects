@@ -221,7 +221,7 @@ class Dispatcher:
 
     def _push(self, u: Unit) -> None:
         run = self._build_run(u)
-        self.adapters[u.vehicle_id].update_run(run.id, RunPatch(add_stops=run.stops, stop_order=[s.id for s in run.stops]))
+        self.adapters[u.vehicle_id].update_run(run.id, RunPatch(add_stops=run.stops))
 
     def _unit_by_run(self, run_id: str) -> Unit:
         for u in self.units:

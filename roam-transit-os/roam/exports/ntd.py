@@ -8,8 +8,6 @@ before submitting anything for an FTA-funded service.
 
 from __future__ import annotations
 
-import csv
-import io
 from datetime import date, timedelta
 from typing import TYPE_CHECKING
 
@@ -47,11 +45,3 @@ def ntd_monthly(platform: Platform, tenant_id: str, start: date, end: date) -> d
         "pmt": round(pmt, 1),
         "ada_trips_denied": k["ada_denials"],
     }
-
-
-def ntd_csv(row: dict) -> str:
-    buf = io.StringIO()
-    w = csv.DictWriter(buf, fieldnames=list(row.keys()), lineterminator="\n")
-    w.writeheader()
-    w.writerow(row)
-    return buf.getvalue()

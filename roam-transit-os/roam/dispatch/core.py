@@ -201,12 +201,6 @@ class Solution:
     units: list[Unit]
     unassigned: list[Task]
 
-    def unit_of(self, trip_id: str) -> Unit | None:
-        for u in self.units:
-            if any(n.trip_id == trip_id for n in u.route) or trip_id in u.onboard:
-                return u
-        return None
-
 
 class Solver(Protocol):
     """Swappable solver (OR-Tools, VROOM, heuristic). Must not mutate ``units`` it rejects."""

@@ -87,7 +87,7 @@ def test_manifest_update_keeps_the_stop_the_driver_is_heading_to():
     remaining = [s.model_copy() for s in run.stops if s.id == "trip1:do"]
     from roam.adapters.base import RunPatch
 
-    a.update_run("run1", RunPatch(add_stops=remaining, stop_order=[s.id for s in remaining]))
+    a.update_run("run1", RunPatch(add_stops=remaining))
     assert [s["id"] for s in a.manifest()["stops"]] == ["trip1:pu", "trip1:do"]
 
 

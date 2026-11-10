@@ -8,7 +8,7 @@ Microtransit: real-time requests, optional walk-to-stop, transfer to fixed route
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 from typing import TYPE_CHECKING, Literal
 
 from . import geo
@@ -324,7 +324,3 @@ class BookingService:
                 )
             )
         return out
-
-
-def next_service_day(d: date) -> date:
-    return d + timedelta(days=1)

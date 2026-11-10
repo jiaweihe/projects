@@ -72,7 +72,6 @@ class OpsCenter:
         self.exceptions: dict[str, OpsException] = {}
         self.seats: dict[str, Seat] = {}
         self.vehicle_counts: dict[str, int] = {}
-        self.listeners: list = []
 
     # ------------------------------------------------------------ seats
     def add_seat(self, seat_id: str, name: str, tenant_ids: set[str]) -> Seat:
@@ -110,8 +109,6 @@ class OpsCenter:
             data=data,
         )
         self.exceptions[ex.id] = ex
-        for cb in self.listeners:
-            cb(ex)
         return ex
 
     def queue(self, seat_id: str | None = None, tenant_ids: set[str] | None = None, include_closed: bool = False) -> list[OpsException]:
