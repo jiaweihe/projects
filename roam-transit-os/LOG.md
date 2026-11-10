@@ -25,3 +25,10 @@ along the way, keep every acceptance test.
 | Bench: Mercer proposal | 5.19 s |
 | Wheel build | 2.6 s |
 | Test suite wall time (with coverage) | 32.9 s |
+
+## Iteration 1 — path traversal in proposal PDF filename (security)
+**Audit (top 5):** (1) `/proposals?pdf=1` builds a file path from the user-supplied city name → path traversal + files left on the API host; (2) IVR offer crashes if a booked trip has no window (mypy flagged `tuple[None,None]`); (3) `cancel_trip` lets a denied/rejected/already-cancelled trip be "cancelled" again; (4) `best_insertion` is O(n³) evaluate calls with no pruning on the drop-off loop (proposal 5.2 s); (5) optional OR-Tools solver = 190 LOC + a repair hack, never chosen by default — complexity without value for an MVP.
+**Plan:** add a test posting `name="../../escaped"`; add `slug()` in the proposal module, used by API and CLI; API writes the PDF into a temp dir and returns bytes.
+**Review of own diff:** (a) first fix still left every PDF on the server's disk and same-named proposals overwrote each other → now a TemporaryDirectory; (b) CLI had its own ad-hoc slug → reuses `slug()` (one implementation); (c) Content-Disposition header could carry user text → it only ever contains the slug (`[a-z0-9_]`).
+**Metrics:** tests 51→53 (all pass); coverage 84→85%; ruff 121; mypy 25; LOC 4544→4551; bench sim 1.96 s, proposal 4.88 s (noise).
+**Next:** IVR window crash.

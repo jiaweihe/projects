@@ -11,6 +11,7 @@ Output: a dict (service design + costs) and a one-page PDF.
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
@@ -46,6 +47,11 @@ class ProposalInput:
     sample_cap: int = 70  # trips per mode in the representative simulated day
     seed: int = 5
     notes: list[str] = field(default_factory=list)
+
+
+def slug(name: str) -> str:
+    """Filesystem-safe file stem for a proposal (no path separators, no dots)."""
+    return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")[:80] or "proposal"
 
 
 def _synthetic_config(inp: ProposalInput, vehicles: int) -> dict[str, Any]:

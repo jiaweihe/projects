@@ -9,6 +9,7 @@ tenants. Production: OIDC + Postgres row-level security (db/schema.sql).
 from __future__ import annotations
 
 import io
+import tempfile
 import zipfile
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -30,7 +31,7 @@ from .ivr import IVRSession, twiml
 from .models import AccessibilityNeed, Channel, EligibilityStatus, Mode, Rider, Severity, TripRequest, new_id
 from .ops.incidents import close_incident, open_incident
 from .platform import Platform, ProvisioningError
-from .proposal.generator import ProposalInput, generate_proposal, write_pdf
+from .proposal.generator import ProposalInput, generate_proposal, slug, write_pdf
 
 
 @dataclass
@@ -349,8 +350,10 @@ def create_app(platform: Platform | None = None, api_keys: dict[str, Principal] 
         except PermissionError as e:
             raise HTTPException(403, str(e))
         if pdf:
-            path = write_pdf(out, Path("out/proposals") / f"{body.name.replace(' ', '_').replace(',', '')}.pdf")
-            return Response(path.read_bytes(), media_type="application/pdf")
+            with tempfile.TemporaryDirectory() as tmp:  # nothing persists on the API host
+                pdf_bytes = write_pdf(out, Path(tmp) / f"{slug(body.name)}.pdf").read_bytes()
+            return Response(pdf_bytes, media_type="application/pdf",
+                            headers={"Content-Disposition": f'attachment; filename="{slug(body.name)}.pdf"'})
         return JSONResponse(out)
 
     # ------------------------------------------------------------ console UI

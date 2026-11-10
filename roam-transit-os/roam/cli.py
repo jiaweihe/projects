@@ -70,7 +70,7 @@ def cmd_simulate(a) -> int:
 
 def cmd_propose(a) -> int:
     from .config.schema import load_config
-    from .proposal.generator import ProposalInput, generate_proposal, write_pdf
+    from .proposal.generator import ProposalInput, generate_proposal, slug, write_pdf
 
     if a.config:
         cfg, geoms = load_config(a.config)
@@ -93,9 +93,9 @@ def cmd_propose(a) -> int:
     prop = generate_proposal(inp)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    slug = inp.name.lower().replace(",", "").replace(" ", "_")
-    (out / f"{slug}_proposal.json").write_text(json.dumps(prop, indent=2, default=str))
-    pdf = write_pdf(prop, out / f"{slug}_proposal.pdf")
+    stem = slug(inp.name)
+    (out / f"{stem}_proposal.json").write_text(json.dumps(prop, indent=2, default=str))
+    pdf = write_pdf(prop, out / f"{stem}_proposal.pdf")
     summary = {ph: {k: prop["costs"][ph][k] for k in ("total", "cost_per_trip", "cost_per_vrh", "roam_take_share")} for ph in prop["costs"]}
     print(json.dumps({"service_design": prop["service_design"], "costs": summary, "benchmark": prop["benchmark"],
                       "sensitivity": prop["sensitivity"], "pdf": str(pdf)}, indent=2))
