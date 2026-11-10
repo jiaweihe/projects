@@ -69,3 +69,12 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) I first used `assert trip.window is not None` in the IVR — asserts disappear under `python -O` → replaced with a typed fallback; (b) a `type: ignore` was *removed* rather than added (KPI) — net fewer suppressions; (c) the new import broke isort order → ruff fixed; gate tests caught it.
 **Metrics:** tests 58→59 pass; coverage 85%; ruff 0; **mypy 21→0**; statements 3382→3386; bench unchanged (sim 0.67 s, proposal 1.58 s).
 **Next:** raise coverage on the least-tested business logic (incidents, ops seat, KPIs).
+
+## Iteration 7 — incident workflow + ops queue tests; undeliverable notices surfaced (coverage + bug)
+**Audit (top 5):** (1) `ops/incidents.py` at 39% coverage — the insurer/police notification rules had no test; (2) vehicle-fault rescue path in the dispatcher untested (lines 290–333); (3) CLI 0% coverage; (4) GTFS import untested; (5) GTFS-RT trip updates untested.
+**Plan:** test notification routing by severity/injury, close-out, tenant-scoped API, queue ordering and seat-simulation priority.
+**Honest note:** the routing/queue tests passed on first run (no bug there) — this part is coverage only. Review of the code under test then found a real gap, handled test-first: a missing contact (e.g. no police/fire number) was "sent" to a placeholder string and counted as notified.
+**Fix:** notifications carry `delivered: bool`; a missing contact is recorded as undelivered (not sent) and the API raises an `incident_notice_undelivered` ops exception (severity high).
+**Review of own diff:** (a) close-out report still listed undelivered parties under "Notified" → split into "Notified" / "Not delivered"; (b) moved a function-local `import pytest` to module top; (c) gave the new exception type a handling-time estimate so seat-load maths stays meaningful.
+**Metrics:** tests 59→64 pass; **coverage 85→86%** (incidents 39→~100%); ruff 0; mypy 0; bench unchanged.
+**Next:** vehicle-fault rescue path test (highest-risk untested logic).

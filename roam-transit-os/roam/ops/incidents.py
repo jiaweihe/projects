@@ -54,9 +54,12 @@ def open_incident(
     if injuries:
         recipients.append("police_fire")
     for role in recipients:
-        to = contacts.get(role, f"<missing contact: {role}>")
+        to = contacts.get(role)
+        if to is None:  # record the gap instead of "sending" to nobody
+            inc.notifications.append({"role": role, "to": None, "delivered": False})
+            continue
         n = notifier.send(to, f"[{scope.tenant_id}] Incident {inc.id} ({severity.name})", summary)
-        inc.notifications.append({"role": role, **n})
+        inc.notifications.append({"role": role, **n, "delivered": True})
     inc.status = "notified"
     return inc
 
@@ -67,7 +70,8 @@ def close_incident(scope: TenantScope, incident_id: str, root_cause: str, correc
         f"Incident {inc.id} close-out\n"
         f"Severity: {inc.severity.name}\nSummary: {inc.summary}\n"
         f"Injuries: {'yes' if inc.injuries else 'no'}\nParties: {', '.join(inc.parties) or 'n/a'}\n"
-        f"Notified: {', '.join(n['role'] for n in inc.notifications)}\n"
+        f"Notified: {', '.join(n['role'] for n in inc.notifications if n['delivered']) or 'none'}\n"
+        f"Not delivered (no contact): {', '.join(n['role'] for n in inc.notifications if not n['delivered']) or 'none'}\n"
         f"Root cause: {root_cause}\nCorrective action: {corrective_action}\n"
     )
     inc.status = "closed"

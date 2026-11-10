@@ -28,6 +28,7 @@ HANDLE_MIN: dict[str, float] = {
     "predicted_late_pickup": 1.0,
     "no_show": 0.5,
     "incident": 20,
+    "incident_notice_undelivered": 5,
     "ivr_human_fallback": 4,
     "microtransit_unserved": 0.5,
     "complaint": 3,

@@ -292,6 +292,16 @@ def create_app(platform: Platform | None = None, api_keys: dict[str, Principal] 
             parties=body.parties,
             injuries=body.injuries,
         )
+        missing = [n["role"] for n in inc.notifications if not n["delivered"]]
+        if missing:
+            p.ops.raise_exception(
+                type="incident_notice_undelivered",
+                severity=2,
+                tenant_id=tenant_id,
+                at=p.clock.minute,
+                service_date=p.clock.today,
+                message=f"incident {inc.id}: no contact for {', '.join(missing)}",
+            )
         return inc.model_dump()
 
     @app.post("/tenants/{tenant_id}/incidents/{incident_id}/close")
