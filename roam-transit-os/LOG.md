@@ -99,3 +99,11 @@ along the way, keep every acceptance test.
 **Review of own diff:** (a) the go-live test parsed accumulated stdout from the previous command → clear capture between commands; (b) new test line broke the 140-char rule → ruff gate caught it; (c) `ProvisioningError` message now falls back to blockers so `str(e)` is never empty.
 **Metrics:** tests 66→71 pass; **coverage 87→90%** (cli 0→~90%); ruff 0; mypy 0; bench unchanged.
 **Next:** GTFS import + GTFS-RT trip updates tests (remaining 0%/low export code).
+
+## Iteration 10 — fixed-route transfer + GTFS-RT trip updates (coverage + feed bug)
+**Audit (top 5):** (1) GTFS import and "transfer to fixed route" booking (spec §7.2) never exercised; (2) GTFS-RT trip-updates feed untested; (3) API 409/422 error paths partly untested; (4) `api.py` closure size; (5) README drift (OR-Tools removed, new behaviours).
+**Plan:** tenant with a GTFS `stops.txt`: stations/platforms skipped, an out-of-zone destination books to the nearest *in-zone* stop; trip-updates feed carries ETAs.
+**Honest note:** transfer + import tests passed first time (coverage only). Review then found a feed defect, fixed test-first: unassigned trips emitted `"vehicle": null`, which protobuf JSON converters reject → the key is omitted until a vehicle is assigned.
+**Review of own diff:** (a) the null-vehicle defect; (b) removed a meaningless `assert TODAY < SERVICE_DAY` I had written; (c) transfer has no maximum distance to the rider's final destination — acceptable for MVP since only in-zone stops are candidates; logged as an open issue.
+**Metrics:** tests 71→74 pass; **coverage 90→91%**; ruff 0; mypy 0; bench unchanged.
+**Next:** API error-path tests / simplify `api.py`.

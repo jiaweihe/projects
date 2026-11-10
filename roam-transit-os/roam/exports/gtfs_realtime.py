@@ -56,16 +56,13 @@ def trip_updates(platform: Platform, tenant_id: str, service_date: date) -> dict
         stus = []
         if eta is not None:
             stus.append({"stop_sequence": 1, "arrival": {"time": _epoch(rt, service_date, eta)}})
-        entities.append(
-            {
-                "id": trip.id,
-                "trip_update": {
-                    "trip": {"trip_id": trip.id, "start_date": service_date.strftime("%Y%m%d"), "schedule_relationship": "ADDED"},
-                    "vehicle": {"id": trip.vehicle_id} if trip.vehicle_id else None,
-                    "stop_time_update": stus,
-                },
-            }
-        )
+        update: dict[str, Any] = {
+            "trip": {"trip_id": trip.id, "start_date": service_date.strftime("%Y%m%d"), "schedule_relationship": "ADDED"},
+            "stop_time_update": stus,
+        }
+        if trip.vehicle_id:  # omit rather than emit null (protobuf converters reject nulls)
+            update["vehicle"] = {"id": trip.vehicle_id}
+        entities.append({"id": trip.id, "trip_update": update})
     return {"header": {"gtfs_realtime_version": "2.0", "incrementality": "FULL_DATASET", "timestamp": int(time.time())}, "entity": entities}
 
 
